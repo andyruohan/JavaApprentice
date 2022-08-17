@@ -11,4 +11,5 @@
 1. 浏览了英文版leetCode，查看了近期Problem983和Problem698题解
 2. 浏览了《剑指Offer专项突破版》
 3. 查看了RTF转PDF的工程，识别近期流量未控制住的原因
+4. 学习《clean Architecture》P63-67，正好解答了之前对分层架构继承关系的疑惑
 
