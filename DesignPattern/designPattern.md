@@ -17,6 +17,26 @@
 设计模式的七大原则
 - 单一职责原则（lesson06~07）。比如Dao层类，分别只对各自对应的entity操作
 
+
+    package com.atguigu.principle.singleresponsibility;
+    public class SingleResponsibility1 {
+        public static void main(String[] args) {
+        // TODO Auto-generated method stub
+        Vehicle vehicle = new Vehicle(); 
+        vehicle.run("摩托车"); 
+        vehicle.run("汽车");
+        vehicle.run("飞机"); 
+        } 
+    }
+方式1： 
+
+    class Vehicle{ 
+    public void run(String vehicle) { 
+        System.out.println(vehicle + " 在公路上运行...."); 
+        } 
+    }
+在方式 1 的 run 方法中，违反了单一职责原则
+
 - 接口隔离原则（lesson08~10）。一个类对另一个的类的依赖应该建立在最小的接口上
 ![img.png](违反接口隔离原则的依赖关系.png)
 ![img.png](优化后的依赖关系.png)
