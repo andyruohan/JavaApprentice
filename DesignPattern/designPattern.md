@@ -15,11 +15,16 @@
 - 建造者模式：Java中的StringBuilder
 
 设计模式的七大原则
-- 单一职责原则（lesson06~07）。比如Dao层类，分别只对各自对应的entity操作
-- 接口隔离原则（lesson08~10）。一个类对另一个的类的依赖应该建立在最小的接口上
-- 依赖倒置原则（Dependence Inversion Principle）
-- 里氏替换原则
-- 开闭原则
-- 迪米特法则
-- 合成复用原则
+- 单一职责原则（Single Responsibility Principle）：比如Dao层类，分别只对各自对应的entity操作，而不对多个entity操作。
+- 接口隔离原则（Interface Segregation Principle）：一个类对另一个的类的依赖应该建立在最小的接口上。
+- 依赖倒置原则（Dependence Inversion Principle）：高层模块不应该依赖底层模块，二者都应该依赖其抽象。抽象不应该依赖细节，细节应该依赖抽象。
+- 里氏替换原则（Liskov Substitution Principle）：子类中尽量不要重写父类的方法，通过聚合、组合、依赖来解决问题。
+- 开闭原则（Open Closed Principle）：对扩展开放、对修改关闭。尽量通过扩展软件实体的行为来实现变化，而不是通过修改已有的代码来实现变化。
+- 迪米特法则（Demeter Principle）：对自己依赖的类知道的越少越好。
+- 合成复用原则（Composite Reuse Principle）：尽量使用合成/聚合的方式， 而不是使用继承。  
+
+总结：设计原则的核心思想
+- 找出应用中可能需要变化之处，把它们独立出来，不要和那些不需要变化的代码混在一起。
+- 针对接口编程，而不是针对实现编程。
+- 为了交互对象之间的松耦合设计而努力。
   
