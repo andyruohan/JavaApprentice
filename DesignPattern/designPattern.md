@@ -12,6 +12,9 @@
 ![avatar](images/Snipaste_2022-07-20_23-02-46.png)
 
 设计模式典型案例
+- 单例模式：
+    - JDK中的java.lang.Runtime（饿汉式-静态内部类）
+    - Hibernate的SessionFactory
 - 建造者模式：Java中的StringBuilder
 
 设计模式的七大原则
