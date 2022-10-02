@@ -15,6 +15,8 @@
 - 单例模式：
     - JDK中的java.lang.Runtime（饿汉式-静态内部类）
     - Hibernate的SessionFactory
+- 简单工厂模式：JDK 中的 Calendar 类
+- 原型模式：Spring 中原型 bean 的创建
 - 建造者模式：Java中的StringBuilder
 
 设计模式的七大原则
