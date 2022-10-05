@@ -1,13 +1,19 @@
-建造者模式（又名生成器模式）的四个角色：
-- Product（产品角色）：一个具体的产品对象。
-- Builder（抽象建造者）：创建一个Product对象的各个部件的抽象接口。
-- ConcreteBuilder（具体建造者）：构建和装备各个部件的具体实现。
-- DDirector（指挥者）： 它主要是用于创建一个复杂的对象（一个使用Builder接口构建的对象）。其有两个作用，一是：隔离了客户与对象的生产过程，二是：负责控制产品对象的生产过程。
+###建造者模式（又名生成器模式）的四个角色：
+>- Product（产品角色）：一个具体的产品对象。
+>- Builder（抽象建造者）：创建一个Product对象的各个部件的抽象接口。
+>- ConcreteBuilder（具体建造者）：构建和装备各个部件的具体实现。
+>- DDirector（指挥者）： 它主要是用于创建一个复杂的对象（一个使用Builder接口构建的对象）。其有两个作用，一是：隔离了客户与对象的生产过程，二是：负责控制产品对象的生产过程。
 
 StringBuilder源码角色分析：
 - 抽象建造者：Appendable 
-- 介于抽象建造者与具体建造者之间：AbstractStringBuilder（虽然它已经实现了Appendable里的append方法，但不能被实例化）
-- 介于具体建造者与指挥者之间：StringBuilder（可实例化，append方法具体实现过程已在AbstractStringBuilder实现）
+- 介于抽象建造者与具体建造者之间：AbstractStringBuilder
+  >- 从它不能被实例化，仍是符合抽象建造者特性
+  >- 从它实现了Appendable里的append方法，已经开始具备具体建造者的特性
+- 介于具体建造者与指挥者之间：StringBuilder
+  >- 它继承了AbstractStringBuilder：append方法具体实现过程已在AbstractStringBuilder实现。符合具体建造者的特性
+  >- 它决定了产品的生产过程，符合指挥者的特性
+  
+（产生此种差异的原因：可能是StringBuilder早期版本编写时，还没有建造者模式的概念，因此部分设计存在差异）
 
 总结：
 - 使用建造者模式，客户端/使用者不必知道产品内部组成的细节，将产品本身与产品的创建过程解耦，使得相同的创建过程可以创建不同的产品对象（符合开闭原则）。
