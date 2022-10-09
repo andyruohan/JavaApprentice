@@ -13,11 +13,11 @@
 
 设计模式典型案例
 - 单例模式：
-    - JDK中的java.lang.Runtime（饿汉式-静态内部类）
-    - Hibernate的SessionFactory
+    - JDK 中的 java.lang.Runtime（饿汉式-静态内部类）
+    - Hibernate 的 SessionFactory
 - 简单工厂模式：JDK 中的 Calendar 类
 - 原型模式：Spring 中原型 bean 的创建
-- 建造者模式：Java中的StringBuilder
+- 建造者模式：JDK 中的 StringBuilder
 
 设计模式的七大原则
 - 单一职责原则（Single Responsibility Principle）：比如Dao层类，分别只对各自对应的entity操作，而不对多个entity操作。
