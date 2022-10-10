@@ -1,0 +1,24 @@
+@startuml
+class designPatterns.adapter.classAdapter.Phone {
++ void charging(IVoltage5V)
+}
+class designPatterns.adapter.classAdapter.Voltage220V {
++ int output220V()
+}
+interface designPatterns.adapter.classAdapter.IVoltage5V {
++ int output5V()
+}
+class designPatterns.adapter.classAdapter.Client {
++ {static} void main(String[])
+}
+class designPatterns.adapter.classAdapter.VoltageAdapter {
++ int output5V()
+}
+
+
+designPatterns.adapter.classAdapter.IVoltage5V <|.. designPatterns.adapter.classAdapter.VoltageAdapter
+designPatterns.adapter.classAdapter.Voltage220V <|-- designPatterns.adapter.classAdapter.VoltageAdapter
+designPatterns.adapter.classAdapter.VoltageAdapter <.. designPatterns.adapter.classAdapter.Client
+designPatterns.adapter.classAdapter.Phone <.. designPatterns.adapter.classAdapter.Client
+designPatterns.adapter.classAdapter.IVoltage5V <.. designPatterns.adapter.classAdapter.Phone
+@enduml

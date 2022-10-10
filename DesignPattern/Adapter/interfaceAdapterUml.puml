@@ -1,0 +1,23 @@
+@startuml
+interface designPatterns.adapter.interfaceAdapter.Interface4 {
++ void m1()
++ void m2()
++ void m3()
++ void m4()
+}
+class designPatterns.adapter.interfaceAdapter.Client {
++ {static} void main(String[])
+}
+note right of designPatterns.adapter.interfaceAdapter.Client : 调用AbsAdapter抽象类，并通过内部类实现其中所需用到的某个方法
+
+abstract class designPatterns.adapter.interfaceAdapter.AbsAdapter {
++ void m1()
++ void m2()
++ void m3()
++ void m4()
+}
+note right of designPatterns.adapter.interfaceAdapter.AbsAdapter : AbsAdapter抽象类，默认实现接口的所有方法
+
+designPatterns.adapter.interfaceAdapter.Interface4 <|.. designPatterns.adapter.interfaceAdapter.AbsAdapter
+designPatterns.adapter.interfaceAdapter.AbsAdapter <|.. designPatterns.adapter.interfaceAdapter.Client
+@enduml
