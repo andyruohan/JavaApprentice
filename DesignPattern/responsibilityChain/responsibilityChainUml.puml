@@ -1,0 +1,41 @@
+@startuml
+class designPatterns.responsibilityChain.Client {
++ {static} void main(String[])
+}
+abstract class designPatterns.responsibilityChain.Approver {
+~ Approver approver
+~ String name
++ void setApprover(Approver)
++ {abstract}void processRequest(PurchaseRequest)
+}
+class designPatterns.responsibilityChain.PurchaseRequest {
+- int type
+- float price
+- int id
++ int getType()
++ float getPrice()
++ int getId()
+}
+class designPatterns.responsibilityChain.CollegeApprover {
++ void processRequest(PurchaseRequest)
+}
+class designPatterns.responsibilityChain.DepartmentApprover {
++ void processRequest(PurchaseRequest)
+}
+class designPatterns.responsibilityChain.ViceSchoolMasterApprover {
++ void processRequest(PurchaseRequest)
+}
+class designPatterns.responsibilityChain.SchoolMasterApprover {
++ void processRequest(PurchaseRequest)
+}
+
+
+designPatterns.responsibilityChain.Approver <|-- designPatterns.responsibilityChain.CollegeApprover
+designPatterns.responsibilityChain.Approver <|-- designPatterns.responsibilityChain.DepartmentApprover
+designPatterns.responsibilityChain.Approver <|-- designPatterns.responsibilityChain.ViceSchoolMasterApprover
+designPatterns.responsibilityChain.Approver <|-- designPatterns.responsibilityChain.SchoolMasterApprover
+designPatterns.responsibilityChain.Approver <.. designPatterns.responsibilityChain.Client
+designPatterns.responsibilityChain.PurchaseRequest <.. designPatterns.responsibilityChain.Client
+designPatterns.responsibilityChain.PurchaseRequest <.. designPatterns.responsibilityChain.Approver
+designPatterns.responsibilityChain.Approver o-- designPatterns.responsibilityChain.Approver
+@enduml

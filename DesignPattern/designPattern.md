@@ -18,6 +18,7 @@
 - 简单工厂模式：JDK 中的 Calendar 类
 - 原型模式：Spring 中原型 bean 的创建
 - 建造者模式：JDK 中的 StringBuilder
+- 职责链模式：SpringMVC 中的 HandlerExecutionChain 类
 
 设计模式的七大原则
 - 单一职责原则（Single Responsibility Principle）：比如Dao层类，分别只对各自对应的entity操作，而不对多个entity操作。
