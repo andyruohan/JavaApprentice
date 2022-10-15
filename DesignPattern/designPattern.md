@@ -13,11 +13,15 @@
 
 设计模式典型案例
 - 单例模式：
-    - JDK 中的 java.lang.Runtime（饿汉式-静态内部类）
-    - Hibernate 的 SessionFactory
+  - JDK 中的 java.lang.Runtime（饿汉式-静态内部类）
+  - Hibernate 的 SessionFactory
 - 简单工厂模式：JDK 中的 Calendar 类
 - 原型模式：Spring 中原型 bean 的创建
 - 建造者模式：JDK 中的 StringBuilder
+- 适配器模式：
+  - SpringMVC 中的 HandlerAdapter
+  - InputStreamReader 适配 InputStream
+- 模版方法模式：Spring IOC 容器初始化时运用了模板方法模式
 - 职责链模式：SpringMVC 中的 HandlerExecutionChain 类
 
 设计模式的七大原则
