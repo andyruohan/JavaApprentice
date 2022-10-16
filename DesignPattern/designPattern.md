@@ -21,8 +21,13 @@
 - 适配器模式：
   - SpringMVC 中的 HandlerAdapter
   - InputStreamReader 适配 InputStream
+- 桥接模式：jdbc 中 Driver 
 - 模版方法模式：Spring IOC 容器初始化时运用了模板方法模式
 - 职责链模式：SpringMVC 中的 HandlerExecutionChain 类
+
+######设计模式类似逻辑：
+- 工厂方法与模版方法
+- 适配器模式与桥接模式
 
 设计模式的七大原则
 - 单一职责原则（Single Responsibility Principle）：比如Dao层类，分别只对各自对应的entity操作，而不对多个entity操作。
