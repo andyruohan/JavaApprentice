@@ -22,6 +22,7 @@
   - SpringMVC 中的 HandlerAdapter
   - InputStreamReader 适配 InputStream
 - 桥接模式：jdbc 中 Driver 
+- 组合模式：JDK 中的 HashMap
 - 模版方法模式：Spring IOC 容器初始化时运用了模板方法模式
 - 职责链模式：SpringMVC 中的 HandlerExecutionChain 类
 
