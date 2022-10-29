@@ -23,6 +23,9 @@
   - InputStreamReader 适配 InputStream
 - 桥接模式：jdbc 中 Driver 
 - 组合模式：JDK 中的 HashMap
+- 装饰器模式：JDL 中的 FilterInputStream
+- 外观模式：MyBatis 中的 Configuration
+- 享元模式（池化思想）：JDK 中的 String、Integer（-128～+127）
 - 模版方法模式：Spring IOC 容器初始化时运用了模板方法模式
 - 职责链模式：SpringMVC 中的 HandlerExecutionChain 类
 
