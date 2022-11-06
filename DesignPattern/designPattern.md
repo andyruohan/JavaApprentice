@@ -15,6 +15,7 @@
 3) 解决类爆炸：桥接模式、装饰器模式
 4) 池化思想：享元模式
 5) 复制对象：原型模式
+6) 炒菜/制作豆浆：模板模式
 
 ![avatar](image/设计模式所支持的设计可变方面.png)
 
@@ -34,6 +35,7 @@
 - 外观模式：MyBatis 中的 Configuration
 - 享元模式（池化思想）：JDK 中的 String、Integer（-128～+127）
 - 模版方法模式：Spring IOC 容器初始化时运用了模板方法模式
+- 命令模式：Spring 框架 JdbcTemplate 
 - 职责链模式：SpringMVC 中的 HandlerExecutionChain 类
 
 ######设计模式类似逻辑：
