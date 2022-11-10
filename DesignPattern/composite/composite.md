@@ -119,7 +119,7 @@ public class Client {
 ![](HashMap源码分析.png)
 
 其对应的UML图如下：
-![](HashMap Uml图.png)
+![](HashMap的Uml图.png)
 
 ###注意点：
 - 需要`遍历组织机构，或者处理的对象具有树形结构`时，非常适合使用组合模式。
