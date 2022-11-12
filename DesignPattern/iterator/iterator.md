@@ -146,7 +146,7 @@ public class Client {
 ```
 
 ###迭代器模式在 JDK-ArrayList 集合应用的源码分析
-迭代器模式实现不同集合(ArrayList, LinkedList)统一遍历问题
+迭代器模式实现不同集合(ArrayList、LinkedList)统一遍历问题
 ![](ArrayList源码分析.png)
 ![](ArrayList的UML图.png)
 #####角色分析

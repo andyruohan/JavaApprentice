@@ -35,7 +35,9 @@
 - 外观模式：MyBatis 中的 Configuration
 - 享元模式（池化思想）：JDK 中的 String、Integer（-128～+127）
 - 模版方法模式：Spring IOC 容器初始化时运用了模板方法模式
-- 命令模式：Spring 框架 JdbcTemplate 
+- 命令模式：Spring 框架 JdbcTemplate 类
+- 迭代器模式：JDK 的 ArrayList、LinkedList 类
+- 观察者模式：JDK 的 Observable 类
 - 职责链模式：SpringMVC 中的 HandlerExecutionChain 类
 
 ######设计模式类似逻辑：
