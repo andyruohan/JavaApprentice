@@ -38,6 +38,7 @@
 - 命令模式：Spring 框架 JdbcTemplate 类
 - 迭代器模式：JDK 的 ArrayList、LinkedList 类
 - 观察者模式：JDK 的 Observable 类
+- 中介者模式：SpringMVC 模型
 - 职责链模式：SpringMVC 中的 HandlerExecutionChain 类
 
 ######设计模式类似逻辑：
