@@ -38,8 +38,12 @@
 - 命令模式：Spring 框架 JdbcTemplate 类
 - 迭代器模式：JDK 的 ArrayList、LinkedList 类
 - 观察者模式：JDK 的 Observable 类
-- 中介者模式：SpringMVC 模型
+- 中介者模式：MVC 模型
+- 解释器模式：Spring 中 SpelExpressionParser 类
+- 策略模式：JDK 的 Arrays 类
 - 职责链模式：SpringMVC 中的 HandlerExecutionChain 类
+
+不常用设计模式：原型模式、解释器模式
 
 ######设计模式类似逻辑：
 - 工厂方法与模版方法
