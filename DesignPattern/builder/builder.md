@@ -1,10 +1,114 @@
-###建造者模式（又名生成器模式）的四个角色：
+需求：
+1) 建一所房子，建造的过程分为打桩、砌墙、封顶。
+2) 房子有各种各样的，比如普通房子、高楼、别墅，各种房子的过程虽然一样，但是规格、要求不同.
+
+###传统设计方案
+![](传统设计方案.png)  
+优点：程序简单，易于实现  
+缺点：将产品（即房子）和创建产品的过程（即建房子流程）封装在一起，程序的扩展和维护不好
+
+###建造者模式
+![](建造者模式原理图.png)
+####建造者模式（又名生成器模式）的四个角色：
 >- Product（产品角色）：一个具体的产品对象。
 >- Builder（抽象建造者）：创建一个Product对象的各个部件的抽象接口。
 >- ConcreteBuilder（具体建造者）：构建和装备各个部件的具体实现。
->- DDirector（指挥者）： 它主要是用于创建一个复杂的对象（一个使用Builder接口构建的对象）。其有两个作用，一是：隔离了客户与对象的生产过程，二是：负责控制产品对象的生产过程。
+>- Director（指挥者）： 它主要是用于创建一个复杂的对象（一个使用Builder接口构建的对象）。其有两个作用，一是：隔离了客户与对象的生产过程，二是：负责控制产品对象的生产过程。
 
-StringBuilder源码角色分析：
+###使用建造者模式解决房屋建设问题
+![](builderPatternUml.png)
+####抽象建造者
+```java
+public abstract class AbstractHouseBuilder {
+    protected HouseProduct house = new HouseProduct();
+
+    //抽象建造方法
+    public abstract void buildBasic();
+    public abstract void buildWalls();
+    public abstract void roofed();
+
+    //返回建造好的房子
+    public HouseProduct buildHouse() {
+        return house;
+    }
+}
+```
+
+####具体建造者
+```java
+public class CommonHouseBuilder extends AbstractHouseBuilder {
+    @Override
+    public void buildBasic() {
+        System.out.println(" 普通房子打地基5米 ");
+    }
+
+    @Override
+    public void buildWalls() {
+        System.out.println(" 普通房子砌墙10cm ");
+    }
+
+    @Override
+    public void roofed() {
+        System.out.println(" 普通房子屋顶 ");
+    }
+}
+```
+
+####指挥者
+```java
+public class HouseDirector {
+    AbstractHouseBuilder abstractHouseBuilder;
+
+    //构造器传入 houseBuilder
+    public HouseDirector(AbstractHouseBuilder abstractHouseBuilder) {
+        this.abstractHouseBuilder = abstractHouseBuilder;
+    }
+
+    //通过 setter 传入 houseBuilder
+    public void setHouseBuilder(AbstractHouseBuilder abstractHouseBuilder) {
+        this.abstractHouseBuilder = abstractHouseBuilder;
+    }
+
+    //如何处理建造房子的流程，交给指挥者
+    public HouseProduct constructHouse() {
+        abstractHouseBuilder.buildBasic();
+        abstractHouseBuilder.buildWalls();
+        abstractHouseBuilder.roofed();
+        return abstractHouseBuilder.buildHouse();
+    }
+}
+```
+
+####建造产品
+```java
+@Data
+public class HouseProduct {
+    private String basis;
+    private String wall;
+    private String roofed;
+}
+```
+
+#####客户端服务类
+```java
+public class Client {
+    public static void main(String[] args) {
+        //盖普通房子
+        CommonHouseBuilder commonHouse = new CommonHouseBuilder();
+        HouseDirector houseDirector = new HouseDirector(commonHouse);
+        HouseProduct house = houseDirector.constructHouse();
+
+        System.out.println("-------------------------");
+
+        //盖高楼
+        HighBuildingBuilder highBuildingBuilder = new HighBuildingBuilder();
+        houseDirector.setHouseBuilder(highBuildingBuilder);
+        houseDirector.constructHouse();
+    }
+}
+```
+
+###StringBuilder源码角色分析：
 - 抽象建造者：Appendable 
 - 介于抽象建造者与具体建造者之间：AbstractStringBuilder
   >- 从它不能被实例化，仍是符合抽象建造者特性

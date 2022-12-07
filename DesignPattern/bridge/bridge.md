@@ -11,96 +11,97 @@
 ######抽象手机类，聚合品牌接口
 ```java
 public abstract class Phone {
-	private Brand brand; //品牌
+   private Brand brand; //品牌
 
-	public Phone(Brand brand) {
-		super();
-		this.brand = brand;
-	}
-	
-	public void open() {
-		this.brand.open();
-	}
+   public Phone(Brand brand) {
+      super();
+      this.brand = brand;
+   }
 
-	public void close() {
-		brand.close();
-	}
+   public void open() {
+      this.brand.open();
+   }
 
-	public void call() {
-		brand.call();
-	}
+   public void close() {
+      brand.close();
+   }
+
+   public void call() {
+      brand.call();
+   }
 }
 ```
 
 ######品牌接口
 ```java
 public interface Brand {
-	void open();
-	void close();
-	void call();
+   void open();
+   void close();
+   void call();
 }
 ```
 
 ######手机继承子类，这里折叠屏为例
+
 ```java
 public class FoldedPhone extends Phone {
-	public FoldedPhone(Brand brand) {
-		super(brand);
-	}
-	
-	public void open() {
-		super.open();
-		System.out.println(" 折叠样式手机 ");
-	}
-	
-	public void close() {
-		super.close();
-		System.out.println(" 折叠样式手机 ");
-	}
-	
-	public void call() {
-		super.call();
-		System.out.println(" 折叠样式手机 ");
-	}
+   public FoldedPhone(Brand brand) {
+      super(brand);
+   }
+
+   public void open() {
+      super.open();
+      System.out.println(" 折叠样式手机 ");
+   }
+
+   public void close() {
+      super.close();
+      System.out.println(" 折叠样式手机 ");
+   }
+
+   public void call() {
+      super.call();
+      System.out.println(" 折叠样式手机 ");
+   }
 }
 ```
 
-######品牌实现子类，这里以小米为例
+###### 品牌实现子类，这里以小米为例
 ```java
 public class XiaoMi implements Brand {
-    @Override
-    public void open() {
-        System.out.println(" 小米手机开机 ");
-    }
+   @Override
+   public void open() {
+      System.out.println(" 小米手机开机 ");
+   }
 
-    @Override
-    public void close() {
-        System.out.println(" 小米手机关机 ");
-    }
+   @Override
+   public void close() {
+      System.out.println(" 小米手机关机 ");
+   }
 
-    @Override
-    public void call() {
-        System.out.println(" 小米手机打电话 ");
-    }
+   @Override
+   public void call() {
+      System.out.println(" 小米手机打电话 ");
+   }
 }
 ```
 
 ######客户端服务类
 ```java
 public class Client {
-	public static void main(String[] args) {
-		//获取折叠式手机 (样式 + 品牌)
-		Phone phone1 = new FoldedPhone(new XiaoMi());
-		phone1.open();
-		phone1.call();
-		phone1.close();
-		
-		System.out.println("=======================");
-		Phone phone2 = new FoldedPhone(new Vivo());
-		phone2.open();
-		phone2.call();
-		phone2.close();
-	}
+   public static void main(String[] args) {
+      //获取折叠式手机 (样式 + 品牌)
+      Phone phone1 = new FoldedPhone(new XiaoMi());
+      phone1.open();
+      phone1.call();
+      phone1.close();
+
+      System.out.println("=======================");
+      Phone phone2 = new FoldedPhone(new Vivo());
+      phone2.open();
+      phone2.call();
+      phone2.close();
+   }
 }
 ```
 
