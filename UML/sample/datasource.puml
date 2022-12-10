@@ -1,0 +1,80 @@
+@startuml
+'https://plantuml.com/object-diagram
+
+object ONB_OLC_MST_T {
+OLC_OLC_IDX: 出口信用证主键
+OLC_SED_TYP: 交易类型
+OLC_BBK_NBR: 业务办理分行
+OLC_BRN_NBR: 业务办理网点
+OLC_CLT_NBR: 客户号
+OLC_CON_NBR: 联系电话
+OLC_TSP_DAT: 运单编号
+OLC_IMO_NBR: 传播学IMO号
+OLC_CCY_TYP: 托收币种
+OLC_CCY_AMT: 托收金额
+OLC_DCT_ACT: 扣费币种
+OLC_DCT_CCY: 扣费金额
+OLC_BUS_STA: 业务状态
+...
+}
+object ONB_OLC_ECS_T {
+OLC_OLC_IDX: 出口信用证主键
+ECS_FIL_KEY: ECS fileKey
+ECS_FIL_NAM: 文件名
+ECS_FIL_TYP: 文件类型
+ECS_FIL_LEN: 文件长度
+ECS_FIL_STS: 文件状态
+OLC_DOC_IDX: 补档Id
+}
+object ONB_OLC_DOC_T {
+OLC_DOC_IDX: 任务Id
+OLC_OLC_IDX: 出口信用证主键
+OLC_BUS_TYP: 业务类型
+OLC_TSK_TYP: 任务种类
+OLC_TSK_STA: 任务状态
+OLC_MSG_CFM: 确认消息
+OLC_MSG_REP: 回复消息
+}
+object ONB_OLC_OTH_T {
+OLC_OLC_IDX: 出口信用证主键
+OLC_OTH_SEQ: 票据序号
+OLC_OTH_NAM: 票据名称
+OLC_OTH_NBR: 票据分数
+}
+object ONB_OLC_WKF_T {
+ONB_TRS_KEY: 逻辑主键
+ONB_APP_NBR: 中台审批流编号
+ONB_OLC_IDX: 出口信用证主键
+ONB_OPR_USR: 操作用户
+ONB_OPR_NAM: 操作用户名
+ONB_OPR_STP: 操作步骤
+ONB_OPR_IND: 操作序列
+ONB_OPR_TYP: 操作类型
+}
+object ONB_OLC_NXT_T {
+ONB_LGC_IDX: 逻辑主键
+ONB_APP_NBR: 中台审批流编号
+ONB_OLC_IDX: 出口信用证主键
+ONB_OPR_STP: 操作步骤
+ONB_OPR_IND: 操作序列
+ONB_OPR_USR: 操作用户
+ONB_OPR_NAM: 操作用户名
+}
+object ONB_OBP_EXP_T {
+ONB_EXP_IDX: 快递主键
+OBP_MST_IDX: 主表主键
+OBP_EXP_TYP: 快递单据类型
+OBP_EXP_NUM: 快递单号
+OBP_EXP_DAT: 快递日期
+OBP_EXP_CMP: 快递公司
+}
+
+ONB_OLC_MST_T "1" .. "0:N" ONB_OLC_ECS_T
+ONB_OLC_DOC_T "1" .. "0:N" ONB_OLC_ECS_T
+ONB_OLC_MST_T "1" .. "0:5" ONB_OBP_EXP_T
+ONB_OLC_MST_T "1" .. "0" ONB_OLC_DOC_T
+ONB_OLC_MST_T "1" .. "1:N" ONB_OLC_WKF_T
+ONB_OLC_MST_T "1" .. "1:5" ONB_OLC_OTH_T
+ONB_OLC_MST_T "1" .. "0:N" ONB_OLC_NXT_T
+
+@enduml

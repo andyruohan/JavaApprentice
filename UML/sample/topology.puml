@@ -1,0 +1,66 @@
+@startuml
+'https://plantuml.com/deployment-diagram
+
+actor actor [
+用户
+]
+
+rectangle 其他渠道 {
+    rectangle 国际业务专区PC端
+    rectangle 国际业务专区APP端
+}
+
+cloud PaaS {
+    folder DMZ {
+        rectangle UBANKILC [
+        LJ01.ONB@UBANKILC]
+
+        rectangle PORTAL [
+        LJ01.ONB@PORTAL]
+    }
+}
+
+cloud FTC {
+    folder BIZ {
+        rectangle ONB_GTW_H8 [
+        LJ01.ONB@ONB_GTW_H8]
+
+        rectangle ONB6 [
+        LJ01.ONB@ONB6]
+
+        rectangle ONBCOMMON [
+        LJ01.ONB@ONBCOMMON]
+
+        rectangle ONBA [
+        LJ01.ONB@ONBA]
+
+        rectangle X86_IS [
+        X86国结系统]
+    }
+}
+
+database database[
+ONB60100出口单证数据库]
+
+rectangle CMBRun {
+    rectangle 7079
+    rectangle 7268
+}
+
+actor ..> PORTAL
+actor --> UBANKILC
+PORTAL .> UBANKILC
+actor --> 其他渠道
+国际业务专区APP端 -->ONB_GTW_H8
+国际业务专区PC端 -->ONB_GTW_H8
+PORTAL ..> ONB_GTW_H8
+UBANKILC --> ONB_GTW_H8
+ONB_GTW_H8 --> ONB6
+ONB6 -> database : save
+ONB6 --> ONBCOMMON : auth
+ONBCOMMON --> ONB6
+ONB6 --> ONBA : whitelist
+ONBA --> ONB6
+ONB6 --> X86_IS
+X86_IS --> CMBRun
+@enduml
