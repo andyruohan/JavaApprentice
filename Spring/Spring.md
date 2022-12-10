@@ -1,11 +1,11 @@
-##Spring作用域之间的区别
+###Spring作用域之间的区别
 可以通过scope属性来指定bean的作用域
 - singleton：默认值。当IOC容器一创建就会创建bean的实例，而且是单例的，每次得到的都是同一个。
 - prototype：原型的。当IOC容器一创建不再实例化该bean，每次调用getBean方法时再实例化该bean，而且每调一次创建一个对象。
 - request：每次请求实例化一个bean。
 - session：在一个会话中共享一个bean。
 
-##Spring支持的常用数据库传播属性和事务隔离级别
+###Spring支持的常用数据库传播属性和事务隔离级别
 事务的传播行为可以由传播属性指定。Spring定义了7种类传播行为。
  
 |  传播属性   | 描述  |
@@ -37,4 +37,8 @@
 | REPEATABLE READ | x | √（默认） | 
 | SERIALIZABLE | √ | √ | 
 事务隔离级别可以在@Transactional注解的ioslation属性中定义。
+
+###SpringMVC的工作流程
+![](assets/SpringMVC的工作流程.png)
+
 
