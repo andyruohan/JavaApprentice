@@ -1,4 +1,4 @@
-现有需求：对不同手机品牌及款式实现操作编程（比如开机、关机、上网，打电话等）
+现有需求：对不同手机品牌及款式实现操作编程（比如开机、关机、上网等）
 ![](不同手机品牌及款式问题.png)
 
 ###传统方式解决
@@ -8,7 +8,7 @@
 
 ###桥接模式解决
 ![](桥接模式解决.png)
-######抽象手机类，聚合品牌接口
+#####抽象手机类，聚合品牌接口
 ```java
 public abstract class Phone {
    private Brand brand; //品牌
@@ -32,7 +32,7 @@ public abstract class Phone {
 }
 ```
 
-######品牌接口
+#####品牌接口
 ```java
 public interface Brand {
    void open();
@@ -41,7 +41,7 @@ public interface Brand {
 }
 ```
 
-######手机继承子类，这里折叠屏为例
+#####手机继承子类，这里折叠屏为例
 
 ```java
 public class FoldedPhone extends Phone {
@@ -66,7 +66,7 @@ public class FoldedPhone extends Phone {
 }
 ```
 
-###### 品牌实现子类，这里以小米为例
+#####品牌实现子类，这里以小米为例
 ```java
 public class XiaoMi implements Brand {
    @Override
@@ -86,7 +86,7 @@ public class XiaoMi implements Brand {
 }
 ```
 
-######客户端服务类
+#####客户端服务类
 ```java
 public class Client {
    public static void main(String[] args) {
