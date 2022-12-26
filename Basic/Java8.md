@@ -67,3 +67,55 @@ Comparator<Integer> com = (x, y) -> Integer.compare(x, y);
 
 #####其他函数式接口
 ![](其他函数式接口.png)
+
+###方法引用
+#####对象::实例方法
+```java
+Employee emp = new Employee(101, "张三", 18, 9999.99);
+
+Supplier<String> sup1 = () -> emp.getName();
+//等同于
+Supplier<String> sup2 = emp::getName;
+```
+
+#####类::静态方法
+```java
+BiFunction<Double, Double, Double> fun1 = (x, y) -> Math.max(x, y);
+//等同于
+BiFunction<Double, Double, Double> fun2 = Math::max;
+```
+
+#####类::实例方法
+```java
+BiPredicate<String, String> bp1 = (x, y) -> x.equals(y);
+//等同于
+BiPredicate<String, String> bp2 = String::equals;
+```
+###构造器引用 ClassName::new
+```java
+Supplier<Employee> sup1 = () -> new Employee();
+//等同于
+Supplier<Employee> sup2 = Employee::new;
+```
+
+**具体匹配哪个构造器，取决于是否有该构造器函数**。如Function<String, Employee> fun1、BiFunction<String, Integer, Employee> fun2`分别没有带一参、两参的构造函数，则会报错`。
+```java
+Function<String, Employee> fun1 = Employee::new;
+BiFunction<String, Integer, Employee> fun2 = Employee::new;
+```
+
+###数组引用 type[]::new
+```java
+Function<Integer, String[]> fun1 = (args) -> new String[args];
+String[] strs1 = fun1.apply(10);
+//等同于
+Function<Integer, String[]> fun2 = String[]::new;
+String[] strs2 = fun2.apply(10);
+```
+
+###Stream
+![](Stream示意图.png)
+Stream操作的三个步骤
+- 创建 Stream 
+- 中间操作  
+- 终止操作(终端操作)  
