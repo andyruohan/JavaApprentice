@@ -116,6 +116,37 @@ String[] strs2 = fun2.apply(10);
 ###Stream
 ![](Stream示意图.png)
 Stream操作的三个步骤
-- 创建 Stream 
-- 中间操作  
-- 终止操作(终端操作)  
+- 创建Stream 
+- 中间操作
+- 终止操作(终端操作)
+
+###创建Stream
+1) 通过Collection获取串行流和并行流
+```java
+List<String> list = new ArrayList<>();
+Stream<String> stream1 = list.stream(); //获取一个顺序流
+Stream<String> parallelStream = list.parallelStream(); //获取一个并行流
+```
+
+2) 通过Arrays的静态方法stream()
+```java
+Integer[] nums = new Integer[10];
+Stream<Integer> stream2 = Arrays.stream(nums);
+```
+
+3) 通过Stream的静态方法of()
+```java
+tream<Integer> stream3 = Stream.of(1, 2, 3, 4, 5, 6);
+```
+
+4) 创建无限流
+- 通过Stream的静态方法iterate()
+```java
+Stream<Integer> stream4 = Stream.iterate(0, (x) -> x + 2).limit(10);
+stream4.forEach(System.out::println);
+```
+- 通过Stream的静态方法generate()
+```java
+Stream<Double> stream4 = Stream.generate(Math::random).limit(2);
+stream4.forEach(System.out::println);
+```
