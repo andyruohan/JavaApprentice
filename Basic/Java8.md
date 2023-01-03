@@ -150,3 +150,9 @@ stream4.forEach(System.out::println);
 Stream<Double> stream4 = Stream.generate(Math::random).limit(2);
 stream4.forEach(System.out::println);
 ```
+
+###Stream的中间操作
+多个中间操作可以连接起来形成一个流水线，除非流水线上触发终止操作，否则中间操作不会执行任何的处理！而在终止操作时一次性全部处理，称为“惰性求值”。
+![](筛选与切片.png)
+![](映射.png)
+![](排序.png)
