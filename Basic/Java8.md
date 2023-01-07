@@ -189,3 +189,57 @@ stream.forEach(System.out::println);
 >######Collectors实用类提供了很多静态方法，可以方便地创建常见收集器实例
 >![](Collectors静态方法1.png)
 >![](Collectors静态方法2.png)
+
+###串行流与并行流
+Java 8 中将并行进行了优化，我们可以很容易的对数据进行并行操作。Stream API 可以声明性地通过 parallel() 与 sequential() 在并行流与顺序流之间进行切换。  
+>并行流基于**Fork/Join 框架**：就是在必要的情况下，将一个大任务，进行拆分(fork)成若干个小任务（拆到不可再拆时），再将一个个的小任务运算的结果进行 join 汇总。
+>####Fork/Join框架原理图
+>![](ForkJoin框架.png)
+
+####代码示例：
+```java
+public class TestForkJoin {
+    //串行计算
+    @Test
+    public void test2() {
+        long start = System.currentTimeMillis();
+		
+        long sum = 0L;
+        for (long i = 0L; i <= 10000000000L; i++) {
+            sum += i;
+        }
+        System.out.println(sum);
+		
+        long end = System.currentTimeMillis();
+        System.out.println("耗费的时间为: " + (end - start)); //34-3174-3132-4227-4223-31583
+    }
+
+    //手动实现ForkJoin并行计算
+    @Test
+    public void test1() {
+        long start = System.currentTimeMillis();
+
+        ForkJoinPool pool = new ForkJoinPool();
+        ForkJoinTask<Long> task = new ForkJoinCalculate(0L, 10000000000L);
+        long sum = pool.invoke(task);
+        System.out.println(sum);
+
+        long end = System.currentTimeMillis();
+        System.out.println("耗费的时间为: " + (end - start)); //112-1953-1988-2654-2647-20663-113808
+    }
+
+    //并行流计算
+    @Test
+    public void test3() {
+        long start = System.currentTimeMillis();
+		
+        Long sum = LongStream.rangeClosed(0L, 10000000000L)
+                .parallel()
+                .sum();
+        System.out.println(sum);
+		
+        long end = System.currentTimeMillis();
+        System.out.println("耗费的时间为: " + (end - start)); //2061-2053-2086-18926
+    }
+}
+```
