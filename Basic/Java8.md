@@ -152,7 +152,40 @@ stream4.forEach(System.out::println);
 ```
 
 ###Stream的中间操作
-多个中间操作可以连接起来形成一个流水线，除非流水线上触发终止操作，否则中间操作不会执行任何的处理！而在终止操作时一次性全部处理，称为“惰性求值”。
+####筛选与切片
 ![](筛选与切片.png)
+####映射
 ![](映射.png)
+####排序
 ![](排序.png)
+多个`中间操作`可以连接起来形成一个`流水线`，除非流水线上触发终止操作，否则`中间操作不会执行任何的处理`！而在终止操作时一次性全部处理，称为**惰性求值**。
+```java
+//未出现终止操作，所有的中间操作不会做任何的处理，即下列语句无输出
+Stream<Employee> stream = emps.stream()
+        .filter((e) -> {
+        System.out.println("测试中间操作");
+        return e.getAge() <= 35;
+        });
+```
+```java
+Stream<Employee> stream = emps.stream()
+        .filter((e) -> {
+            System.out.println("测试中间操作");
+            return e.getAge() <= 35;
+        });
+
+//出现终止操作，所有的中间操作会一次性的全部执行，称为“惰性求值”
+stream.forEach(System.out::println);
+```
+
+###Stream的终止操作
+####查找与匹配
+![](查找与匹配1.png)
+![](查找与匹配2.png)
+####规约（约简）
+![](规约.png)
+####收集
+![](收集.png)
+>######Collectors实用类提供了很多静态方法，可以方便地创建常见收集器实例
+>![](Collectors静态方法1.png)
+>![](Collectors静态方法2.png)
