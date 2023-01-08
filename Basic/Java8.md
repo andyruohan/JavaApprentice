@@ -259,6 +259,94 @@ Optional<T> 类(java.util.Optional) 是一个容器类，代表一个值存在�
 - flatMap(Function mapper): 与 map 类似，要求返回值必须是Optional  
 
 ###新时间日期API
+>Java8出了一套全新的时间API，代替了原来的时间API。其部分原因如下：
+>- JDK1.0的Date类：Date(int year, int month, int date, int hrs, int min)构造年份时需对日期做加减法，比如2022年需传122，因其内部会默认加1900。
+>- JDK1.1的Calendar类：其改善了Date的类上述问题，并对日期可进行运算。但是也存在一些问题：
+>   - 日期加减，加两天add(2)、减两天add(-2)
+>   - 每周第一天，默认的是星期日
+>   - 不支持时区（注意即便支持，Java中的时区TimeZone类也是线程不安全的）
+>- Date和Calendar类声明在java.util包中，但时间格式化类SimpleDateFormat在java.text包中，声明不规范
+
+####Date线程安全举例
+```java
+public class TestSimpleDateFormat {
+    public static void main(String[] args) throws Exception {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+        Callable<Date> task = new Callable<Date>() {
+            @Override
+            public Date call() throws Exception {
+                return sdf.parse("20161121");
+            }
+        };
+
+        ExecutorService pool = Executors.newFixedThreadPool(10);
+        List<Future<Date>> results = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            results.add(pool.submit(task));
+        }
+        for (Future<Date> future : results) {
+            System.out.println(future.get());
+        }
+
+        pool.shutdown();
+    }
+}
+```
+上述代码，会出现如下报错：
+![](Date类线程安全问题.png)
+
+####Java8之前的解决方案：加锁
+```java
+public class TestSimpleDateFormat {
+    public static void main(String[] args) throws Exception {
+        Callable<Date> task = new Callable<Date>() {
+            @Override
+            public Date call() throws Exception {
+                return DateFormatThreadLocal.convert("20161121");
+            }
+        };
+
+        ExecutorService pool = Executors.newFixedThreadPool(10);
+        List<Future<Date>> results = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            results.add(pool.submit(task));
+        }
+        for (Future<Date> future : results) {
+            System.out.println(future.get());
+        }
+
+        pool.shutdown();
+    }
+}
+```
+
+####Java8可使用LocalDate类
+>LocalDate类的实例是不可变对象，本身线程安全
+```java
+public class TestSimpleDateFormat {
+    public static void main(String[] args) throws Exception {
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyyMMdd");
+        Callable<LocalDate> task = new Callable<LocalDate>() {
+            @Override
+            public LocalDate call() throws Exception {
+                return LocalDate.parse("20161121", dtf);
+            }
+        };
+
+        ExecutorService pool = Executors.newFixedThreadPool(10);
+        List<Future<LocalDate>> results = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            results.add(pool.submit(task));
+        }
+        for (Future<LocalDate> future : results) {
+            System.out.println(future.get());
+        }
+
+        pool.shutdown();
+    }
+}
+```
+
 ####LocalDate、LocalTime、LocalDateTime类
 LocalDate、LocalTime、LocalDateTime 类的实例是<font color='red'>不可变的对象</font>，分别表示使用`ISO-8601日历系统`的日期、时间、日期和时间。
 ![](LocalDateTime方法.png)
