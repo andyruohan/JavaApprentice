@@ -257,3 +257,23 @@ Optional<T> 类(java.util.Optional) 是一个容器类，代表一个值存在�
 - orElseGet(Supplier s):如果调用对象包含值，返回该值，否则返回 s 获取的值  
 - map(Function f): 如果有值对其处理，并返回处理后的Optional，否则返回 Optional.empty()  
 - flatMap(Function mapper): 与 map 类似，要求返回值必须是Optional  
+
+###新时间日期API
+####LocalDate、LocalTime、LocalDateTime类
+LocalDate、LocalTime、LocalDateTime 类的实例是<font color='red'>不可变的对象</font>，分别表示使用`ISO-8601日历系统`的日期、时间、日期和时间。
+![](LocalDateTime方法.png)
+>注：ISO-8601日历系统是国际标准化组织制定的现代公民的日期和时间的表示法  
+
+####Instant类
+用于“时间戳”的运算，<font color='red'>默认使用UTC时区</font>。它是以Unix元年(传统的设定为UTC时区1970年1月1日午夜时分)开始所经历的描述进行运算。常见的方法如下：
+```java
+Instant ins = Instant.now();  //默认使用 UTC 时区
+System.out.println(ins);
+		
+OffsetDateTime odt = ins.atOffset(ZoneOffset.ofHours(8)); //东八区时区
+System.out.println(odt);
+```
+
+####Duration和Period类
+- Duration:用于计算两个“时间”间隔
+- Period:用于计算两个“日期”间隔
