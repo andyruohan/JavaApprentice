@@ -365,3 +365,83 @@ System.out.println(odt);
 ####Duration和Period类
 - Duration:用于计算两个“时间”间隔
 - Period:用于计算两个“日期”间隔
+
+###时间校正器TemporalAdjuster
+TemporalAdjuster<font color='red'>s</font>: 该类通过静态方法提供了大量的常用 TemporalAdjuster 的实现。
+```java
+public class TestLocalDateTime {
+    public void test() {
+        //获取当前时间
+        LocalDateTime ldt1 = LocalDateTime.now();
+        System.out.println(ldt1);
+
+        //获取本月十号
+        LocalDateTime ldt2 = ldt1.withDayOfMonth(10);
+        System.out.println(ldt2);
+
+        //获取下个周日
+        LocalDateTime ldt3 = ldt1.with(TemporalAdjusters.next(DayOfWeek.SUNDAY));
+        System.out.println(ldt3);
+
+        //自定义：获取下一个工作日
+        LocalDateTime ldt5 = ldt1.with((l) -> {
+            LocalDateTime ldt4 = (LocalDateTime) l;
+            DayOfWeek dow = ldt4.getDayOfWeek();
+            if (dow.equals(DayOfWeek.FRIDAY)) {
+                return ldt4.plusDays(3);
+            } else if (dow.equals(DayOfWeek.SATURDAY)) {
+                return ldt4.plusDays(2);
+            } else {
+                return ldt4.plusDays(1);
+            }
+        });
+        System.out.println(ldt5);
+    }
+}
+```
+
+###日期格式化
+使用java.time.format.DateTimeFormatter类，该类提供了三种格式化方法：
+- 预定义的标准格式
+- 语言环境相关的格式
+- 自定义的格式
+```java
+public class TestLocalDateTime {
+    public void test(){
+        DateTimeFormatter dtf1 = DateTimeFormatter.ISO_LOCAL_DATE;//标准格式
+        DateTimeFormatter dtf2 = DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH:mm:ss E");//自定义格式
+
+        LocalDateTime ldt = LocalDateTime.now();
+        System.out.println(ldt.format(dtf1));
+        System.out.println(ldt.format(dtf2));
+
+        LocalDateTime newLdt = ldt.parse(ldt.format(dtf2), dtf2);
+        System.out.println(newLdt);
+    }
+}
+```
+
+###时区
+Java8 中加入了对时区的支持，带时区的时间为分别为：ZonedDate、ZonedTime、ZonedDateTime。
+>其中每个时区都对应着ID，地区ID都为“{区域}/{城市}”的格式。例如：Asia/Shanghai 等。
+```java
+public class TestLocalDateTime {
+    public void test(){
+        //获取所有时区信息
+        Set<String> set = ZoneId.getAvailableZoneIds();
+        set.forEach(System.out::println);
+
+        //LocalDateTime带时区
+        LocalDateTime ldt = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
+        System.out.println(ldt);
+
+        //ZonedDateTime带时区
+        ZonedDateTime zdt = ZonedDateTime.now(ZoneId.of("US/Pacific"));
+        System.out.println(zdt);
+    }
+}
+```
+
+###重复注解与类型注解
+Java 8对注解处理提供了两点改进：可重复的注解及可用于类型的注解。
+![](重复的注解及可用于类型的注解.png)
