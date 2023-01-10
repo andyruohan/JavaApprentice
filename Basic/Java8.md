@@ -258,6 +258,89 @@ Optional<T> 类(java.util.Optional) 是一个容器类，代表一个值存在�
 - map(Function f): 如果有值对其处理，并返回处理后的Optional，否则返回 Optional.empty()  
 - flatMap(Function mapper): 与 map 类似，要求返回值必须是Optional  
 
+###接口中的默认方法和静态方法
+####接口的默认方法
+Java 8中允许接口中包含具有具体实现的方法，该方法称为“默认方法”，默认方法使用 default 关键字修饰。其“类优先原则”如下：
+- 选择父类中的方法。如果一个父类提供了具体的实现，那么接口中具有相同名称和参数的默认方法会被忽略。
+    ```java
+    public interface MyInterface1 {
+        default String getName() {
+            return "哈哈哈";
+        }
+    }
+    ```
+    ```java
+    public class MyClass {
+        public String getName() {
+            return "嘿嘿嘿";
+        }
+    }
+    ```
+
+    ```java
+    public class TestDefaultInterface {
+        public static void main(String[] args) {
+            SubClass sc = new SubClass();
+            System.out.println(sc.getName());
+        }
+    }
+    ```
+    > 输出结果：嘿嘿嘿
+
+- 接口冲突。如果一个父接口提供一个默认方法，而另一个接口也提供了一个具有相同名称和参数列表的方法（不管方法是否是默认方法），那么必须覆盖该方法来解决冲突。
+    ```java
+    public interface MyInterface1 {
+        default String getName() {
+            return "哈哈哈";
+        }
+    }
+    ```
+
+    ```java
+    public interface MyInterface2 {
+        default String getName(){
+            return "呵呵呵";
+        }
+    }
+    ```
+
+    ```java
+    public class SubClass implements MyInterface1, MyInterface2 {
+        //必须提供实现，否则会报接口冲突
+        @Override
+        public String getName() {
+            return MyInterface2.super.getName();
+        }
+    }
+    ```
+    ```java
+    public class TestDefaultInterface {
+        public static void main(String[] args) {
+            SubClass sc = new SubClass();
+            System.out.println(sc.getName());
+        }
+    }
+    ```
+    >输出结果：呵呵呵
+
+####接口中的静态方法
+Java8 中，接口中允许添加静态方法。
+```java
+public interface MyInterface1 {
+    public static void show() {
+        System.out.println("接口中的静态方法");
+    }
+}
+```
+
+```java
+public class TestDefaultInterface {
+    public static void main(String[] args) {
+        MyInterface1.show();
+    }
+}
+```
+
 ###新时间日期API
 >Java8出了一套全新的时间API，代替了原来的时间API。其部分原因如下：
 >- JDK1.0的Date类：Date(int year, int month, int date, int hrs, int min)构造年份时需对日期做加减法，比如2022年需传122，因其内部会默认加1900。
