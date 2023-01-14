@@ -245,18 +245,112 @@ public class TestForkJoin {
 ```
 
 ###Optional类
-Optional<T> 类(java.util.Optional) 是一个容器类，代表一个值存在或不存在，
-原来用 null 表示一个值不存在，现在 Optional 可以更好的表达这个概念。并且
-可以避免空指针异常。  
+Optional<T> 类(java.util.Optional) 是一个容器类，代表一个值存在或不存在，原来用 null 表示一个值不存在，现在 Optional 可以更好的表达这个概念。并且可以避免空指针异常。  
 ####常用方法：
-- Optional.of(T t): 创建一个 Optional 实例  
-- Optional.empty(): 创建一个空的 Optional 实例  
-- Optional.ofNullable(T t): 若 t 不为 null，创建 Optional 实例，否则创建空实例  
+- Optional.of(T t): 创建一个 Optional 实例
+  ```java
+  Optional<Employee> op = Optional.of(new Employee());
+  Employee emp = op.get();
+  System.out.println(emp);
+  ```
+  注意：如果第1行传入的null，会报空指针异常。  
+
+
+- Optional.empty(): 创建一个空的 Optional 实例 
+  ```java
+  Optional<Employee> op = Optional.empty();
+  System.out.println(op.get());
+  ```
+  注意：对于空的Optional实例，第2行直接用get()会报java.util.NoSuchElementException: No value present。
+
+
+- Optional.ofNullable(T t): 若 t 不为 null，创建 Optional 实例，否则创建空的Optional实例。
+  ```java
+  Optional<Employee> op = Optional.ofNullable(null);
+  System.out.println(op.get());
+  ```
+  上例会创建一个Optional.empty实例，第2行直接用get()也会报java.util.NoSuchElementException: No value present。  
+
+
 - isPresent(): 判断是否包含值  
+  ```java
+  Optional<Employee> op = Optional.ofNullable(null);
+  op.ifPresent(System.out::println);
+  ```
+  上例中不会产生输出。
+
+
 - orElse(T t): 如果调用对象包含值，返回该值，否则返回t  
+  ```java
+  Optional<Employee> op = Optional.ofNullable(null);
+  op.ifPresent(System.out::println);
+  
+  Employee emp = op.orElse(new Employee("张三"));
+  System.out.println(emp);
+  ```
+  上例会产生一个名为张三的Employee。
+
+
 - orElseGet(Supplier s):如果调用对象包含值，返回该值，否则返回 s 获取的值  
-- map(Function f): 如果有值对其处理，并返回处理后的Optional，否则返回 Optional.empty()  
-- flatMap(Function mapper): 与 map 类似，要求返回值必须是Optional  
+  ```java
+  Optional<Employee> op = Optional.ofNullable(null);
+  op.ifPresent(System.out::println);
+  
+  Employee emp2 = op.orElseGet(Employee::new);
+  System.out.println(emp2);
+  ```
+  orElseGet相比于orElse，可以实现函数式接口，带条件返回想要的结果。
+
+
+- map(Function f): 如果有值对其处理，并返回处理后的Optional，否则返回 Optional.empty() 
+  ```java
+  Optional<Employee> op = Optional.of(new Employee(101, "张三", 18, 9999.99));
+  Optional<String> op2 = op.map(Employee::getName);
+  System.out.println(op2.get());
+  ```
+  
+
+- flatMap(Function mapper): 与 map 类似，要求返回值必须是Optional 
+  ```java
+  Optional<Employee> op = Optional.of(new Employee(101, "张三", 18, 9999.99));
+  Optional<String> op3 = op.flatMap((e) -> Optional.of(e.getName()));
+  System.out.println(op3.get());
+  ```
+
+实际运用：
+```java
+public class TestOptional {
+  //一般写法  
+  public String getGoddessName(Man man) {
+    if (man != null) {
+      Goddess g = man.getGod();
+
+      if (g != null) {
+        return g.getName();
+      }
+    }
+    return "林志玲";
+  }
+  
+  //Java8 Optional写法
+  public String getGoddessName2(Optional<NewMan> man) {
+    return man.orElse(new NewMan())
+            .getGodness()
+            .orElse(new Goddess("林志玲"))
+            .getName();
+  }
+
+  //测试调用
+  @Test
+  public void test6() {
+    Optional<Goddess> goddess = Optional.ofNullable(new Goddess("July"));
+    Optional<NewMan> op = Optional.ofNullable(new NewMan(goddess));
+    String name = getGoddessName2(op);
+    System.out.println(name);
+  }
+}
+```
+
 
 ###接口中的默认方法和静态方法
 ####接口的默认方法
