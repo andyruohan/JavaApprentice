@@ -1,5 +1,11 @@
 ##Java8新特性
-###速度更快
+>- 速度更快（HashMap数据结构变化）
+>- 代码更少（Lambda表达式）
+>- 强大的Stream API
+>- 便于并行（Parallel Stream）
+>- 最大化减少空指针异常（Optional）
+
+###HashMap数据结构变化
 HashMap：数组+链表 -> 数组+链表+红黑树
 ```java
 static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; //初始容量16
@@ -12,13 +18,9 @@ static final int MIN_TREEIFY_CAPACITY = 64;
 ```
 链表树化条件：**链表长度>8 && 数组容量>64**
 
-ConcurrentHashMap由分段锁改为无锁算法CAS，效率更高。分段锁取消原因：`ConcurrentLevel不好评定`
+ConcurrentHashMap由分段锁改为无锁算法CAS，效率更高。分段锁取消原因：<font color='red'>ConcurrentLevel不好评定</font>
 
-###代码更少
-###强大的Stream API
-###便于并行
-###最大化减少空指针异常
-
+----
 ###Lambda表达式
 ####Lambda常见语法格式
 1) 语法格式一：无参数，无返回值
@@ -113,6 +115,7 @@ Function<Integer, String[]> fun2 = String[]::new;
 String[] strs2 = fun2.apply(10);
 ```
 
+---
 ###Stream
 ![](Stream示意图.png)
 Stream操作的三个步骤
@@ -244,6 +247,7 @@ public class TestForkJoin {
 }
 ```
 
+---
 ###Optional类
 Optional<T> 类(java.util.Optional) 是一个容器类，代表一个值存在或不存在，原来用 null 表示一个值不存在，现在 Optional 可以更好的表达这个概念。并且可以避免空指针异常。  
 ####常用方法：
@@ -351,7 +355,7 @@ public class TestOptional {
 }
 ```
 
-
+---
 ###接口中的默认方法和静态方法
 ####接口的默认方法
 Java 8中允许接口中包含具有具体实现的方法，该方法称为“默认方法”，默认方法使用 default 关键字修饰。其“类优先原则”如下：
@@ -435,6 +439,7 @@ public class TestDefaultInterface {
 }
 ```
 
+---
 ###新时间日期API
 >Java8出了一套全新的时间API，代替了原来的时间API。其部分原因如下：
 >- JDK1.0的Date类：Date(int year, int month, int date, int hrs, int min)构造年份时需对日期做加减法，比如2022年需传122，因其内部会默认加1900。
@@ -618,7 +623,7 @@ public class TestLocalDateTime {
     }
 }
 ```
-
+---
 ###重复注解与类型注解
 Java 8对注解处理提供了两点改进：可重复的注解及可用于类型的注解。
 ![](重复的注解及可用于类型的注解.png)
