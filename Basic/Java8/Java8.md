@@ -65,10 +65,10 @@ Comparator<Integer> com = (x, y) -> Integer.compare(x, y);
 > 函数型接口 Function<T, R> : R apply(T t);  
 > 断言型接口 Predicate<T> : boolean test(T t);  
  
-![](核心函数式接口.png)
+![](%20illustration/核心函数式接口.png)
 
 #####其他函数式接口
-![](其他函数式接口.png)
+![](%20illustration/其他函数式接口.png)
 
 ###方法引用
 #####对象::实例方法
@@ -117,7 +117,7 @@ String[] strs2 = fun2.apply(10);
 
 ---
 ###Stream
-![](Stream示意图.png)
+![](%20illustration/Stream示意图.png)
 Stream操作的三个步骤
 - 创建Stream 
 - 中间操作
@@ -156,11 +156,11 @@ stream4.forEach(System.out::println);
 
 ###Stream的中间操作
 ####筛选与切片
-![](筛选与切片.png)
+![](%20illustration/筛选与切片.png)
 ####映射
-![](映射.png)
+![](%20illustration/映射.png)
 ####排序
-![](排序.png)
+![](%20illustration/排序.png)
 多个`中间操作`可以连接起来形成一个`流水线`，除非流水线上触发终止操作，否则`中间操作不会执行任何的处理`！而在终止操作时一次性全部处理，称为**惰性求值**。
 ```java
 //未出现终止操作，所有的中间操作不会做任何的处理，即下列语句无输出
@@ -183,21 +183,21 @@ stream.forEach(System.out::println);
 
 ###Stream的终止操作
 ####查找与匹配
-![](查找与匹配1.png)
-![](查找与匹配2.png)
+![](%20illustration/查找与匹配1.png)
+![](%20illustration/查找与匹配2.png)
 ####规约（约简）
-![](规约.png)
+![](%20illustration/规约.png)
 ####收集
-![](收集.png)
+![](%20illustration/收集.png)
 >######Collectors实用类提供了很多静态方法，可以方便地创建常见收集器实例
->![](Collectors静态方法1.png)
->![](Collectors静态方法2.png)
+>![](%20illustration/Collectors静态方法1.png)
+>![](%20illustration/Collectors静态方法2.png)
 
 ###串行流与并行流
 Java 8 中将并行进行了优化，我们可以很容易的对数据进行并行操作。Stream API 可以声明性地通过 parallel() 与 sequential() 在并行流与顺序流之间进行切换。  
 >并行流基于**Fork/Join 框架**：就是在必要的情况下，将一个大任务，进行拆分(fork)成若干个小任务（拆到不可再拆时），再将一个个的小任务运算的结果进行 join 汇总。
 >####Fork/Join框架原理图
->![](ForkJoin框架.png)
+>![](%20illustration/ForkJoin框架.png)
 
 ####代码示例：
 ```java
@@ -475,7 +475,7 @@ public class TestSimpleDateFormat {
 }
 ```
 上述代码，会出现如下报错：
-![](Date类线程安全问题.png)
+![](%20illustration/Date类线程安全问题.png)
 
 ####Java8之前的解决方案：加锁
 ```java
@@ -531,7 +531,7 @@ public class TestSimpleDateFormat {
 
 ####LocalDate、LocalTime、LocalDateTime类
 LocalDate、LocalTime、LocalDateTime 类的实例是<font color='red'>不可变的对象</font>，分别表示使用`ISO-8601日历系统`的日期、时间、日期和时间。
-![](LocalDateTime方法.png)
+![](%20illustration/LocalDateTime方法.png)
 >注：ISO-8601日历系统是国际标准化组织制定的现代公民的日期和时间的表示法  
 
 ####Instant类
@@ -626,4 +626,4 @@ public class TestLocalDateTime {
 ---
 ###重复注解与类型注解
 Java 8对注解处理提供了两点改进：可重复的注解及可用于类型的注解。
-![](重复的注解及可用于类型的注解.png)
+![](%20illustration/重复的注解及可用于类型的注解.png)
