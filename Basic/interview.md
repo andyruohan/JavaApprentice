@@ -143,7 +143,8 @@ t3	 第3次版本号3	值是100
 t4	 修改成功否false	最新版本号3
 最新的值	100
 
-###集合类不安全之并发修改异常
+##集合类不安全之并发修改异常
+###ArrayList
 ```java
 public class UnsafeDemo {
     public static void main(String[] args) {
@@ -253,4 +254,8 @@ public boolean add(E e) {
 ```
 >1. 往容器添加元素的时候，不直接往当前容器 object[] 添加，而是先将当前容器 object[] 进行 copy 复制出一个新的 object[] newElements ，然后向新容器 object[] newElements 里面添加元素。
 >2. 添加元素后，再将原容器的引用指向新的容器 setArray(newElements) 。这样的好处是可以对 copyOnWrite 容器进行并发的读，而不需要加锁（因为当前容器不会添加任何元素）。所以 copyOnwrite 容器也是一种**读写分离**的思想，读和写不同的容器.
-   
+
+###HashSet 和 HashMap
+类似地 HashSet 和 HashMap 也会遇到相应并发问题，其中：
+1. HashSet 可通过 Collections.synchronizedSet 和 CopyOnWriteArraySet 来解决
+2. HashMap 可通过 Collections.synchronizedMap 和 ConcurrentHashMap 来解决
