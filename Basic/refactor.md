@@ -1,0 +1,184 @@
+#代码坏味道和重构
+###Code Smells 坏味道
+- Bloaters 臃肿的代码
+  - Long Method
+    - 将方法分段执行 Extract Method
+    - 如果有临时变量或参数影响抽方法，可以使用Replace Temp With Query, Introduce Parameter Object, Preserve Whole Object
+    - 实在难以抽方法，可使用Replace Method with Method Object
+    - 方法体里的条件或循环可使用Decompose Conditional
+  - Large Class
+    - 抽新类Extract Class
+    - 抽子类Extract Subclass
+    - 抽接口Extract Interface
+    - 分离展示和数据Duplicate Observed Data
+  - Primitive Obsession
+    - 基本类型为字段Replace Data Value with Object
+    - 基本类型为参数Introduce Parameter Object，Preserve Whole Object
+    - 基本类型数组Replace Array with Object
+    - 基本类型被当作类型码Replace Type Code with Class, Replace Type Code with Subclass, Replace Type Code with Strategy/State
+  - Long Parameter List
+    - 可被方法调用替换的Replace Parameter with Method Call
+    - 参数来自同一个对象Preserve Whole Object
+    - 参数不相关Introduce Parameter Object
+  - Data Clumps
+    - 相关字段可组成新类Extract Class
+    - 被参数使用Introduce Parameter Object
+    - 数据来源与一个对象Preserve Whole Object
+- Abusers 滥用面向对象
+  - Switch Statements
+    - 消除重复switch代码 Extract Method, Move Method
+    - 如果基于type做switch, Replace Type Code with Subclass, Replace Type Code with State/Strategy
+    - 如果有继承，Replace Contitional with Polymorphism
+    - 拆条件，Replace Parameter with Explicit Methods
+    - 如果有对空的判断，Introduce Null Object
+  - Temporary Field
+    - 将与之相关的操作提取到单独的类Extract Class，Replace Method with Method Object
+    - 对于检查字段是否为空的情形下Introduce Null Object
+  - Refused Bequest
+    - 如果继承关系不存在Replace Inheritance with Delegation
+    - 将公共部分提取为父类Extract Superclass
+  - Alternative Classes with Different Interfaces
+    - 让方法名尽量相同RenameMethod
+    - 让方法签名保持一致Move Method, AddParameter,Parameter Method
+    - 提取公共父类Extract Superclass
+    - 删除多余的类
+- Change Preventers 难于变更
+  - Divergent Change
+    - 若是职责问题Extract Class
+    - Extract Superclass, Extract Subclass
+  - Shotgun Surgery
+    - Move Method, Move Field
+    - Inline Class
+  - Parallel Inheritance Hierarcheis
+    - Move Method, Move Field
+- Dispensables 可有可无的代码
+  - Comments
+    - Extract Variable
+    - Extract Method
+    - Rename Method
+    - Introduce Assertion
+  - Duplicate Code
+    - 同一个类中的重复ExtractMethod
+    - 子类中的重复ExtractMethod,Pull Up Field
+    - Pull Up Constructor Body
+    - Form Template Method
+    - Substitute Algorithm
+    - 不同类中的重复Extract Superclass, Extract Class
+    - 条件语句中的重复Consolidate Conditional Expression, Extract Method, Consolidate Duplicate Conditional
+  - Lazy Class
+    - Inline Class
+    - Collapse Hierachy
+  - Data Class
+    - Encapsulate Field
+    - Encapsulate Collection
+    - Move Method, Extract Method
+    - Remove Setting Method, Hide Method
+  - Dead Code
+    - Remove Parameter
+    - Inline Class, Collapse Hierarchy
+  - Speculative Generality
+    - Collapse Hierarchy
+    - Inline Class
+    - Inline Method
+    - Remove Parameter
+- Couplers 代码耦合
+  - Featury Envy
+    - Move Method
+    - Extract Method
+  - Inappropriate Intimacy
+    - Move Method, Move Field
+    - Extract Class, Hide Delegate
+    - Change Bidirectional Association to Unidirectional
+    - Replace Delegation with Inheritance
+  - Message Chains
+    - Hide Delegate
+    - Extract Method, Move Method
+  - Middle Man
+    - Remove Middle Man
+- Other Smells 其他坏味道
+  - Incomplete Library Class
+    - Introduce Foreign Method
+    - Introduce Local Extension
+  - Magic Number
+    - Extract Variable, Extract Constant
+  - Inconsistent Names
+    - Rename Method, Rename Field
+  - Uncommunicative Name
+    - Rename Method, Rename Field
+  - Type Embedded in Name
+    - Rename Method, Rename Field
+
+
+###Refactorings 重构手法
+- Composing Methods 组建方法
+  - Extract Method
+  - Inline Method
+  - Extract Variable
+  - Inline Temp
+  - Replace Temp with Query
+  - Split Temporary Variable
+  - Remove Assignments to Parameters
+  - Replace Method with Method Object
+  - Substitute Algorithm
+- Moving Features between Objects 移动功能
+  - Move Method
+  - Move Field
+  - Extract Class
+  - Inline Class
+  - Hide Delegate
+  - Remove Middle Man
+  - Introduce Foreign Method
+  - Introduce Local Extension
+- Organizing Data 组织数据
+  - Change Value to Reference
+  - Change Reference to Value
+  - Duplicate Observed Data
+  - Self Encapsulate Field
+  - Replace Data Value with Object
+  - Replace Array with Object
+  - Change Unidirectional Association to Bidirectional
+  - Change Bidirectional Association to Unidirectional
+  - Encapsulate Field
+  - Encapsulate Collction
+  - Replace Magic Number with Symbolic Constant
+  - Replace Type Code with Class
+  - Replace Type Code with Subclasses
+  - Replace Type Code with Strategy/State
+  - Replace Subclass with Fields
+- Simplifying Conditional Expressions 简化条件表达式
+  - Consolidate Conditional Expression
+  - Consolidate Duplicate Conditional Fragments
+  - Decompose Conditional
+  - Replace Conditional with Polymorphism
+  - Remove Control Flag
+  - Replace Nested Conditional with Guard Clauses
+  - Introduce Null Object
+  - Introduce Assertion
+- Simplifying Method Calls 简化方法调用
+  - Add Parameter
+  - Remove Parameter
+  - Rename Method
+  - Separate Query from Modifier
+  - Parameterize Method
+  - Introduce Parameter Object
+  - Preserve Whole Object
+  - Remove Setting Method
+  - Replace Parameter with Explicit Methods
+  - Replace Parameter with Method Call
+  - Hide Method
+  - Replace Constructor with Factory Method
+  - Replace Error Code with Exception
+  - Replace Exception with Test
+- Dealing with Generalization 应对抽象概括
+  - Pull Up Field
+  - Pull Up Method
+  - Pull Up Constructor Body
+  - Push Down Field
+  - Push Down Method
+  - Extract Subclass
+  - Extract Superclass
+  - Extract Interface
+  - Collapse Hierarchy
+  - Form Template Method
+  - Replace Inheritance with Delegation
+  - Replace Delegation with Inheritance
