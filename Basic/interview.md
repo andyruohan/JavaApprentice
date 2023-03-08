@@ -259,3 +259,13 @@ public boolean add(E e) {
 类似地 HashSet 和 HashMap 也会遇到相应并发问题，其中：
 1. HashSet 可通过 Collections.synchronizedSet 和 CopyOnWriteArraySet 来解决
 2. HashMap 可通过 Collections.synchronizedMap 和 ConcurrentHashMap 来解决
+
+####公平锁和非公平锁
+公平锁：是指多个线程按照申请锁的顺序来获取锁类似排队打饭，先来后到。
+非公平锁：是指在多线程获取锁的顺序并不是按照申请锁的顺序，有可能后申请的线程比先申请的线程优先获取到锁。在高并发的情况下，有可能造成优先级反转或者饥饿现象。
+>- ReentrantLock( )不带参数时等同于ReentrantLock(false)，默认是非公平锁。
+>- synchronized也是一种非公平锁。
+
+####可重入锁（也叫做递归锁）
+可重入锁：指的是同一线程外层函数获得锁之后，内层递归函数仍然能获取该锁的代码，在同一个线程在外层方法获取锁的时候，在进入内层方法会自动获取锁。也即是说，`线程可以进入任何一个它已经拥有的锁所同步着的代码块`。
+>ReentrantLock和synchronized就是典型的可重入锁。
