@@ -267,5 +267,127 @@ public boolean add(E e) {
 >- synchronized也是一种非公平锁。
 
 ####可重入锁（也叫做递归锁）
-可重入锁：指的是同一线程外层函数获得锁之后，内层递归函数仍然能获取该锁的代码，在同一个线程在外层方法获取锁的时候，在进入内层方法会自动获取锁。也即是说，`线程可以进入任何一个它已经拥有的锁所同步着的代码块`。
+可重入锁：指的是同一线程外层函数获得锁之后，内层递归函数仍然能获取该锁的代码，在同一个线程在外层方法获取锁的时候，在进入内层方法会自动获取锁。
 >ReentrantLock和synchronized就是典型的可重入锁。
+
+```java {.line-numbers}
+class Phone implements Runnable {
+    private Lock lock = new ReentrantLock();
+
+    @Override
+    public void run() {
+        get();
+    }
+
+    private void get() {
+        lock.lock();
+        try {
+            System.out.println(Thread.currentThread().getName() + "\tget");
+            set();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void set() {
+        lock.lock();
+        try {
+            System.out.println(Thread.currentThread().getName() + "\tset");
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+
+/**
+ * Description:可重入锁(也叫做递归锁)
+ * 指的是同一先生外层函数获得锁后,内层敌对函数任然能获取该锁的代码
+ * 在同一线程外外层方法获取锁的时候,在进入内层方法会自动获取锁
+ *
+ * 也就是说,线程可以进入任何一个它已经标记的锁所同步的代码块
+ **/
+public class ReentrantLockDemo {
+    public static void main(String[] args) {
+        Phone phone = new Phone();
+        Thread t1 = new Thread(phone);
+        Thread t2 = new Thread(phone);
+        t1.start();
+        t2.start();
+    }
+}
+```
+
+运行结果：
+>Thread-0	get
+Thread-0	set
+Thread-1	get
+Thread-1	set
+
+值得一提的是，如果在10行后再加一个lock.lock()，即
+```java{.line-number}
+    private void get() {
+        lock.lock();
+        lock.lock();
+        try {
+            System.out.println(Thread.currentThread().getName() + "\tget");
+            set();
+        } finally {
+            lock.unlock();
+        }
+    }
+```
+运行结果，会变为：(第2个线程无法获取到锁)
+>Thread-0	get
+Thread-0	set
+
+####自旋锁
+自旋锁（spinlock）：是指尝试获取锁的线程不会立即阻塞，而是`采用循环的方式去尝试获取锁`，这样的好处是减少线程上下文切换的消耗，缺点是循环会消耗CPU。
+
+```java
+public class SpinLockDemo {
+    AtomicReference<Thread> atomicReference = new AtomicReference<>();
+
+    public void myLock() {
+        Thread thread = Thread.currentThread();
+        System.out.println(Thread.currentThread().getName() + " It come in 0(n_n)o");
+        while (!atomicReference.compareAndSet(null, thread)) {
+        }
+    }
+
+    public void myUnlock() {
+        Thread thread = Thread.currentThread();
+        atomicReference.compareAndSet(thread, null);
+        System.out.println(Thread.currentThread().getName() + " It invoked myUnLock()");
+    }
+
+    public static void main(String[] args) {
+        SpinLockDemo spinLockDemo = new SpinLockDemo();
+        new Thread(() -> {
+            spinLockDemo.myLock();
+            try {
+                TimeUnit.SECONDS.sleep(5);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            spinLockDemo.myUnlock();
+        }, "AA").start();
+
+        try {
+            TimeUnit.SECONDS.sleep(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        new Thread(() -> {
+            spinLockDemo.myLock();
+            try {
+                TimeUnit.SECONDS.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            spinLockDemo.myUnlock();
+        }, "BB").start();
+    }
+}
+
+```
