@@ -454,7 +454,6 @@ class MyCaChe {
     public void clearCaChe() {
         map.clear();
     }
-
 }
 
 /**
@@ -487,4 +486,97 @@ public class ReadWriteLockDemo {
         }
     }
 }
+```
+
+####CountDownLatch
+CountDownLatch主要有两个方法：
+1. 当一个或多个线程调用`await`方法时，调用线程会被阻塞。
+2. 其他线程调用`countDown`方法计数器减1(调用countDown方法时线程不会阻塞)，当计数器的值变为0，因调用await方法被阻塞的线程会被唤醒，继续执行。
+
+######经典案例：下晚自习班长锁门、秦灭六国一统天下
+```java{.line-numbers}
+/**
+ * 模拟下晚自习，班长最后一个走锁门离开教室
+ */
+public class CountDownLatchDemo {
+    public static void main(String[] args) throws Exception {
+        closeDoor();
+    }
+
+    private static void closeDoor() throws InterruptedException {
+        CountDownLatch countDownLatch = new CountDownLatch(6);
+        for (int i = 1; i <= 6; i++) {
+            new Thread(() -> {
+                System.out.println(Thread.currentThread().getName() + "\t" + "上完自习");
+                countDownLatch.countDown();
+            }, String.valueOf(i)).start();
+        }
+        countDownLatch.await();
+        System.out.println(Thread.currentThread().getName() + "\t班长锁门离开教室");
+    }
+}
+```
+
+####CyclicBarrier
+CyclicBarrier的字面意思是可循环(Cyclic)​。使用的屏障(barrier)它要做的事情是：让一组线程到达一个屏障(也可以叫做同步点)时被阻塞，知道最后一个线程到达屏障时，屏障才会开门，所有被屏障拦截的线程才会继续干活,线程进入屏障通过CyclicBarrier的await()方法。
+######经典案例：集七龙珠、人齐了开会
+```java{.line-numbers}
+/**
+ * 模拟集齐七颗龙珠，召唤神龙
+ */
+public class CyclicBarrierDemo {
+    public static void main(String[] args) {
+        CyclicBarrier cyclicBarrier=new CyclicBarrier(7,()->{
+            System.out.println("召唤神龙");
+        });
+
+        for (int i = 1; i <=7; i++) {
+            final int temp = i;
+            new Thread(()->{
+                System.out.println(Thread.currentThread().getName()+"\t 收集到第"+ temp +"颗龙珠");
+                try {
+                    cyclicBarrier.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (BrokenBarrierException e) {
+                    e.printStackTrace();
+                }
+            },String.valueOf(i)).start();
+        }
+    }
+}
+```
+
+####Semaphore
+信号量的主要用户两个目的，一个是用于多喝共享资源的相互排斥使用，另一个用于并发资源数的控制。
+######经典案例：抢车位。
+```java{.line-numbers}
+public class SemaphoreDemo {
+    public static void main(String[] args) {
+        //模拟3个停车位
+        Semaphore semaphore = new Semaphore(3);
+        //模拟6部汽车
+        for (int i = 1; i <= 6; i++) {
+            new Thread(() -> {
+                try {
+                    //抢到资源
+                    semaphore.acquire();
+                    System.out.println(Thread.currentThread().getName() + "\t抢到车位");
+                    try {
+                        TimeUnit.SECONDS.sleep(3);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    System.out.println(Thread.currentThread().getName() + "\t 停3秒离开车位");
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    //释放资源
+                    semaphore.release();
+                }
+            }, String.valueOf(i)).start();
+        }
+    }
+}
+
 ```
