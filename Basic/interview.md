@@ -548,7 +548,7 @@ public class CyclicBarrierDemo {
 ```
 
 ####Semaphore
-信号量的主要用户两个目的，一个是用于多喝共享资源的相互排斥使用，另一个用于并发资源数的控制。
+信号量的主要用户两个目的，一个是用于多个共享资源的相互排斥使用，另一个用于并发资源数的控制。
 ######经典案例：抢车位。
 ```java{.line-numbers}
 public class SemaphoreDemo {
@@ -580,3 +580,138 @@ public class SemaphoreDemo {
 }
 
 ```
+
+###BlockingQueue方法
+![](阻塞队列方法part1.jpeg)
+![](阻塞队列方法part2.jpeg)
+
+#####抛出异常场景
+```java
+/**
+ * @description 阻塞队列样例1：测试add、element、remove方法
+ * @author andy_ruohan
+ * @date 2023/3/14 23:25
+ */
+public class BlockingQueueDemo1 {
+    public static void main(String[] args) throws Exception {
+        BlockingQueue<String> blockingQueue = new ArrayBlockingQueue<>(3);
+        System.out.println(blockingQueue.add("a"));
+        System.out.println(blockingQueue.add("b"));
+        System.out.println(blockingQueue.add("c"));
+
+        System.out.println(blockingQueue.element());
+
+        System.out.println(blockingQueue.remove());
+        System.out.println(blockingQueue.remove());
+        System.out.println(blockingQueue.remove());
+        System.out.println(blockingQueue.remove()); // 该行会抛异常
+    }
+}
+```
+运行结果：
+>true
+true
+true
+a
+a
+b
+c
+Exception in thread "main" java.util.NoSuchElementException
+	at java.base/java.util.AbstractQueue.remove(AbstractQueue.java:117)
+	at jvm.blockingQueue.BlockingQueueDemo1.main(BlockingQueueDemo1.java:23)  
+
+#####返回特殊值场景
+```java
+/**
+ * @description 阻塞队列样例2：测试offer、peek、poll方法
+ * @author andy_ruohan
+ * @date 2023/3/14 23:25
+ */
+public class BlockingQueueDemo2 {
+    public static void main(String[] args) throws Exception {
+        BlockingQueue<String> blockingQueue = new ArrayBlockingQueue<>(3);
+        System.out.println(blockingQueue.offer("a"));
+        System.out.println(blockingQueue.offer("b"));
+        System.out.println(blockingQueue.offer("c"));
+        System.out.println(blockingQueue.offer("d")); // 该行会返回false
+
+        System.out.println(blockingQueue.peek());
+
+        System.out.println(blockingQueue.poll());
+        System.out.println(blockingQueue.poll());
+        System.out.println(blockingQueue.poll());
+        System.out.println(blockingQueue.poll()); // 该行会返回null
+    }
+}
+```
+运行结果：
+>true
+true
+true
+false
+a
+a
+b
+c
+null  
+   
+#####阻塞场景
+```java
+/**
+ * @description 阻塞队列样例3：测试put、take方法
+ * @author andy_ruohan
+ * @date 2023/3/14 23:25
+ */
+public class BlockingQueueDemo3 {
+    public static void main(String[] args) throws Exception {
+        BlockingQueue<String> blockingQueue = new ArrayBlockingQueue<>(3);
+        blockingQueue.put("a");
+        blockingQueue.put("a");
+        blockingQueue.put("a");
+//        blockingQueue.put("a"); // 如加入该行，会阻塞
+
+        System.out.println("=========================");
+
+        blockingQueue.take();
+        blockingQueue.take();
+        blockingQueue.take();
+        blockingQueue.take(); // 如加入该行，会阻塞
+    }
+}
+```
+运行结果：
+>=========================
+>（程序会一直挂起，不会终止）
+
+#####
+```java
+/**
+ * @description 阻塞队列样例4：测试offer、poll超时方法
+ * @author andy_ruohan
+ * @date 2023/3/14 23:41
+ */
+public class BlockingQueueDemo4 {
+    public static void main(String[] args) throws Exception {
+        BlockingQueue<String> blockingQueue = new ArrayBlockingQueue<>(3);
+        System.out.println(blockingQueue.offer("a",     2L, TimeUnit.SECONDS));
+        System.out.println(blockingQueue.offer("a",     2L, TimeUnit.SECONDS));
+        System.out.println(blockingQueue.offer("a",     2L, TimeUnit.SECONDS));
+        System.out.println(blockingQueue.offer("a",     2L, TimeUnit.SECONDS)); // 超时会返回false
+
+        System.out.println(blockingQueue.poll(2L, TimeUnit.SECONDS));
+        System.out.println(blockingQueue.poll(2L, TimeUnit.SECONDS));
+        System.out.println(blockingQueue.poll(2L, TimeUnit.SECONDS));
+        System.out.println(blockingQueue.poll(2L, TimeUnit.SECONDS)); // 超时会返回null
+    }
+}
+```
+运行结果：
+>true
+true
+true
+false（隔两秒后输出）
+a
+a
+a
+null（再隔两秒输出）
+
