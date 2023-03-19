@@ -728,10 +728,111 @@ null（再隔两秒输出）
    - ReentrantLock可中断，
         >(i) 设置超时方法tryLock(Long timeout, Timeunit unit)
         >(ii) LockInterruptibly()放代码块中，调用interrupt()方法可中断
-
 4. 加锁是否公平
    - synchronized非公平锁。
    - ReentrantLock两者都可以，默认非公平锁，构造方法可以传入boolean值，true为公平锁，false为非公平锁。
 5. 锁绑定多个条件Condition
    - synchronized没有。
    - Reentrantlock用来实现分组唤醒需要唤醒的线程们，可以精确唤醒，而不是像synchronized要么随机唤醒一个线程要么唤醒全部线程。
+
+#####已经有了Runnable方式调用线程，为什么要使用Callable方式调用线程？
+```java
+/**
+ * @author andy_ruohan
+ * @description 通过实现Callable接口方式，来使用线程
+ * @date 2023/3/19 18:26
+ */
+class MyThread implements Callable<Integer> {
+    @Override
+    public Integer call() throws Exception {
+        System.out.println("***********come in Callable");
+        return 1024;
+    }
+}
+
+/**
+ * @author andy_ruohan
+ * @description 启用两个线程：主线程 + AA线程，计算结果
+ * @date 2023/3/19 18:25
+ */
+public class CallableDemo1 {
+    public static void main(String[] args) throws InterruptedException, ExecutionException {
+        FutureTask<Integer> futureTask = new FutureTask<Integer>(new MyThread());
+        Thread t1 = new Thread(futureTask, "AA");
+        t1.start();
+
+        int result1 = 100;
+        int result2 = futureTask.get();
+        System.out.println("***********result: " + (result1 + result2));
+    }
+}
+```
+使用Callable方式调用线程，可以带有返回值。多个线程共同计算结果：
+>***********come in Callable
+***********result: 1124
+
+#####两个线程同时调用一个futureTask
+```java
+/**
+ * @author andy_ruohan
+ * @description 测试两个线程调用同一个futureTask
+ * @date 2023/3/19 18:10
+ */
+public class CallableDemo2 {
+    public static void main(String[] args) throws InterruptedException, ExecutionException {
+        //FutureTask(Callable‹v> callable)
+        FutureTask<Integer> futureTask = new FutureTask<Integer>(new MyThread());
+        Thread t1 = new Thread(futureTask, "AA");
+        Thread t2 = new Thread(futureTask, "BB");
+        t1.start();
+        t2.start();
+
+        System.out.println("***********result: " + futureTask.get());
+    }
+}
+```
+当有两个线程调用同一个futureTask，实际futureTask只会进入一次：
+>***********come in Callable
+***********result: 1024  
+
+#####提前获取futureTask结果，会造成线程阻塞
+```java
+/**
+ * @author andy_ruohan
+ * @description 通过实现Callable接口方式，来使用线程（带有sleep）
+ * @date 2023/3/19 18:41
+ */
+public class MyThreadWithSleep implements Callable<Integer> {
+    @Override
+    public Integer call() throws Exception {
+        System.out.println("***********come in Callable");
+        Thread.sleep(5000);
+        return 1024;
+    }
+}
+
+/**
+ * @author andy_ruohan
+ * @description 提前获取futureTask结果
+ * @date 2023/3/19 18:40
+ */
+public class CallableDemo3 {
+    public static void main(String[] args) throws InterruptedException, ExecutionException {
+        FutureTask<Integer> futureTask = new FutureTask<>(new MyThreadWithSleep());
+        Thread t1 = new Thread(futureTask, "AA");
+        t1.start();
+        int result2 = futureTask.get();
+
+        System.out.println("===========");
+
+        int result1 = 100;
+        System.out.println("***********result: " + (result1 + result2));
+    }
+}
+```
+>***********come in Callable
+======(会带有5秒的延迟)
+***********result: 1124
+
+ 
+
