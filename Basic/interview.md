@@ -735,7 +735,14 @@ null（再隔两秒输出）
    - synchronized没有。
    - Reentrantlock用来实现分组唤醒需要唤醒的线程们，可以精确唤醒，而不是像synchronized要么随机唤醒一个线程要么唤醒全部线程。
 
-#####已经有了Runnable方式调用线程，为什么要使用Callable方式调用线程？
+#####已经有了Runnable方式调用线程，为什么还要使用Callable方式调用线程？
+1. Thread构造方法参数虽然都是Runnable接口形式：
+![](Thread%E7%9A%84%E6%9E%84%E9%80%A0%E6%96%B9%E6%B3%95.png)
+但FutureTask类构造方法以Callable接口作为参数，并实现了Runnable接口，可以透传到Thread类作为参数。
+![](FutureTask%E5%AE%9E%E7%8E%B0%E6%8E%A5%E5%8F%A3%E5%8F%8A%E6%9E%84%E9%80%A0%E6%96%B9%E6%B3%95.png)
+   >类似于适配器模式，比如Callable和Runnable两个人相互不认识，而FutureTask两个人都认知，将他们约在一起见面  
+
+2. 使用Callable方式调用线程，可以带有返回值。(适用于并发+异步，获取结果的场景)
 ```java
 /**
  * @author andy_ruohan
@@ -767,7 +774,7 @@ public class CallableDemo1 {
     }
 }
 ```
-使用Callable方式调用线程，可以带有返回值。多个线程共同计算结果：
+多个线程共同计算结果：
 >***********come in Callable
 ***********result: 1124
 
