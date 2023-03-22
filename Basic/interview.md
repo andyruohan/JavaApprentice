@@ -870,5 +870,65 @@ public class CallableDemo3 {
     }
 ```
 
- 
+#####综合样例：模拟银行窗口服务场景
+```java
+/**
+ * @author andy_ruohan
+ * @description 模拟银行窗口服务场景：2个常规窗口，等候区3个座位，3个加班窗口
+ * @date 2023/3/22 21:50
+ */
+public class ThreadPoolDemo {
+    public static void main(String[] args) {
+        ExecutorService threadPool = new ThreadPoolExecutor(
+                2, 5, 100L, TimeUnit.SECONDS,
+                // 等候区
+                new LinkedBlockingQueue<>(3),
+                Executors.defaultThreadFactory(),
+                new ThreadPoolExecutor.AbortPolicy());
+        try {
+            // 模找8个顾客来办理业务，受理窗口max只有5个
+            for (int i = 1; i <= 8; i++) {
+                final int tmpI = i;
+                threadPool.execute(() -> {
+                    System.out.println(Thread.currentThread().getName() + "号窗口，“＋“服务顾客" + tmpI);
+                    try {
+                        TimeUnit.SECONDS.sleep(4);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            threadPool.shutdown();
+        }
+    }
+}
+```
+运行过程：
+1. 常规窗口2个，前两个客户来了以后正常进入窗口；
+   >(int corePoolSize: 常规窗口数)
+2. 若前两个窗口已满，后续来的客户会进入等候区；
+   >(BlockingQueue<Runnable> workQueue: 等候区)
+3. 若等候区已满，后续来的客户会直接进入加班窗口、而不是等候区；
+   >(int maximumPoolSize: 常规窗口 + 加班窗口)
+4. 若再有客户来，银行网点承载能力已满，执行拒绝策略
+   >(RejectedExecutionHandler handler: 拒绝策略)
+5. 若客户慢慢减少，加班窗口会进入等待，等待一段时间后仍无客户，加班窗口会取消
+   >(long keepAliveTime: 等待时间， TimeUnit unit: 计时单位) 
+
+    此外，`ThreadFactory threadFactory`相当于网点的窗口、取款机等标准配置。  
+
+    ---
+    上述的几个变量亦即线程池的七大参数：
+    ```java
+    public ThreadPoolExecutor(int corePoolSize,
+                              int maximumPoolSize,
+                              long keepAliveTime,
+                              TimeUnit unit,
+                              BlockingQueue<Runnable> workQueue,
+                              ThreadFactory threadFactory,
+                              RejectedExecutionHandler handler)
+    ```
 
