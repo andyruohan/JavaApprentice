@@ -932,3 +932,42 @@ public class ThreadPoolDemo {
                               RejectedExecutionHandler handler)
     ```
 
+#####JDK内置的拒绝策略
+1. AbortPolicy(默认)：直接抛出RejectedException异常阻止系统正常运行。
+2. CallerRunPolicy："调用者运行"一种调节机制，该策略既不会抛弃任务，也不会抛出异常，而是将某些任务回退给调用者，从而降低新任务的流量。
+3. DiscardOldestPolicy：抛弃队列中等待最久的任务，然后把当前任务加入队列中尝试再次提交。
+4. DiscardPolicy：接丢弃任务，不予任何处理也不抛出异常。如果允许任务丢失，这是最好的拒绝策略。
+ 
+#####<font color = 'red'>【超级大坑】你在工作中单一的/固定数的/可变你的三种创建线程池的方法，你用哪个多?</font>
+答案是：一个都不用，我们生产上只能使用自定义的。参考阿里巴巴《阿里巴巴java开发手册》
+>【强制】线程池不允许使用Executors去创建，而是通过ThreadPoolExecutor的方式，这样的处理方式让写的同学更加明确线程池的运行规则，规避资源耗尽的风险。说明：Executors返回的线程池对象的弊端如下：
+1）<font color = 'red'>FixedThreadPool</font>和<font color = 'red'>SingleThreadPool</font>:允许的请求队列长度为Integer.MAX_VALUE，可能会堆积大量的请求，从而导致OOM。 
+
+即源码中的new LinkedBlockingQueue<Runnable>( )：
+```java
+    public static ExecutorService newFixedThreadPool(int nThreads) {
+        return new ThreadPoolExecutor(nThreads, nThreads,
+                                      0L, TimeUnit.MILLISECONDS,
+                                      new LinkedBlockingQueue<Runnable>());
+    }
+```
+
+>2）<font color = 'red'>CachedThreadPool</font>和<font color = 'red'>ScheduledThreadPool</font>:允许的创建线程数量为Integer.MAX_VALUE，可能会创建大量的线程，从而导致OOM。  
+
+即源码中的Integer.MAX_VALUE：
+```java
+    public static ExecutorService newCachedThreadPool() {
+        return new ThreadPoolExecutor(0, Integer.MAX_VALUE,
+                                      60L, TimeUnit.SECONDS,
+                                      new SynchronousQueue<Runnable>());
+    }
+```
+
+#####如何合理配置线程池？
+首先熟悉自己的硬件，清楚CPU是几核心：System.out.println(Runtime.getRuntime().availableProcessors());
+- 单核情况：无论开几个模拟的多线程任务，都不可能得到加速；
+- 多核情况：
+    - CPU密集型：应配置尽可能少的线程数量。一般公式：CPU核数+1个线程的线程池。
+    - IO密集型：IO密集型线程任务并不是一直在执行任务，则应配置尽可能多的线程。
+    >参考公式：CPU核数 / 1 - 阻塞系数，阻塞系数通常在0.8～0.9。
+    比如8核CPU：8 / 1 - 0.9 = 80个线程。
