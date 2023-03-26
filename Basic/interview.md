@@ -971,3 +971,90 @@ public class ThreadPoolDemo {
     - IO密集型：IO密集型线程任务并不是一直在执行任务，则应配置尽可能多的线程。
     >参考公式：CPU核数 / 1 - 阻塞系数，阻塞系数通常在0.8～0.9。
     比如8核CPU：8 / 1 - 0.9 = 80个线程。
+
+
+#####
+```java
+/**
+ * @author andy_ruohan
+ * @description 产生死锁的线程方法
+ * @date 2023/3/26 20:49
+ */
+class HoldLockThread implements Runnable {
+    private final String lockA;
+    private final String lockB;
+
+    public HoldLockThread(String lockA, String lockB) {
+        this.lockA = lockA;
+        this.lockB = lockB;
+    }
+
+    @Override
+    public void run() {
+        synchronized (lockA) {
+            System.out.println(Thread.currentThread().getName() + "\t 自己持有锁" + lockA + "尝试获得" + lockB);
+            try {
+                TimeUnit.SECONDS.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            synchronized (lockB) {
+                System.out.println(Thread.currentThread().getName() + "\t 自己持有锁" + lockB + "尝试获得" + lockA);
+            }
+        }
+    }
+}
+```
+
+```java
+/**
+ * @author andy_ruohan
+ * @description 产生死锁主函数 
+ * @date 2023/3/26 20:50
+ */
+public class DeadLockDemo {
+    public static void main(String[] args) {
+        String lockA = "lockA";
+        String lockB = "lockB";
+        new Thread(new HoldLockThread(lockA, lockB), "threadAAA").start();
+        new Thread(new HoldLockThread(lockB, lockA), "threadBBB").start();
+    }
+}
+```
+
+###死锁(Dead Lock)
+####产生死锁的原因
+**死锁**是指两个或两个以上的进程在执行过程中，因争夺资源而造成的一种<font color='red'>互相等待的现象</font>，若无外力干涉那它们都将无法推进下去。如果系统资源充足，进程的资源请求都能够得到满足，死锁出现的可能性就很低，否则就会因争夺有限的资源而陷入死锁。
+
+####如何解决死锁?
+系统 | 定位进程编号 | 查看死锁进程栈
+----- | ----- | ----
+Linux | ps -ef\|gref xxxx | ls -l 
+Windows | jps  | jps-l
+以Windows系统为例，首先定位进程编号:
+>jps -l
+```java
+53104 jvm.deadlock.DeadLockDemo
+37874 
+53115 jdk.jcmd/sun.tools.jps.Jps
+53103 org.jetbrains.jps.cmdline.Launcher
+```
+
+其次，查看死锁进程栈:
+>jstack 53104
+```java
+"threadAAA":
+        at jvm.deadlock.HoldLockThread.run(HoldLockThread.java:29)
+        - waiting to lock <0x0000000787ead8a8> (a java.lang.String)
+        - locked <0x0000000787ead878> (a java.lang.String)
+        at java.lang.Thread.run(java.base@18.0.2/Thread.java:833)
+"threadBBB":
+        at jvm.deadlock.HoldLockThread.run(HoldLockThread.java:29)
+        - waiting to lock <0x0000000787ead878> (a java.lang.String)
+        - locked <0x0000000787ead8a8> (a java.lang.String)
+        at java.lang.Thread.run(java.base@18.0.2/Thread.java:833)
+       
+Found 1 deadlock.
+```
+然后停止服务、修改代码、重新部署应用...
+
