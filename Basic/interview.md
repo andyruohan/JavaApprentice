@@ -1094,3 +1094,20 @@ GC主要发生在方法区和堆区。
   -Xcomp 第一次使用就编译成本地代码，再执行
   -Xmixed 将解释模式预编译模式进行混合使用，由JVM自己决定
 - XX参数（重点掌握）
+  1. Boolean类型 -XX: +或者- 某个属性值（+表示开启、-表示关闭）
+   例如：打印GC收集细节 -XX:+PrintGCDetails、使用串行垃圾收集器 -XX:+UseSerialGC
+   ![](%E6%89%93%E5%8D%B0GC%E8%AF%A6%E6%83%85.png)
+  2. kv设置类型 -XX:属性key=属性值value
+   例如：设置元空间大小 -XX:MetaspaceSize=128m、设置最大-XX:MaxTenuringThreshold=15
+   ![](%E8%AE%BE%E7%BD%AEJVM%E5%85%83%E7%A9%BA%E9%97%B4%E5%A4%A7%E5%B0%8F.png)
+  3. jinfo -flag 配置项 进程编号
+        >lijunxin@lijunxins-Air JavaStudy % jinfo -flag MetaspaceSize 62757
+-XX:MetaspaceSize=22020096
+
+        > lijunxin@lijunxins-Air JavaStudy % jinfo -flags 62846             
+        VM Flags:
+        -XX:CICompilerCount=4 -XX:ConcGCThreads=2 -XX:G1ConcRefinementThreads=8 -XX:G1EagerReclaimRemSetThreshold=12 -XX:G1HeapRegionSize=1048576 -XX:G1RemSetArrayOfCardsEntries=12 -XX:G1RemSetHowlMaxNumBuckets=8 -XX:G1RemSetHowlNumBuckets=4 -XX:GCDrainStackTargetSize=64 -XX:InitialHeapSize=134217728 -XX:MarkStackSize=4194304 -XX:MaxHeapSize=2147483648 -XX:MaxNewSize=1287651328 -XX:MetaspaceSize=134217728 -XX:MinHeapDeltaBytes=1048576 -XX:MinHeapSize=8388608 -XX:NonNMethodCodeHeapSize=5839564 -XX:NonProfiledCodeHeapSize=122909338 -XX:ProfiledCodeHeapSize=122909338 -XX:ReservedCodeCacheSize=251658240 -XX:+SegmentedCodeCache -XX:SoftMaxHeapSize=2147483648 -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseG1GC -XX:-UseNUMA -XX:-UseNUMAInterleaving 
+
+        <font color='red'>Xms与Xmx参数，是X参数还是XX参数</font>
+        答：都属于XX参数，Xms等价于 -XX:InitialHeapSize，Xmx等价于-XX:MaxHeapSize。
+
