@@ -1111,3 +1111,37 @@ GC主要发生在方法区和堆区。
         <font color='red'>Xms与Xmx参数，是X参数还是XX参数</font>
         答：都属于XX参数，Xms等价于 -XX:InitialHeapSize，Xmx等价于-XX:MaxHeapSize。
 
+#####JVM盘点家底的命令
+- 第一种：
+  - jinfo -flag 具体参数 java进程编号
+  - jinfo -flags java进程编号
+- 第二种：（更加正规的做法）
+   - 查看初始默认值-XX:+PrintFlagsInitial
+   - 查看修改更新值-XX:+PrintFlagsFinal
+   - 查看一些关键参数如GC垃圾回收器-XX:+PrintCommandLineFlags
+
+>输出结果key/value中键值对中，=未被修改的 :=人为或虚拟机修改的
+
+
+#####Xms和Xmx参数初始值
+```java
+/**
+ * @author andy_ruohan
+ * @description 虚拟机Xms和Xmx初始值
+ * @date 2023/4/3 22:48
+ */
+public class HelloGC {
+    public static void main(String[] args) throws InterruptedException {
+        //返回Java 虚拟机的内产总量。
+        long totalMemory = Runtime.getRuntime().totalMemory();
+        //返回Java 虚拟机试图使用的最大内存量。
+        long maxMemory = Runtime.getRuntime().maxMemory();
+        System.out.println("TOTAL_MEMORY(-Xms) = " + totalMemory + " (字节) ，即" + (totalMemory / (double)1024 / 1024) + "MB");
+        System.out.println("MAX_MEMORY(-Xmx) = " + maxMemory + " (字节) ，即" + (maxMemory / (double)1024 / 1024) + "MB");
+    }
+}
+```
+>TOTAL_MEMORY(-Xms) = 136314880 (字节) ，即130.0MB
+MAX_MEMORY(-Xmx) = 2147483648 (字节) ，即2048.0MB  
+
+即，`Xms初始值：1/64 * 物理内存、Xmx初始值：1/4 * 物理内存`
