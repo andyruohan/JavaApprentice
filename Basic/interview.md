@@ -1098,7 +1098,7 @@ GC主要发生在方法区和堆区。
    例如：打印GC收集细节 -XX:+PrintGCDetails、使用串行垃圾收集器 -XX:+UseSerialGC
    ![](%E6%89%93%E5%8D%B0GC%E8%AF%A6%E6%83%85.png)
   2. kv设置类型 -XX:属性key=属性值value
-   例如：设置元空间大小 -XX:MetaspaceSize=128m、设置最大-XX:MaxTenuringThreshold=15
+   例如：设置元空间大小 -XX:MetaspaceSize=128m、设置垃圾最大停留年龄-XX:MaxTenuringThreshold=15
    ![](%E8%AE%BE%E7%BD%AEJVM%E5%85%83%E7%A9%BA%E9%97%B4%E5%A4%A7%E5%B0%8F.png)
   3. jinfo -flag 配置项 进程编号
         >lijunxin@lijunxins-Air JavaStudy % jinfo -flag MetaspaceSize 62757
@@ -1159,13 +1159,14 @@ java9: https://docs.oracle.com/javase/9/tools/java.htm#JSWOR624
 java20: https://docs.oracle.com/en/java/javase/20/docs/specs/man/java.html
 ![](Java20%20XssSize.png)
 
-#####设置年轻代大小（项目没有特殊需求，几乎用不到）
+#####设置新生代大小-Xmn
+项目没有特殊需求，几乎用不到。
 
-#####设置元空间大小
--XX:MetaspaceSize = 512M
+#####设置元空间大小-XX:MetaspaceSize
+`元空间JVM默认大小为21M`并不大，故该命令在项目中可能会常用到。
+元空间的本质和永久代类似，都是对JVM规范中方法区的实现。不过元空间与永久代之间最大的区别在于：<font color='red'>元空间并不在虚拟机中，而是使用本地内存。</font>因此，默认情况下，元空间的大小仅受本地内存限制。
 
-#####打印垃圾回收器详情
--XX:+PrintGCDetails
+#####打印垃圾回收器详情-XX:+PrintGCDetails
 
 ![](%E8%AE%BE%E7%BD%AEJVM%E5%8F%82%E6%95%B0.png)
 ```java
@@ -1204,3 +1205,46 @@ Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
 
 如何看GC所打出的日志详情，可参考下图：
 ![](GC%E6%97%A5%E5%BF%97%E4%BF%A1%E6%81%AF%E5%88%86%E8%A7%A3.png)
+
+#####堆内存结构占比命令
+![](Heap%E9%BB%98%E8%AE%A4%E6%AF%94%E4%BE%8B.png)
+#####设置新生代结构比例-XX:SurvivorRatio（默认为8，即eden:from:to = 8:1:1）
+```java
+ PSYoungGen      total 4608K, used 205K [0x00000007bfb00000, 0x00000007c0000000, 0x00000007c0000000)
+  eden space 4096K, 5% used [0x00000007bfb00000,0x00000007bfb334c8,0x00000007bff00000)
+  from space 512K, 0% used [0x00000007bff00000,0x00000007bff00000,0x00000007bff80000)
+  to   space 512K, 0% used [0x00000007bff80000,0x00000007bff80000,0x00000007c0000000)
+```
+
+#####设置老年代与新生代比例-XX:NewRatio（默认为2，old:young = 2:1）
+```java
+ PSYoungGen      total 4608K, used 205K 
+ ParOldGen       total 11264K, used 334K [0x00000007bf000000, 0x00000007bfb00000, 0x00000007bfb00000)
+```
+注意：实测的时候为2.4:1，有一定的偏差
+
+#####垃圾停留最大年龄-XX:MaxTenuringThreshold
+垃圾停留：即新生代survivor区从from到to、从to到from来回复制的最大此处。默认为15，超过15JVM会报错。
+```java
+MaxTenuringThreshold of 20 is invalid; must be between 0 and 15
+Error: Could not create the Java Virtual Machine.
+Error: A fatal exception has occurred. Program will exit.
+```
+
+
+####综合样例：
+#####配置前的JVM的设置
+![](%E7%BB%BC%E5%90%88%E6%A0%B7%E4%BE%8B%E5%88%9D%E5%A7%8B%E5%8F%82%E6%95%B0.png)
+打印出的JVM配置：
+```java
+-XX:InitialHeapSize=134217728 -XX:MaxHeapSize=2147483648 -XX:+PrintCommandLineFlags -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseParallelGC 
+```
+
+#####添加常见的JVM配置
+![](%E7%BB%BC%E5%90%88%E6%A0%B7%E4%BE%8B%E9%85%8D%E7%BD%AE%E5%90%8E%E7%9A%84%E5%8F%82%E6%95%B0.png)
+具体配置信息为：-Xms128m -Xmx4096m -Xss1024k -XX:MetaspaceSize=512m -XX:+PrintCommandLineFlags -XX:+PrintGCDetails -XX:+UseSerialGC
+
+#####最终打印出的JVM配置
+```java
+-XX:InitialHeapSize=134217728 -XX:MaxHeapSize=4294967296 -XX:MetaspaceSize=536870912 -XX:+PrintCommandLineFlags -XX:+PrintGCDetails -XX:ThreadStackSize=1024 -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseSerialGC 
+```
