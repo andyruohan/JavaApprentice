@@ -1147,7 +1147,7 @@ MAX_MEMORY(-Xmx) = 2147483648 (字节) ，即2048.0MB
 即，`Xms初始值：1/64 * 物理内存、Xmx初始值：1/4 * 物理内存`
 
 
-#####栈内存初始化（-Xss参数初始化，-Xss等价于-XX:ThreadStackSize）
+#####栈内存初始化（-Xss参数初始化）
 注意与Xms和Xmx做区分，`栈管运行，堆管存储`。其默认大小见下方的JDK官方文档：
 
 java8: https://docs.oracle.com/javase/8/docs/technotes/tools/windows/java.html#BGBCIEFC
@@ -1158,3 +1158,49 @@ java9: https://docs.oracle.com/javase/9/tools/java.htm#JSWOR624
 
 java20: https://docs.oracle.com/en/java/javase/20/docs/specs/man/java.html
 ![](Java20%20XssSize.png)
+
+#####设置年轻代大小（项目没有特殊需求，几乎用不到）
+
+#####设置元空间大小
+-XX:MetaspaceSize = 512M
+
+#####打印垃圾回收器详情
+-XX:+PrintGCDetails
+
+![](%E8%AE%BE%E7%BD%AEJVM%E5%8F%82%E6%95%B0.png)
+```java
+/**
+ * @author andy_ruohan
+ * @description OOM运行测试、并打印GC运行详情（预先设置JVM参数-Xms10M -Xmx10M -XX:+PrintGCDetails）
+ * @date 2023/4/5 20:00
+ */
+public class OutOfMemoryErrorTest {
+    public static void main(String[] args) {
+        // 下面该行会报：OutOfMemoryError: Java heap space
+        Byte[] bytes = new Byte[50 * 1024 * 1024];
+    }
+}
+```
+
+运行结果：
+```java
+[GC (Allocation Failure) [PSYoungGen: 1437K->496K(4608K)] 1437K->512K(15872K), 0.0005106 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+[GC (Allocation Failure) [PSYoungGen: 496K->496K(4608K)] 512K->536K(15872K), 0.0004586 secs] [Times: user=0.00 sys=0.01, real=0.00 secs] 
+[Full GC (Allocation Failure) [PSYoungGen: 496K->0K(4608K)] [ParOldGen: 40K->359K(11264K)] 536K->359K(15872K), [Metaspace: 3166K->3166K(1056768K)], 0.0020345 secs] [Times: user=0.01 sys=0.00, real=0.00 secs] 
+[GC (Allocation Failure) [PSYoungGen: 0K->0K(4608K)] 359K->359K(15872K), 0.0002599 secs] [Times: user=0.00 sys=0.00, real=0.01 secs] 
+[Full GC (Allocation Failure) [PSYoungGen: 0K->0K(4608K)] [ParOldGen: 359K->334K(11264K)] 359K->334K(15872K), [Metaspace: 3166K->3166K(1056768K)], 0.0016703 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+Heap
+ PSYoungGen      total 4608K, used 205K [0x00000007bfb00000, 0x00000007c0000000, 0x00000007c0000000)
+  eden space 4096K, 5% used [0x00000007bfb00000,0x00000007bfb334c8,0x00000007bff00000)
+  from space 512K, 0% used [0x00000007bff00000,0x00000007bff00000,0x00000007bff80000)
+  to   space 512K, 0% used [0x00000007bff80000,0x00000007bff80000,0x00000007c0000000)
+ ParOldGen       total 11264K, used 334K [0x00000007bf000000, 0x00000007bfb00000, 0x00000007bfb00000)
+  object space 11264K, 2% used [0x00000007bf000000,0x00000007bf0538d8,0x00000007bfb00000)
+ Metaspace       used 3246K, capacity 4496K, committed 4864K, reserved 1056768K
+  class space    used 351K, capacity 388K, committed 512K, reserved 1048576K
+Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
+	at jvm.gc.GCRunTest.main(GCRunTest.java:11)
+```
+
+如何看GC所打出的日志详情，可参考下图：
+![](GC%E6%97%A5%E5%BF%97%E4%BF%A1%E6%81%AF%E5%88%86%E8%A7%A3.png)
