@@ -1123,7 +1123,7 @@ GC主要发生在方法区和堆区。
 >输出结果key/value中键值对中，=未被修改的 :=人为或虚拟机修改的
 
 
-#####Xms和Xmx参数初始值
+#####堆内存初始化（Xms和Xmx参数初始值）
 ```java
 /**
  * @author andy_ruohan
@@ -1132,9 +1132,9 @@ GC主要发生在方法区和堆区。
  */
 public class HelloGC {
     public static void main(String[] args) throws InterruptedException {
-        //返回Java 虚拟机的内产总量。
+        //返回 Java 虚拟机的内存总量。
         long totalMemory = Runtime.getRuntime().totalMemory();
-        //返回Java 虚拟机试图使用的最大内存量。
+        //返回 Java 虚拟机试图使用的最大内存量。
         long maxMemory = Runtime.getRuntime().maxMemory();
         System.out.println("TOTAL_MEMORY(-Xms) = " + totalMemory + " (字节) ，即" + (totalMemory / (double)1024 / 1024) + "MB");
         System.out.println("MAX_MEMORY(-Xmx) = " + maxMemory + " (字节) ，即" + (maxMemory / (double)1024 / 1024) + "MB");
@@ -1145,3 +1145,16 @@ public class HelloGC {
 MAX_MEMORY(-Xmx) = 2147483648 (字节) ，即2048.0MB  
 
 即，`Xms初始值：1/64 * 物理内存、Xmx初始值：1/4 * 物理内存`
+
+
+#####栈内存初始化（-Xss参数初始化，-Xss等价于-XX:ThreadStackSize）
+注意与Xms和Xmx做区分，`栈管运行，堆管存储`。其默认大小见下方的JDK官方文档：
+
+java8: https://docs.oracle.com/javase/8/docs/technotes/tools/windows/java.html#BGBCIEFC
+![](Java8%20XssSize.png)
+
+java9: https://docs.oracle.com/javase/9/tools/java.htm#JSWOR624
+![](Java9%20XssSize.png)
+
+java20: https://docs.oracle.com/en/java/javase/20/docs/specs/man/java.html
+![](Java20%20XssSize.png)
