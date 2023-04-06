@@ -1248,3 +1248,19 @@ Error: A fatal exception has occurred. Program will exit.
 ```java
 -XX:InitialHeapSize=134217728 -XX:MaxHeapSize=4294967296 -XX:MetaspaceSize=536870912 -XX:+PrintCommandLineFlags -XX:+PrintGCDetails -XX:ThreadStackSize=1024 -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseSerialGC 
 ```
+
+#####强引用、软引用、弱引用、虚引用
+强引用：无论如何都不会被gc，即便是出现OOM。
+软引用：系统内存充足，不会被gc；系统内存不足，会被gc。
+弱引用：只要产生gc，就会被回收。
+
+#####软引用和弱引用的使用场景
+假如有一个应用需要读取大量的本地图片：
+- 如果每次读取图片都从硬盘读取则会严重影响性能，
+- 如果一次性全部加载到内存中又可能造成内存溢出。  
+ 
+此时使用软引用可以解决这个问题。
+设计思路是：用一个HashMap来保存图片的路径和相应图片对象关联的软引用之问的映射关系，在内存不足时，JVM会自动回收这些缓存图片对象所占用的空间，从而有效地避免了OOM的问题。
+```java
+Map<String, SoftReference<Bitmap>> imageCache = new HashMap<String, SoftReference<Bitmap>>();
+```
