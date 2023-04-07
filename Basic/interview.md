@@ -1253,6 +1253,7 @@ Error: A fatal exception has occurred. Program will exit.
 强引用：无论如何都不会被gc，即便是出现OOM。
 软引用：系统内存充足，不会被gc；系统内存不足，会被gc。
 弱引用：只要产生gc，就会被回收。
+虚引用：如果一个对象仅持有虚引用，那么它就和没有任何引用一样，在任何时候都可能被垃圾回收器回收。类似于被判了死缓。
 
 #####软引用和弱引用的使用场景
 假如有一个应用需要读取大量的本地图片：
@@ -1264,3 +1265,7 @@ Error: A fatal exception has occurred. Program will exit.
 ```java
 Map<String, SoftReference<Bitmap>> imageCache = new HashMap<String, SoftReference<Bitmap>>();
 ```
+
+#####虚引用的使用场景
+虚引用不能单独使用也不能通过它访问对象，必须和引用队列(ReferenceQueue)联合使用，其主要作用是跟踪对象被垃圾回收的状态，在这个对象被收集器回收的时候收到一个系统通知或者后续添加进一步的处理。**有点类似于对象临终前的遗言**。
+>Java技术允许使用finalize()方法在垃圾收集器将对象从内存中清除出去之前做必要的清理工作。
