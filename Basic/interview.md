@@ -1205,6 +1205,7 @@ Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
 
 如何看GC所打出的日志详情，可参考下图：
 ![](GC%E6%97%A5%E5%BF%97%E4%BF%A1%E6%81%AF%E5%88%86%E8%A7%A3.png)
+![](GC%E8%AF%A6%E6%83%85%E8%A7%84%E5%BE%8B.png)
 
 #####堆内存结构占比命令
 ![](Heap%E9%BB%98%E8%AE%A4%E6%AF%94%E4%BE%8B.png)
@@ -1269,3 +1270,50 @@ Map<String, SoftReference<Bitmap>> imageCache = new HashMap<String, SoftReferenc
 #####虚引用的使用场景
 虚引用不能单独使用也不能通过它访问对象，必须和引用队列(ReferenceQueue)联合使用，其主要作用是跟踪对象被垃圾回收的状态，在这个对象被收集器回收的时候收到一个系统通知或者后续添加进一步的处理。**有点类似于对象临终前的遗言**。
 >Java技术允许使用finalize()方法在垃圾收集器将对象从内存中清除出去之前做必要的清理工作。
+
+```java
+public class MetaspaceOomDemo {
+    static class OomTest {
+    }
+
+    public static void main(String[] args) {
+        {
+            //模拟计数多少次以后发生异常
+            int i = 0;
+            try {
+                while (true) {
+                    i++;
+                    Enhancer enhancer = new Enhancer();
+                    enhancer.setSuperclass(OomTest.class);
+                    enhancer.setUseCache(false);
+                    enhancer.setCallback(new MethodInterceptor() {
+                        @Override
+                        public Object intercept(Object o, Method method, Object[] objects, MethodProxy methodProxy) throws Throwable {
+                            return methodProxy.invokeSuper(o, args);
+                        }
+                    });
+                    enhancer.create();
+                }
+            } catch (Throwable e) {
+                System.out.println("**********多少次后发生了异常：" + i);
+                e.printStackTrace();
+            }
+        }
+    }
+}
+```
+
+运行结果：
+```java
+**********多少次后发生了异常：546
+java.lang.OutOfMemoryError: Metaspace
+	at net.sf.cglib.core.AbstractClassGenerator.generate(AbstractClassGenerator.java:348)
+	at net.sf.cglib.proxy.Enhancer.generate(Enhancer.java:492)
+	at net.sf.cglib.core.AbstractClassGenerator$ClassLoaderData.get(AbstractClassGenerator.java:117)
+	at net.sf.cglib.core.AbstractClassGenerator.create(AbstractClassGenerator.java:294)
+	at net.sf.cglib.proxy.Enhancer.createHelper(Enhancer.java:480)
+	at net.sf.cglib.proxy.Enhancer.create(Enhancer.java:305)
+	at jvm.error.MetaspaceOomDemo.main(MetaspaceOomDemo.java:46)
+```
+
+使用Windows电脑测试：1. -Xss大小 2. GCOverHead
