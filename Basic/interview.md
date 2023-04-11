@@ -1152,6 +1152,10 @@ MAX_MEMORY(-Xmx) = 2147483648 (字节) ，即2048.0MB
 
 java8: https://docs.oracle.com/javase/8/docs/technotes/tools/windows/java.html#BGBCIEFC
 ![](Java8%20XssSize.png)
+示例：Java8虚拟机中ThreadStackSize=0代表的取默认值
+```java
+intx ThreadStackSize                           = 0                                   {pd product}
+```
 
 java9: https://docs.oracle.com/javase/9/tools/java.htm#JSWOR624
 ![](Java9%20XssSize.png)
@@ -1271,33 +1275,195 @@ Map<String, SoftReference<Bitmap>> imageCache = new HashMap<String, SoftReferenc
 虚引用不能单独使用也不能通过它访问对象，必须和引用队列(ReferenceQueue)联合使用，其主要作用是跟踪对象被垃圾回收的状态，在这个对象被收集器回收的时候收到一个系统通知或者后续添加进一步的处理。**有点类似于对象临终前的遗言**。
 >Java技术允许使用finalize()方法在垃圾收集器将对象从内存中清除出去之前做必要的清理工作。
 
+#####StackOverflowError
 ```java
+/**
+ * @author andy_ruohan
+ * @description StackOverflowError测试
+ * @date 2023/4/8 15:36
+ */
+public class StackOverflowErrorDemo {
+    public static void main(String[] args) {
+        stackOverflowError();
+
+    }
+
+    private static void stackOverflowError() {
+        //Exception in thread "main" java.lang.StackOverFlowError
+        stackOverflowError();
+    }
+}
+```
+运行结果：
+```java
+Exception in thread "main" java.lang.StackOverflowError
+	at jvm.error.StackOverflowErrorDemo.stackOverflowError(StackOverflowErrorDemo.java:16)
+	at jvm.error.StackOverflowErrorDemo.stackOverflowError(StackOverflowErrorDemo.java:16)
+	at jvm.error.StackOverflowErrorDemo.stackOverflowError(StackOverflowErrorDemo.java:16)
+	at jvm.error.StackOverflowErrorDemo.stackOverflowError(StackOverflowErrorDemo.java:16)
+	at jvm.error.StackOverflowErrorDemo.stackOverflowError(StackOverflowErrorDemo.java:16)
+	at jvm.error.StackOverflowErrorDemo.stackOverflowError(StackOverflowErrorDemo.java:16)
+	at jvm.error.StackOverflowErrorDemo.stackOverflowError(StackOverflowErrorDemo.java:16)
+	at jvm.error.StackOverflowErrorDemo.stackOverflowError(StackOverflowErrorDemo.java:16)
+	at jvm.error.StackOverflowErrorDemo.stackOverflowError(StackOverflowErrorDemo.java:16)
+	at jvm.error.StackOverflowErrorDemo.stackOverflowError(StackOverflowErrorDemo.java:16)
+
+......
+```
+
+#####OutOfMemoryError: Java heap space
+```java
+/**
+ * @author andy_ruohan
+ * @description OutOfMemoryError: Java heap space 
+ *  JVM参数: -Xms10M -Xmx10M
+ * @date 2023/4/8 15:45
+ */
+public class JavaHeapSpaceDemo {
+    public static void main(String[] args) {
+        //Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
+        byte[] bytes = new byte[30 * 1024 * 1024];
+    }
+}
+```
+运行结果：
+```java
+Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
+	at jvm.error.JavaHeapSpaceDemo.main(JavaHeapSpaceDemo.java:11)
+```
+
+#####OutOfMemoryError: GC overhead limit exceeded
+```java
+/**
+ * @author andy_ruohan
+ * @description OutOfMemoryError: GC overhead limit exceeded测试
+ *  JVM参数：-Xms10m -Xmx10m -XX:+PrintGCDetails
+ * @date 2023/4/8 15:59
+ */
+public class GCOverheadDemo {
+    public static void main(String[] args) {
+        int i = 0;
+        List<String> list = new ArrayList<>();
+        try {
+            while (true) {
+                list.add(String.valueOf(++i).intern());
+            }
+        } catch (Throwable e) {
+            System.out.println("**************i: " + i);
+            e.printStackTrace();//Exception in thread "main" java. Lang.OutofMemoryError: GC overhead Limit exceeded throw e;
+        }
+    }
+}
+```
+运行结果：
+```java
+java.lang.OutOfMemoryError: GC overhead limit exceeded
+	at java.lang.Integer.toString(Integer.java:401)
+	at java.lang.String.valueOf(String.java:3099)
+	at jvm.error.GCOverheadDemo.main(GCOverheadDemo.java:21)
+```
+
+#####OutOfMemoryError: Direct buffer memory
+```java
+public class DirectBufferMemoryDemo {
+    public static void main(String[] args) {
+        System.out.println("配置的maxDirectMemory:" + (sun.misc.VM.maxDirectMemory() / (double) 1024 / 1024) + "MB");
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        //-XX:MaxDirectMemorySize=5m 我们配置为5MB，但实际使用6MB，故意使坏
+        ByteBuffer bb = ByteBuffer.allocateDirect(6 * 1024 * 1024);
+    }
+}
+```
+
+运行结果：
+```java
+Exception in thread "main" java.lang.OutOfMemoryError: Direct buffer memory
+	at java.nio.Bits.reserveMemory(Bits.java:695)
+	at java.nio.DirectByteBuffer.<init>(DirectByteBuffer.java:123)
+	at java.nio.ByteBuffer.allocateDirect(ByteBuffer.java:311)
+	at jvm.error.DirectBufferMemoryDemo.main(DirectBufferMemoryDemo.java:31)
+```
+
+#####OutOfMemoryError: unable to create new native thread
+```java
+/**
+ * @author andy_ruohan
+ * @description unable to create new native thread测试
+ * @date 2023/4/10 22:27
+ */
+public class UnableCreateNewThreadDemo {
+    public static void main(String[] args) {
+        for (int i = 1; ; i++) {
+            System.out.println("************* i = " + i);
+            new Thread(() -> {
+                try {
+                    Thread.sleep(Integer.MAX_VALUE);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }, "" + i).start();
+        }
+    }
+}
+```
+
+运行结果：
+```java
+......
+
+************* i = 2022
+************* i = 2023
+************* i = 2024
+************* i = 2025
+Exception in thread "main" java.lang.OutOfMemoryError: unable to create new native thread
+	at java.lang.Thread.start0(Native Method)
+	at java.lang.Thread.start(Thread.java:719)
+	at jvm.error.UnableCreateNewThreadDemo.main(UnableCreateNewThreadDemo.java:28)
+```
+Linux可通过以下命令查看和修改线程数上限：
+```
+查看线程数上限：ulimit -u
+```
+```
+修改线程数上限：vim /etc/security/limits.d/90-nproc.conf打开文件后，修改对应用户的上限
+```
+
+#####OutOfMemoryError: Metaspace
+```java
+/**
+ * @author andy_ruohan
+ * @description OutOfMemoryError: Metaspace测试
+ *  JVM参数：-XX:MetaspaceSize=10m -XX:MaxMetaspaceSize=10m
+ * @date 2023/4/10 23:02
+ */
 public class MetaspaceOomDemo {
     static class OomTest {
     }
 
     public static void main(String[] args) {
-        {
-            //模拟计数多少次以后发生异常
-            int i = 0;
-            try {
-                while (true) {
-                    i++;
-                    Enhancer enhancer = new Enhancer();
-                    enhancer.setSuperclass(OomTest.class);
-                    enhancer.setUseCache(false);
-                    enhancer.setCallback(new MethodInterceptor() {
-                        @Override
-                        public Object intercept(Object o, Method method, Object[] objects, MethodProxy methodProxy) throws Throwable {
-                            return methodProxy.invokeSuper(o, args);
-                        }
-                    });
-                    enhancer.create();
-                }
-            } catch (Throwable e) {
-                System.out.println("**********多少次后发生了异常：" + i);
-                e.printStackTrace();
+        //模拟计数多少次以后发生异常
+        int i = 0;
+        try {
+            while (true) {
+                i++;
+                Enhancer enhancer = new Enhancer();
+                enhancer.setSuperclass(OomTest.class);
+                enhancer.setUseCache(false);
+                enhancer.setCallback(new MethodInterceptor() {
+                    @Override
+                    public Object intercept(Object o, Method method, Object[] objects, MethodProxy methodProxy) throws Throwable {
+                        return methodProxy.invokeSuper(o, args);
+                    }
+                });
+                enhancer.create();
             }
+        } catch (Throwable e) {
+            System.out.println("**********多少次后发生了异常：" + i);
+            e.printStackTrace();
         }
     }
 }
@@ -1315,5 +1481,3 @@ java.lang.OutOfMemoryError: Metaspace
 	at net.sf.cglib.proxy.Enhancer.create(Enhancer.java:305)
 	at jvm.error.MetaspaceOomDemo.main(MetaspaceOomDemo.java:46)
 ```
-
-使用Windows电脑测试：1. -Xss大小 2. GCOverHead
