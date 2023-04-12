@@ -1481,3 +1481,42 @@ java.lang.OutOfMemoryError: Metaspace
 	at net.sf.cglib.proxy.Enhancer.create(Enhancer.java:305)
 	at jvm.error.MetaspaceOomDemo.main(MetaspaceOomDemo.java:46)
 ```
+
+###垃圾回收器
+垃圾回收器粗分的话有四种，即
+串行垃圾回收器（Serial）：它为单线程环境设计并且只使用一个线程进行垃圾回收，会暂停所有的用户线程。所以不适合服务器环境。
+并行垃圾回收器（Parallel）：多个垃圾回收线程并行工作，此时用户线程是暂停的，适用于科学计算/大数据处理等弱交互场景。
+并行垃圾回收器（CMS）：用户线程和垃圾收集线程同时执行（不一定是并行，可能交替执行），不需要停顿用户线程。互联网公司多用它，适用于对响应时间有要求的场景。
+G1垃圾回收器：G1垃圾回收器将堆内存分割成不同的区域然后并发的对其进行垃圾回收。
+![](%E5%9B%9B%E7%A7%8D%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%99%A8.png)
+>串行垃圾回收器：类似于客人坐在一张桌子，来了一个服务员过来收拾桌子，但需要客人先离开桌子
+并行垃圾回收器：类似于客人坐了一张桌子，来了一群服务员来收拾桌子，客人也需要离开桌子，但收拾的速度比单个服务员快
+并发垃圾回收器：类似于客人拼桌，其中一个客人走了，一边有客户继续吃饭、一边有服务员收拾桌子
+
+垃圾回收器细分的话有七种，即
+`UseSerialOldGC`，UseSerialGC, UseParallelGC, UseConcMarkSweepGC, UseParNewGC, UseParallelOldGG, UseG1GC。其中UseSerialOldGC随着Java8以后升级的，已经被废弃淘汰了。类似于GC中引用计数算法已经被淘汰了，但是介绍知识体系的时候会提到。
+
+#####查看垃圾回收器
+```java
+java -XX: +PrintCommandLineFlags -version
+```
+输出结果实例：
+```java
+-XX:ConcGCThreads=2 -XX:G1ConcRefinementThreads=8 -XX:GCDrainStackTargetSize=64 -XX:InitialHeapSize=134217728 -XX:MarkStackSize=4194304 -XX:MaxHeapSize=2147483648 -XX:MinHeapSize=6815736 -XX:+PrintCommandLineFlags -XX:ReservedCodeCacheSize=251658240 -XX:+SegmentedCodeCache -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseG1GC 
+openjdk version "18.0.2" 2022-07-19
+OpenJDK Runtime Environment (build 18.0.2+9-61)
+OpenJDK 64-Bit Server VM (build 18.0.2+9-61, mixed mode, sharing)
+
+```
+#####配置垃圾回收器
+```java
+-XX:+UseParallelGC
+```
+![](配置垃圾回收器参数.png)
+输出结果示例：
+```java
+-XX:InitialHeapSize=134217728 -XX:MaxHeapSize=2147483648 -XX:+PrintCommandLineFlags -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseParallelGC 
+openjdk version "1.8.0_362"
+OpenJDK Runtime Environment Corretto-8.362.08.1 (build 1.8.0_362-b08)
+OpenJDK 64-Bit Server VM Corretto-8.362.08.1 (build 25.362-b08, mixed mode)
+```
