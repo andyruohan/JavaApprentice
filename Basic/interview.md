@@ -1488,6 +1488,7 @@ java.lang.OutOfMemoryError: Metaspace
 并行垃圾回收器（Parallel）：多个垃圾回收线程并行工作，此时用户线程是暂停的，适用于科学计算/大数据处理等弱交互场景。
 并行垃圾回收器（CMS）：用户线程和垃圾收集线程同时执行（不一定是并行，可能交替执行），不需要停顿用户线程。互联网公司多用它，适用于对响应时间有要求的场景。
 G1垃圾回收器：G1垃圾回收器将堆内存分割成不同的区域然后并发的对其进行垃圾回收。
+<font color = 'red'>注：串行垃圾回收器和并行垃圾回收器，会进行STW操作（Stop The World），即停下手中所有事。</font>
 ![](%E5%9B%9B%E7%A7%8D%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%99%A8.png)
 >串行垃圾回收器：类似于客人坐在一张桌子，来了一个服务员过来收拾桌子，但需要客人先离开桌子
 并行垃圾回收器：类似于客人坐了一张桌子，来了一群服务员来收拾桌子，客人也需要离开桌子，但收拾的速度比单个服务员快
@@ -1520,3 +1521,44 @@ openjdk version "1.8.0_362"
 OpenJDK Runtime Environment Corretto-8.362.08.1 (build 1.8.0_362-b08)
 OpenJDK 64-Bit Server VM Corretto-8.362.08.1 (build 25.362-b08, mixed mode)
 ```
+#####新生代老年代垃圾回收算法概览
+![](%E6%96%B0%E7%94%9F%E4%BB%A3%E8%80%81%E5%B9%B4%E4%BB%A3%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E7%AE%97%E6%B3%95%E6%A6%82%E8%A7%88.png)
+新生代：Serial、ParNew、Parallel Scavenge、G1
+老年代：CMS、Serial Old、Parallel Old、G1
+此外，新生代/老年代算法通常是按图上线条成对出现，比如新生代使用Serial算法、老年代使用Serial Old算法
+
+#####垃圾收集器参数说明
+DefNew: Default New Generation
+Tenured: Old Generation
+ParNew: Parallel New Generation
+PSYoungGen: Parallel Scavenge
+ParOldGen: Parallel Old Generation
+
+#####Serial垃圾收集器
+![](garbageCollector/Serial垃圾收集器.png)
+
+#####ParNew垃圾收集器
+![](garbageCollector/ParNew垃圾收集器.png)
+常用对应JVM参数：<font color='red'>-XX:+UseParNewGC（启用ParNew收集器，只影响新生代的收集，不影响老年代）</font>
+开启上述参数后，会使用：ParNew(Young区用) + Serial Old的收集器组合，新生代使用复制算法，老年代采用标记-整理算法。但是，**ParNew+Tenured这样的搭配，java8己经不再被推荐。**
+>OpenJDK 64-Bit Server VM warning: Using the ParNew young collector with the Serial old collector is deprecated and will likely be removed in a future release
+
+如果想控制并行回收的线程数，可使用以下命令
+>-XX:ParallelGCThreads=N（N为限制线程数量，默认开启和CPU数目相同的线程数）
+
+cu>8 N= 5/8 ？？？
+Cpu<8 N=实际个数
+
+#####Parallel Scavenge收集器
+Parallel Scavenge收集器类似ParNew也是一个新生代垃圾收集器，使用复制算法，也是一个并行的多线程的垃圾收集器，俗称吞吐量优先收集器。简言之：串行收集器在新生代和老年代的并行化。  
+
+![](garbageCollector/ParallelScavenge垃圾收集器.png)
+
+它重点关注的是：可控制的吞吐量（Thoughput=运行用户代码时间/(运行用户代码时间+垃圾收集时间)，也即比如程序运行100分钟，垃圾收集时间1分钟，吞吐量就是99%）。高吞吐量意味着高效利用CPU的时间，**它多用于在后台运算而不需要太多交互的任务**。  
+
+常用JVM参数：-XX:+UseParallelGC或-XX:+UseParallelOldGC（可互相激活）使用Parallel Scanvenge收集器
+
+>自适应调节策略是Parallel Scavenge收集器与ParNew收集器的一个重要区别。自适应调节策略：虚拟机会根据当前系统的运行情况收集性能监控信息，动态调整这些参数以提供最合适的停顿时间（-XX:MaxGCPauseMillis）或最大的吞吐量。
+
+
+
