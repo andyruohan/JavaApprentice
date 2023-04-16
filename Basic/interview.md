@@ -1534,10 +1534,17 @@ ParNew: Parallel New Generation
 PSYoungGen: Parallel Scavenge
 ParOldGen: Parallel Old Generation
 
-#####Serial垃圾收集器
+####Serial垃圾收集器
 ![](garbageCollector/Serial垃圾收集器.png)
 
-#####ParNew垃圾收集器
+####Serial Old收集器
+serial Old 是Serial垃圾收集器老年代版本，它同样是个单线程的收集器，使用标记-整理算法，这个收集器也主要是运行在Client默认
+的java虚拟机默认的年老代垃圾收集器。
+在Server模式下，主要有两个用途（了解，版本已经到Java8及以后）
+1. 在JDK1.5之前版本中与新生代的Parallel Scavenge 收集器搭配使用。 (Parallel Scavenge + Serial old）
+2. 作为老年代版中使用CMS收集器的后备垃圾收集方案。
+
+####ParNew垃圾收集器
 ![](garbageCollector/ParNew垃圾收集器.png)
 常用对应JVM参数：<font color='red'>-XX:+UseParNewGC（启用ParNew收集器，只影响新生代的收集，不影响老年代）</font>
 开启上述参数后，会使用：ParNew(Young区用) + Serial Old的收集器组合，新生代使用复制算法，老年代采用标记-整理算法。但是，**ParNew+Tenured这样的搭配，java8己经不再被推荐。**
@@ -1549,16 +1556,46 @@ ParOldGen: Parallel Old Generation
 cu>8 N= 5/8 ？？？
 Cpu<8 N=实际个数
 
-#####Parallel Scavenge收集器
+####Parallel Scavenge收集器
 Parallel Scavenge收集器类似ParNew也是一个新生代垃圾收集器，使用复制算法，也是一个并行的多线程的垃圾收集器，俗称吞吐量优先收集器。简言之：串行收集器在新生代和老年代的并行化。  
 
 ![](garbageCollector/ParallelScavenge垃圾收集器.png)
 
 它重点关注的是：可控制的吞吐量（Thoughput=运行用户代码时间/(运行用户代码时间+垃圾收集时间)，也即比如程序运行100分钟，垃圾收集时间1分钟，吞吐量就是99%）。高吞吐量意味着高效利用CPU的时间，**它多用于在后台运算而不需要太多交互的任务**。  
 
-常用JVM参数：-XX:+UseParallelGC或-XX:+UseParallelOldGC（可互相激活）使用Parallel Scanvenge收集器
+常用JVM参数：-XX:+UseParallelGC或-XX:+UseParallelOldGC（可互相激活）使用Parallel Scanvenge收集器。  
 
 >自适应调节策略是Parallel Scavenge收集器与ParNew收集器的一个重要区别。自适应调节策略：虚拟机会根据当前系统的运行情况收集性能监控信息，动态调整这些参数以提供最合适的停顿时间（-XX:MaxGCPauseMillis）或最大的吞吐量。
 
+####Parallel Old收集器
+Parallel Old收集器是Parallel Scavenge的老年代版本，使用多线程的标记-整理算法，Parallel Old收集器在JDK1.6才开始提供。 
+JVM常用参数：-XX:+UseParallelOldGC使用Parallel Old收集器，设罝该参数后，新生代Parallel + 老年代Parallel Old。 
+
+- 在JDK1.6之前，新生代使用Parallel Scavenge收集器只能搭配年老代的Serial Old收集器，只能保证新生代的吞吐量优先，无法保
+证整体的吞吐量。  
+
+- <font color = 'blue'>Parallel Old正是为了在老年代同样提供吞吐量优先的垃圾收集器</font>，如果系统对吞吐量要求比较高，JDK1.8后可以优先考虑新生代Parallel Scavenge和老年代Parallel Old收集器的搭配策略。
+
+即：
+在JDK1.6之前（Parallel Scavenge + Serial Old）  
+在JDK1.8及后（Parallel Scavenge + Parallel Old）
+
+>注：开启了-XX:+UseParallelOldGC，会同时开启新生代Parallel Scavenge收集器。开启了-XX:+UseParallelGC，会同时开启老年代ParallelOld收集器。
 
 
+####CMS垃圾收集器
+Concurrent Mark Sweep并发标记清除，并发收集低停顿，并发指的是与用户线程一起执行。  
+
+![](garbageCollector/CMS垃圾收集器.png)
+
+开启该收集器的JVM参数：-XX:+UseConcMarkSweepGC开启该参数后会自动将-XX:+UseParNewGC打开。使用ParNew（Young区用）+ CMS（Old区 用）+ Serial Old的收集器组合，<font color='blue'>Serial Old将作为CMS出错的后备收集器</font>。
+>由于并发进行，CMS在收集与应用线程会同时会增加对堆内存的占用，也就是说，<font color = 'red'>CMS必须要在老年代
+堆内存用尽之前完成垃圾回收</font>，否则CMS回收失败时，将触发担保机制，串行老年代收集器将会以
+STW的方式进行一次GC，从而造成较大停顿时间。
+
+#####CMS算法概述
+![](garbageCollector/CMS垃圾收集器的四个阶段.png)
+注意：<font color = 'red'>Initial Mark和Remark仍需要STW(Stop The World)</font>。但由于耗时最长的Concurrent Mark并发标记和Concurrent Sweep并发清除过程，垃圾收集线程可以和用户现在一起并发工作，所以总体上来看CMS收集器的内存回收和用户线程是一起并发地执行。
+
+#####CMS运行实测
+![](garbageCollector/CMS垃圾收集器运行实测.png)
