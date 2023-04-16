@@ -1599,3 +1599,23 @@ STW的方式进行一次GC，从而造成较大停顿时间。
 
 #####CMS运行实测
 ![](garbageCollector/CMS垃圾收集器运行实测.png)
+
+####垃圾收集器总结
+#####各垃圾收集器使用场景
+- 单CPU或小内存，单机程序
+    ```
+    -XX:+UseSerialGC
+    ```
+- 多CPU，需要最大吞吐量，如后台计算型应用
+    ```
+    -XX:+UseParallelGC或者-XX:+UseParallelOldGC
+    ```
+- 多CPU，追求低停顿时间，需快速响应如互联网应用
+    ```
+    -XX:+UseConcMarkSweepGC  
+    -XX:+ParNewGC
+    ```
+
+#####垃圾收集器配置参数及算法汇总
+![](garbageCollector/常用的垃圾收集器总结.png)
+
