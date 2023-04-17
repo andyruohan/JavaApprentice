@@ -1600,6 +1600,35 @@ STW的方式进行一次GC，从而造成较大停顿时间。
 #####CMS运行实测
 ![](garbageCollector/CMS垃圾收集器运行实测.png)
 
+####G1垃圾收集器
+G1之前的垃圾收集器的特点：
+- 年轻代和老年代是各自独立且连续的内存块：
+- 年轻代收集使用単Eden+S0+S1进行复制算法：
+- 老年代收集必须扫描整个老年代区域；
+- 都是以尽可能少而快速地执行GC为设计原则。
+
+#####什么是G1垃圾收集器
+参考官网：https://www.oracle.com/technetwork/tutorials/tutorials-1876574.html
+The Garbage-First (G1) collector is a server-style garbage collector, targeted for multi-processor machines with large memories. It meets garbage collection (GC) pause time goals with a high probability, while achieving high throughput. The G1 garbage collector is fully supported in Oracle JDK 7 update 4 and later releases. The G1 collector is designed for applications that:
+
+  - Can operate concurrently with applications threads like the CMS collector.
+  - Compact free space without lengthy GC induced pause times.
+  - Need more predictable GC pause durations.
+  - Do not want to sacrifice a lot of throughput performance.
+  - Do not require a much larger Java heap.
+
+#####G1垃圾收集器的特点
+1. G1能充分利用多CPU、多核环境硬件优势，尽量缩短STW。
+2. G1整体上采用标记-整理算法，局部是通过复制算法，<font color = 'blue'>不会产生内存碎片</font>。
+3. 宏观上看G1之中不再区分年轻代和老年代。`把内存划分成多个独立的子区域（Region）`，可以近似理解为一个围棋的棋盘。
+4. G1收集器里面讲整个的内存区都混合在一起了，`但其本身依然在小范围内要进行年轻代和老年代的区分`，保留了新生代和老年代。但它们不再是物理隔离的，而是一部分Region的集合且不需要Region是连续的，也就是说依然会采用不同的GC方式来处理不同的区域。
+5. G1虽然也是分代收集器，但`整个内存分区不存在物理上的年轻代与老年代的区别`，也不需要完全独立的survivor(to space)堆做复制淮备。`G1只有逻辑上的分代概念`，或者说每个分区都可能随G1的运行在不同代之问前后切换。
+
+<font color = 'red'>G1收集器的设计目标是取代CMS收集器</font>，它同CMS相比，在以下方面表现的更出色：
+1. G1是一个有整理内存过程的垃圾收集器，不会产生很多内存碎片。
+2. G1的Stop The World(STW)更可控，G1在停顿时间上添加了预测机制，`用户可以指定期望停顿时间`。
+
+
 ####垃圾收集器总结
 #####各垃圾收集器使用场景
 - 单CPU或小内存，单机程序
