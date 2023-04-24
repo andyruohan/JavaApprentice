@@ -1607,6 +1607,7 @@ G1之前的垃圾收集器的特点：
 - 老年代收集必须扫描整个老年代区域；
 - 都是以尽可能少而快速地执行GC为设计原则。
 
+####G1收集器
 #####什么是G1垃圾收集器
 参考官网：https://www.oracle.com/technetwork/tutorials/tutorials-1876574.html
 The Garbage-First (G1) collector is a server-style garbage collector, targeted for multi-processor machines with large memories. It meets garbage collection (GC) pause time goals with a high probability, while achieving high throughput. The G1 garbage collector is fully supported in Oracle JDK 7 update 4 and later releases. The G1 collector is designed for applications that:
@@ -1628,6 +1629,37 @@ The Garbage-First (G1) collector is a server-style garbage collector, targeted f
 1. G1是一个有整理内存过程的垃圾收集器，不会产生很多内存碎片。
 2. G1的Stop The World(STW)更可控，G1在停顿时间上添加了预测机制，`用户可以指定期望停顿时间`。
 
+#####G1收集器的核心思想
+核心思想是将整个堆内存区域分成大小相同的子区域(Region)，在JVM启动时会自动设置这些子区域的大小，在堆的使用上，G1并不要求对象的存储一定是物理上连续的只要逻辑上连续即可，每个分区也不会固定地为某个代服务，可以按需在年轻代和老年代之间切换。  
+
+启动时可以通过参数-XX:G1HeapRegionSize=n可指定分区大小(1MB～32MB，且必须是2的幂)，默认将整堆划分为2048个分区。大小范围在1MB~32MB，最多能设置2048个区域，也即能够支持的最大内存为：32MB * 2048=65536MB=64G内存。
+
+#####G1收集器下的Young GC
+针对Eden区进行收集，Eden区耗尽后会被触发，主要是小区域收集 ＋形成连续的内存块，避免内存碎片
+- Eden区的数据移动到Survivor区，假如出现Survivor区空间不够，Eden区数据会晋升到Old区。
+- Survivor区的数据移动到新的Survivor区，部会数据晋升到Old区
+- 最后Eden区收拾干净了，GC结束，用户的应用程序继续执行。
+![](garbageCollector/G1的youngGC过程.png)
+![](garbageCollector/G1的youngGC结果.png)
+
+#####G1收集器运行图
+初始标记：只标记GC Roots 能直接关联到的对象
+并发标记：进行GC Roots Tracing的过程
+最终标记：修正并发标记期间，因程序运行导致标记发生变化的那一部分对象
+筛选回收：根据时间来进行价值最大化的回收
+形如：
+![](garbageCollector/G1运行示意图.png)
+
+实际运行效果：
+![](garbageCollector/G1实际运行效果(前三步).png)
+
+#####G1常用参数（了解）
+- -XX:+UseG1GC
+- -XX:G1HeapRegionSize=n: 设置G1区域的大小。值是2的幂，范围是1M到32M。目标是根据最小的Java堆大小划分出约2048个区域
+- -XX:MaxGCPauseMillis=n: 最大停顿时间，这是个软目标，JVM将尽可能（但不保证）停顿时间小于这个时间
+- -XX:InitiatingHeapOccupancyPercent=n: 堆占用了多少的时候就触发GC，默认是45
+- -XX:ConcGCThreads=n: 并发GC使用的线程数
+- -XX:G1ReservePercent=n: 设置作为空闲空间的预留内存百分比，以降低目标空间溢出的风险，默认值是10%
 
 ####垃圾收集器总结
 #####各垃圾收集器使用场景
