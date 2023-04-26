@@ -1680,3 +1680,8 @@ The Garbage-First (G1) collector is a server-style garbage collector, targeted f
 #####垃圾收集器配置参数及算法汇总
 ![](garbageCollector/常用的垃圾收集器总结.png)
 
+#### JVMGC结合SpringBoot微服务优化
+1.使用mvn celan package打包
+2.在有包的路径下，运行jar命令，公式如下：
+java -server jvm的各种参数 -jar 第1步上面的jar/war包名宇
+>java -server -Xms1024m -Xmx1024m -XX:+UseG1GC - jar springboot2019-1.0-SNAPSHOT.war
