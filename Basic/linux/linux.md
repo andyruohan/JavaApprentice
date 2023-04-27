@@ -39,3 +39,38 @@ vmstat
   - id：处于空闲的CPU百分比。
   - wa：系统等待IO的CPU时间百分比。
   - st：来自于一个虚拟机偷取的CPU时间的百分比。
+
+####网络IO
+```
+ifstat
+```
+![](ifstat查看网络IO.png)
+该命令默认本地没有，需安装
+>wget http://gael.roualland.free.fr/ifstat/ifstat-1.1.tar.gz  
+tar xzvf ifstat-1.1.tar.gz  
+cd ifstat-1.1   
+./configure   
+make   
+make install
+
+#####假如生产环境出现CPU占用过高，请谈谈你的分析定位思路（🌟待实测）
+1. 先用top命令找出CPU占比最高的
+![](查看占用CPU的应用进程.png)
+2. ps -ef或者jps进一步定位，得知是一个怎么样的一个后台程序
+![](查看后台具体程序.png)
+3. <font color='red'>定位到具体线程或者代码</font>
+    ```
+    ps -mp 进程号 -o THREAD, tid, time
+    ```
+   >-m 显示所有的线程  
+    -p pid 进程使用cpu的时间  
+    -o 该参数后是用户自定义格式  
+   
+    ![](定位比较占用CPU的线程.png)
+   
+4. 将需要的<font color='red'>线程ID</font>转换为16进制格式(英文小写格式）
+    >lijunxin@lijunxins-Air ~ % printf “%x” 5102  
+     “13ee”%
+5. jstack <font color='red'>进程ID</font> | grep tid(16进制线程ID小写英文)-A60
+    ![](查询比较占用线程的代码行.png)
+    ![](定位到占用线程的实际代码.png)
