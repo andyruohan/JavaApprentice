@@ -1072,7 +1072,7 @@ GC主要发生在方法区和堆区。
 
 --------
 背景：Oracle收购了BEA和SUN公司后，有了JRockit和Hotspot两套JDK规范，将两套方案混合了：干掉了JVM的永久代，变成了Java8的元空间。参考网页：https://openjdk.org/jeps/122  
-![](Java8%20JVM.png)
+![](Java8JVM.png)
 
 #####JVM垃圾回收的时候如何确定垃圾？
 基木思路就是通过一系列名为”GC Roots” 的对象作为起始点，从这个被称为GC Roots的对象开始向下搜素，如果一个对象到GC Roots没有任何引用链相连时，则说明此对象不可用。也即给定一个集合的引用作为根出发，通过引用关系遍历对象图，能被遍历到的(可到达的）对象就被判定为存活：没有被遍历到的就自然被判定为死亡。
@@ -1158,10 +1158,10 @@ intx ThreadStackSize                           = 0                              
 ```
 
 java9: https://docs.oracle.com/javase/9/tools/java.htm#JSWOR624
-![](Java9%20XssSize.png)
+![](Java9XssSize.png)
 
 java20: https://docs.oracle.com/en/java/javase/20/docs/specs/man/java.html
-![](Java20%20XssSize.png)
+![](Java20XssSize.png)
 
 #####设置新生代大小-Xmn
 项目没有特殊需求，几乎用不到。
@@ -1489,7 +1489,7 @@ java.lang.OutOfMemoryError: Metaspace
 并行垃圾回收器（CMS）：用户线程和垃圾收集线程同时执行（不一定是并行，可能交替执行），不需要停顿用户线程。互联网公司多用它，适用于对响应时间有要求的场景。
 G1垃圾回收器：G1垃圾回收器将堆内存分割成不同的区域然后并发的对其进行垃圾回收。
 <font color = 'red'>注：串行垃圾回收器和并行垃圾回收器，会进行STW操作（Stop The World），即停下手中所有事。</font>
-![](%E5%9B%9B%E7%A7%8D%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%99%A8.png)
+![](garbageCollector/四种垃圾回收器.png)
 >串行垃圾回收器：类似于客人坐在一张桌子，来了一个服务员过来收拾桌子，但需要客人先离开桌子
 并行垃圾回收器：类似于客人坐了一张桌子，来了一群服务员来收拾桌子，客人也需要离开桌子，但收拾的速度比单个服务员快
 并发垃圾回收器：类似于客人拼桌，其中一个客人走了，一边有客户继续吃饭、一边有服务员收拾桌子
@@ -1513,7 +1513,7 @@ OpenJDK 64-Bit Server VM (build 18.0.2+9-61, mixed mode, sharing)
 ```java
 -XX:+UseParallelGC
 ```
-![](配置垃圾回收器参数.png)
+![](garbageCollector/配置垃圾回收器参数.png)
 输出结果示例：
 ```java
 -XX:InitialHeapSize=134217728 -XX:MaxHeapSize=2147483648 -XX:+PrintCommandLineFlags -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseParallelGC 
@@ -1522,7 +1522,7 @@ OpenJDK Runtime Environment Corretto-8.362.08.1 (build 1.8.0_362-b08)
 OpenJDK 64-Bit Server VM Corretto-8.362.08.1 (build 25.362-b08, mixed mode)
 ```
 #####新生代老年代垃圾回收算法概览
-![](%E6%96%B0%E7%94%9F%E4%BB%A3%E8%80%81%E5%B9%B4%E4%BB%A3%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E7%AE%97%E6%B3%95%E6%A6%82%E8%A7%88.png)
+![](garbageCollector/新生代老年代垃圾回收算法概览.png)
 新生代：Serial、ParNew、Parallel Scavenge、G1
 老年代：CMS、Serial Old、Parallel Old、G1
 此外，新生代/老年代算法通常是按图上线条成对出现，比如新生代使用Serial算法、老年代使用Serial Old算法
