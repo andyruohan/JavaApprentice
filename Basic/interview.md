@@ -1060,7 +1060,7 @@ Found 1 deadlock.
 
 ###GC
 ####Java体系结构概览：
-![](Java体系结构概览.png)
+![](jvm/Java体系结构概览.png)
 
 类装载器，主要有：
 - 启动类加载器（根加载器，用C++语言写的bootstrap）

@@ -1,5 +1,5 @@
 ###JVM体系结构
-![](JVM体系结构图.png)
+![](Java体系结构概览.png)
 JVM发生在<strong><font color='red'>heap堆区</font></strong>
 
 ###GC是什么（分代收集算法）
