@@ -8,8 +8,7 @@ volatitle是Java虚拟机提供的轻量级的同步机制
     >可见性：一个线程修改了主内容的值，其它线程马上获得相应通知。
 2) 禁止指令重排
 3) <font color = 'red'>不保证原子性</font>
-
-![](JMM%E7%AE%80%E4%BB%8B.png)ß
+![](JMM简介.png)
 ![](JMM访问过程.png)
 
 volatile不保证原子性问题解决：
@@ -737,9 +736,9 @@ null（再隔两秒输出）
 
 #####已经有了Runnable方式调用线程，为什么还要使用Callable方式调用线程？
 1. Thread构造方法参数虽然都是Runnable接口形式：
-![](Thread%E7%9A%84%E6%9E%84%E9%80%A0%E6%96%B9%E6%B3%95.png)
+![](Thread的构造方法.png)
 但FutureTask类构造方法以Callable接口作为参数，并实现了Runnable接口，可以透传到Thread类作为参数。
-![](FutureTask%E5%AE%9E%E7%8E%B0%E6%8E%A5%E5%8F%A3%E5%8F%8A%E6%9E%84%E9%80%A0%E6%96%B9%E6%B3%95.png)
+![](FutureTask实现接口及构造方法.png)
    >类似于适配器模式，比如Callable和Runnable两个人相互不认识，而FutureTask两个人都认知，将他们约在一起见面  
 
 2. 使用Callable方式调用线程，可以带有返回值。(适用于并发+异步，获取结果的场景)
