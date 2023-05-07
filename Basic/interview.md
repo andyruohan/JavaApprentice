@@ -1076,7 +1076,7 @@ GC主要发生在方法区和堆区。
 
 #####JVM垃圾回收的时候如何确定垃圾？
 基木思路就是通过一系列名为”GC Roots” 的对象作为起始点，从这个被称为GC Roots的对象开始向下搜素，如果一个对象到GC Roots没有任何引用链相连时，则说明此对象不可用。也即给定一个集合的引用作为根出发，通过引用关系遍历对象图，能被遍历到的(可到达的）对象就被判定为存活：没有被遍历到的就自然被判定为死亡。
-![](GC%E5%BC%95%E7%94%A8%E9%81%8D%E5%8E%86.png)
+![](GC引用遍历.png)
 
 >通俗地讲，“朝中有人好做官，没有背景就容易被回收”。亦或是，人养宠物狗，宠物狗丢了会变成流浪狗，没有主人保护狗狗就容易收到其他人欺负。
 
@@ -1096,11 +1096,11 @@ GC主要发生在方法区和堆区。
 - XX参数（重点掌握）
   1. Boolean类型 -XX: +或者- 某个属性值（+表示开启、-表示关闭）
    例如：打印GC收集细节 -XX:+PrintGCDetails、使用串行垃圾收集器 -XX:+UseSerialGC
-   ![](%E6%89%93%E5%8D%B0GC%E8%AF%A6%E6%83%85.png)
-  2. kv设置类型 -XX:属性key=属性值value
+   ![](打印GC详情.png)
+  3. kv设置类型 -XX:属性key=属性值value
    例如：设置元空间大小 -XX:MetaspaceSize=128m、设置垃圾最大停留年龄-XX:MaxTenuringThreshold=15
-   ![](%E8%AE%BE%E7%BD%AEJVM%E5%85%83%E7%A9%BA%E9%97%B4%E5%A4%A7%E5%B0%8F.png)
-  3. jinfo -flag 配置项 进程编号
+   ![](设置JVM元空间大小.png)
+  4. jinfo -flag 配置项 进程编号
         >lijunxin@lijunxins-Air JavaStudy % jinfo -flag MetaspaceSize 62757
 -XX:MetaspaceSize=22020096
 
@@ -1151,7 +1151,7 @@ MAX_MEMORY(-Xmx) = 2147483648 (字节) ，即2048.0MB
 注意与Xms和Xmx做区分，`栈管运行，堆管存储`。其默认大小见下方的JDK官方文档：
 
 java8: https://docs.oracle.com/javase/8/docs/technotes/tools/windows/java.html#BGBCIEFC
-![](Java8%20XssSize.png)
+![](Java8XssSize.png)
 示例：Java8虚拟机中ThreadStackSize=0代表的取默认值
 ```java
 intx ThreadStackSize                           = 0                                   {pd product}
@@ -1171,8 +1171,7 @@ java20: https://docs.oracle.com/en/java/javase/20/docs/specs/man/java.html
 元空间的本质和永久代类似，都是对JVM规范中方法区的实现。不过元空间与永久代之间最大的区别在于：<font color='red'>元空间并不在虚拟机中，而是使用本地内存。</font>因此，默认情况下，元空间的大小仅受本地内存限制。
 
 #####打印垃圾回收器详情-XX:+PrintGCDetails
-
-![](%E8%AE%BE%E7%BD%AEJVM%E5%8F%82%E6%95%B0.png)
+![](设置JVM参数.png)
 ```java
 /**
  * @author andy_ruohan
@@ -1208,11 +1207,11 @@ Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
 ```
 
 如何看GC所打出的日志详情，可参考下图：
-![](GC%E6%97%A5%E5%BF%97%E4%BF%A1%E6%81%AF%E5%88%86%E8%A7%A3.png)
-![](GC%E8%AF%A6%E6%83%85%E8%A7%84%E5%BE%8B.png)
+![](GC日志信息分解.png)
+![](GC详情规律.png)
 
 #####堆内存结构占比命令
-![](Heap%E9%BB%98%E8%AE%A4%E6%AF%94%E4%BE%8B.png)
+![](Heap默认比例.png)
 #####设置新生代结构比例-XX:SurvivorRatio（默认为8，即eden:from:to = 8:1:1）
 ```java
  PSYoungGen      total 4608K, used 205K [0x00000007bfb00000, 0x00000007c0000000, 0x00000007c0000000)
@@ -1239,14 +1238,14 @@ Error: A fatal exception has occurred. Program will exit.
 
 ####综合样例：
 #####配置前的JVM的设置
-![](%E7%BB%BC%E5%90%88%E6%A0%B7%E4%BE%8B%E5%88%9D%E5%A7%8B%E5%8F%82%E6%95%B0.png)
+![](综合样例初始参数.png)
 打印出的JVM配置：
 ```java
 -XX:InitialHeapSize=134217728 -XX:MaxHeapSize=2147483648 -XX:+PrintCommandLineFlags -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseParallelGC 
 ```
 
 #####添加常见的JVM配置
-![](%E7%BB%BC%E5%90%88%E6%A0%B7%E4%BE%8B%E9%85%8D%E7%BD%AE%E5%90%8E%E7%9A%84%E5%8F%82%E6%95%B0.png)
+![](综合样例配置后的参数.png)
 具体配置信息为：-Xms128m -Xmx4096m -Xss1024k -XX:MetaspaceSize=512m -XX:+PrintCommandLineFlags -XX:+PrintGCDetails -XX:+UseSerialGC
 
 #####最终打印出的JVM配置
