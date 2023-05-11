@@ -98,3 +98,13 @@ public class jvm.lock.reentrantLock.SyncDemo {
 <font color = 'red'>每个锁对象拥有一个锁计数器和一个指面持有该锁的线程的指针。</font>当执行monitorenter时，如果目标锁对象的计数器为零，那么说明它没有被其他线程所持有，Java虚拟机会将该锁对象的持有线程设置为当前线程，并且将其计数器加1。  
 
 在目标锁对象的计数器不为零的情況下，如果锁对象的持有线程是当前线程，那么Java虚拟机可以将其计数器加1，否则需要等待，直至持有线程释放该锁。当执行monitorexit时，Java虚拟机则需将锁对象的计数器减1。计数器为零代表锁已被释放。
+
+####LockSupport（线程等待唤醒机制wait/notify的加强版）
+https://docs.oracle.com/javase/8/docs/api/
+>Basic thread blocking primitives for creating locks and other synchronization classes.
+
+#####3种让线程等待和唤醒的方法
+![](为何会产生LockSupport.png)
+方式1：使用Object中的wait()方法让线程等待，使用object中的notify()方法唤醒线程  
+方式2：使用JUC包中condition的await()方法让线程等待，使用signal()方法唤醒线程  
+**方式3：LockSupport类可以阻塞当前线程以及唤醒指定被阻塞的线程**
