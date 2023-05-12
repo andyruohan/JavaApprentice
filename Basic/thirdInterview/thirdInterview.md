@@ -108,3 +108,13 @@ https://docs.oracle.com/javase/8/docs/api/
 方式1：使用Object中的wait()方法让线程等待，使用object中的notify()方法唤醒线程  
 方式2：使用JUC包中condition的await()方法让线程等待，使用signal()方法唤醒线程  
 **方式3：LockSupport类可以阻塞当前线程以及唤醒指定被阻塞的线程**
+
+#### LockSupport的底层实现
+LockSupport 归根结底调用的 Unsafe 类中的 native 方法，其提供 park() 和 unpark() 方法实现阻塞线程和解除线程阻塞的过程。线程阻寒需要消耗凭证(permit)，这个凭证最多只有1个。当调用park方法时如果有凭证，则会直接消耗掉这个凭证然后正常退出。 
+>Unlike with Semaphores though, permits do not accumulate. There is at most one.
+
+##### 为什么可以先唤醒线程后阻塞线程？
+因为unpark获得了一个凭证，之后再调用park方法，就可以名正言顺的凭证消费，故不会阻塞。  
+
+##### 为什么唤醒两次后阻塞两次，但最终结果还会阻塞线程？
+因为凭证的数量最多为1，连续调用两次 unpark 和 调用一次 unpark 效果一样，只会增加一个凭证；而调用两次 park 却需要消费两个凭证，证不够，不能放行。
