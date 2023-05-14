@@ -118,3 +118,29 @@ LockSupport 归根结底调用的 Unsafe 类中的 native 方法，其提供 par
 
 ##### 为什么唤醒两次后阻塞两次，但最终结果还会阻塞线程？
 因为凭证的数量最多为1，连续调用两次 unpark 和 调用一次 unpark 效果一样，只会增加一个凭证；而调用两次 park 却需要消费两个凭证，证不够，不能放行。
+
+### AQS
+####AQS 是什么？
+AQS是用来构建锁或者其它同步器组件（如CountDownLatch、CyclicBarrier）的重量级基础框架及整个JUC体系的基石，通过内置的FIFO队列来完成资源获取线程的排队工作，并通过个int类型变量表示持有锁的状态。
+![](AQS的构成.png)
+CLH队列（Craig、Landin and Hagersten为三个科学家的名字的首字母）：是一个单向链表，AQS中的队列是CLH变体的虛拟双向队列FIFO。
+
+##### ReentrantLock中的AQS
+![](ReentrantLock中的AQS.png)
+
+##### CountDownLatch中的AQS
+![](CountDownLatch中的AQS.png)
+
+##### ReentrantReadWriteLock中的AQS
+![](ReentrantReadWriteLock中的AQS.png)
+
+##### Semaphore中的AQS
+![](Semaphore中的AQS.png)
+
+### AQS源码解析
+AQS使用一个volatile的int类型的成员变量来表示同步状态，通过内罝的 FIFO队列来完成资源获取的排队工作，将每条要去抢占资源的线程封装成一个Node节点来实现锁的分配，通过CAS完成对State值的修改。
+
+![](AQS源码构成.png)
+
+##### AQS类比HashMap的结构
+![](AQS类比HashMap的结构.png)
