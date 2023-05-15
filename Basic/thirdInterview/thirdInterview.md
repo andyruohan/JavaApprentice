@@ -144,3 +144,18 @@ AQS使用一个volatile的int类型的成员变量来表示同步状态，通过
 
 ##### AQS类比HashMap的结构
 ![](AQS类比HashMap的结构.png)
+
+##### AQS内部体系结构
+![](AQS内部体系结构.png)
+
+##### AQS官方解析
+![](AQS官方解析.png)
+
+##### Node中一些重要的么句释义
+![](Node中一些重要的枚举释义.png)
+
+#### ReentrantLock原理
+![](ReentrantLock原理.png)
+##### 公平锁和非公平锁差异
+![](公平锁和非公平锁差异.png)
+可以明显看出公平锁与非公平锁的lock()方法唯一的区别就在于公平锁在获取同步状态时多了一个限制条件：hasQueuedPredecessors()。hasQueuedPredecessors 是公平锁加锁时判断等待队列中是否存在有效节点的方法。
