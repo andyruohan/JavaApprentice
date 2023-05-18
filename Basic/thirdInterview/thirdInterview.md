@@ -215,3 +215,61 @@ final boolean nonfairTryAcquire(int acquires) {
     return false;
 }
 ```
+
+##### acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
+###### addWaiter
+```java
+private Node addWaiter(Node mode) {
+    Node node = new Node(Thread.currentThread(), mode);
+    // Try the fast path of enq; backup to full enq on failure
+    Node pred = tail;
+    if (pred != null) {
+        node.prev = pred;
+        if (compareAndSetTail(pred, node)) {
+            pred.next = node;
+            return node;
+        }
+    }
+    enq(node);
+    return node;
+}
+```
+
+###### acquireQueued
+```java
+final boolean acquireQueued(final Node node, int arg) {
+    boolean failed = true;
+    try {
+        boolean interrupted = false;
+        for (;;) {
+            final Node p = node.predecessor();
+            if (p == head && tryAcquire(arg)) {
+                setHead(node);
+                p.next = null; // help GC
+                failed = false;
+                return interrupted;
+            }
+            if (shouldParkAfterFailedAcquire(p, node) &&
+                parkAndCheckInterrupt())
+                interrupted = true;
+        }
+    } finally {
+        if (failed)
+            cancelAcquire(node);
+    }
+}
+```
+
+###### parkAndCheckInterrupt
+```java
+private final boolean parkAndCheckInterrupt() {
+    LockSupport.park(this);
+    return Thread.interrupted();
+}
+```
+
+![](acquireQueuedAndAddWaiter图例.png)
+双向链表中，<font color = 'red'>第一个节点为虚节点（也叫哨兵节点）</font>，其实并不存储任何信息，只是占位。真正的有数据的节点，是从第二个节点开始的。
+
+##### AQS总结
+![](AQS_acquire三条主分支.png)
