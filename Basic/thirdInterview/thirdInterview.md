@@ -268,8 +268,11 @@ private final boolean parkAndCheckInterrupt() {
 }
 ```
 
-![](acquireQueuedAndAddWaiter图例.png)
+![](acquireQueuedAndAddWaiter图例1.png)
 双向链表中，<font color = 'red'>第一个节点为虚节点（也叫哨兵节点）</font>，其实并不存储任何信息，只是占位。真正的有数据的节点，是从第二个节点开始的。
+![](acquireQueuedAndAddWaiter图例2.png)
+![](acquireQueuedAndAddWaiter图例3.png)
+
 
 ##### AQS总结
 ![](AQS_acquire三条主分支.png)
