@@ -24,6 +24,7 @@ springcloud forks:>500 查找forks大于500的springcloud项目
 awesome 关键词
 ```
 搜索优秀的关键词相关的项目，包括框架、教程等
+![](awesome配图.png)
 
 #### 高亮显示某一行代码
 ```
