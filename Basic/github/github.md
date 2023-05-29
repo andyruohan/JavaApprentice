@@ -1,3 +1,16 @@
+### 如何在GitHub有效的搜索信息？
+GitHub个人首页
+![](GitHub个人首页.png)
+
+GitHub搜索界面
+![](GitHub搜索界面.png)
+
+通常情况下的搜索结果
+![](GitHub搜索结果配图.png)
+
+### 搜索命令概览
+![](搜索命令概览.png)
+
 #### in 关键词限制搜索范围
 ```
 关键词 in name 或 description 或 readme
@@ -13,6 +26,7 @@ xxx in:readme 项目readme文件中包含xxx
 
 
 #### star 或 forks 数量区间查找
+![](stars和forks配图.png)
 ```
 xxx 关键词 stars:> 或者 :>=
 xxx 关键词 stars:数字1..数字2
@@ -20,7 +34,7 @@ xxx 关键词 stars:数字1..数字2
 ![](未使用任何命令时搜索结果数.png)
 springboot stars:>=5000 查找stars数大于等于5000的springboot项目
 ![](使用stars命令后的搜索结果数.png)
-springcloud forks:>500 查找forks大于500的springcloud项目  
+springboot forks:>500 查找forks大于500的springboot项目  
 ![](使用forks命令后的搜索结果数.png)
 
 组合使用1：  
@@ -39,12 +53,20 @@ awesome 关键词
 ```
 搜索优秀的关键词相关的项目，包括框架、教程等
 ```
-An awesome list is a list of awesome things curated by the community. There are awesome lists about everything from CLI applications to fantasy books. The main repository serves as a curated list of awesome lists. 
+An awesome list is a list of awesome things curated by the community. There are 
+awesome lists about everything from CLI applications to fantasy books. The main 
+repository serves as a curated list of awesome lists. 
 ```
 ![](awesome配图.png)  
 
 使用awesome java搜索
-![](使用awesomeJava搜索.png)
+![](使用awesomeJava搜索.png) 
+
+awesome搜索结果展示1
+![](awesome搜索结果展示1.png)
+
+awesome搜索结果展示2
+![](awesome搜索结果展示2.png)
 注：若直接搜java约有2.2M的结果
 
 #### 高亮显示某一行代码
