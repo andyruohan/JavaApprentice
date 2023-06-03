@@ -1,3 +1,36 @@
+### mac 电脑 redis 的安装
+1. 安装 redis
+```
+brew install redis
+```
+一般安装成功后，程序文件存放目录: /usr/local/opt/redis，配置文件存放目录: /usr/local/etc/...。
+2. 添加 path 
+```
+vim ~/.bash_profile
+```
+如果使用的是默认安装路径，一般安装在/usr/local/opt/redis。
+
+```
+export REDIS = /usr/local/opt/reids/bin;
+export = $REDIS:$PATH
+```
+3. 启动 redis-server  
+```
+brew services start redis
+```
+未进入 redis 命令行前，可通过查看如下代码查看 redis 版本
+``` 
+redis-server --version
+```
+4. 进入 redis 命令行
+```
+redis-cli
+```
+进入 redis 命令行后，可通过查看如下代码查看 redis 版本
+``` 
+INFO server
+```
+
 ![](redis安装成功查看版本号.png)
 
 
