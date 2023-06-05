@@ -57,3 +57,75 @@ INFO server
 4) "15"
 ```
 
+### redis实践
+```java {.line-numbers}
+@RestController
+public class GoodsController {
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Value("${server.port}")
+    private String severPort;
+
+    @GetMapping("/buy_goods")
+    public String buyGoods() {
+        String result = stringRedisTemplate.opsForValue().get("goods:001");
+        int goodsNumber = result == null ? 0: Integer.parseInt(result);
+
+        if (goodsNumber > 0) {
+            int realNumber = goodsNumber - 1;
+            stringRedisTemplate.opsForValue().set("goods:001", String.valueOf(realNumber));
+            System.out.println("成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort);
+
+            return "成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort;
+        } else {
+            System.out.println("商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort);
+        }
+        return "商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort;
+    }
+}
+```
+运行结果：
+![](redis_demo运行结果.png)
+
+以上代码在高并发环境会出现的问题：
+1. 11~12行非原子性
+2. 14行条件会被越过
+
+##### 错误优化：加synchronized
+```java {.line-numbers}
+@RestController
+public class GoodsController {
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Value("${server.port}")
+    private String severPort;
+
+    @GetMapping("/buy_goods")
+    public String buyGoods() {
+        synchronized (this) {
+            String result = stringRedisTemplate.opsForValue().get("goods:001");
+            int goodsNumber = result == null ? 0: Integer.parseInt(result);
+
+            if (goodsNumber > 0) {
+                int realNumber = goodsNumber - 1;
+                stringRedisTemplate.opsForValue().set("goods:001", String.valueOf(realNumber));
+                System.out.println("成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort);
+
+                return "成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort;
+            } else {
+                System.out.println("商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort);
+            }
+            return "商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort;
+        }
+    }
+}
+```
+在11行处添加synchronized (this)，实际生产环境解决不了高并发问题：因为服务器端会通过nginx代理多台服务器，高并发的请求还是会进来，处理不了`超卖`、`多卖`的情况。
+![](实际生产部署拓扑样例.png)
+
+> 加锁场景拓展补充：  
+> synchronized：不见不散，适用场景：等不到就一直等
+reentrantLock：过时不候，适用场景：等了一段时间不想等了
+
