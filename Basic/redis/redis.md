@@ -263,4 +263,76 @@ https://redis.io/docs/manual/patterns/distributed-locks/
 
 
 ### redis默认内存多少？在哪里查看？如何修改设置？
-#### 查看redis默认占用内存
+#### 如何查看redis最大占用内存？
+##### 方法1：redis.conf里看
+
+![](conf文件里查看redis最大内存.png)
+
+注意maxmemory单位是bytes字节类型，注意转换。  
+附注：如何找到redis.conf文件（不一定准确，待考究，默认不一定走这里）
+```
+redis-cli config get dir
+```
+> 1) "dir"
+> 2) "/Users/lijunxin"
+
+``` 
+find /Users/lijunxin -name redis.conf
+```
+> /Users/lijunxin/Downloads/redis-7.0.11/redis.conf  
+
+#### redis默认内存多少可以用？
+如果不设置最大内存大小或者设置最大内存大小为0，`在64位操作系统下不限制内存大小`，在32位操作系统下最多使用3GB
+内存  
+
+#### 一般生产上你如何配置？
+一般推荐Redis设置内存为最大物理内存的四分之三
+
+#### 如何修改redis内存设置
+- **通过修改配置文件**（永久生效）
+![](通过配置文件更改redis内存.png)  
+
+  配置前
+  ``` 
+  127.0.0.1:6379> config get maxmemory
+  1) "maxmemory"
+  2) "0"
+  ```
+  配置后
+  ```
+  127.0.0.1:6379> config get maxmemory
+  1) "maxmemory"
+  2) "0"
+  ```
+- **通过命令修改**（临时生效）
+  ```
+  config set maxmemory 1024
+  ```
+  配置前
+  ``` 
+  127.0.0.1:6379> config get maxmemory
+  1) "maxmemory"
+  2) "0"
+  ```
+  配置后
+  ```
+  127.0.0.1:6379> config get maxmemory
+  1) "maxmemory"
+  2) "1024"
+  ```
+
+#### 什么命令可以查看redis使用情况？
+``` 
+info memory
+```
+
+### redis内存真的打满了怎么办
+实测会产生OOM：
+``` 
+127.0.0.1:6379> config set maxmemory 1
+OK
+127.0.0.1:6379> set k1 v1
+(error) OOM command not allowed when used memory > 'maxmemory'.
+```
+
+
