@@ -59,7 +59,14 @@ INFO server
 
 ### redis实践
 ```java {.line-numbers}
-@RestController
+/**
+ * @author andy_ruohan
+ * @description springBoot整合redis进行商品售卖
+ * 此例在高并发环境下会出现超卖、超售的情况
+ * @date 2023/6/4 12:54
+ */
+@RestController("GoodsController1")
+@RequestMapping("/factory1")
 public class GoodsController {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
@@ -89,12 +96,19 @@ public class GoodsController {
 ![](redis_demo运行结果.png)
 
 以上代码在高并发环境会出现的问题：
-1. 11~12行非原子性
-2. 14行条件会被越过
+##### 问题1：18~19行非原子性
+##### 问题2：20行条件会被越过
 
-##### 错误优化：加synchronized
+###### 错误优化：加synchronized（18行）
 ```java {.line-numbers}
-@RestController
+/**
+ * @author andy_ruohan
+ * @description springBoot整合redis进行商品售卖
+ * 试图以synchronized解决并发问题，单例部署没问题，但实际生产【Nginx+多实例】的方式部署，一样会出问题
+ * @date 2023/6/4 12:54
+ */
+@RestController("GoodsController2")
+@RequestMapping("/factory2")
 public class GoodsController {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
@@ -122,35 +136,502 @@ public class GoodsController {
     }
 }
 ```
-在11行处添加synchronized (this)，实际生产环境解决不了高并发问题：因为服务器端会通过nginx代理多台服务器，高并发的请求还是会进来，处理不了`超卖`、`多卖`的情况。
+在18行处添加synchronized (this)，实际生产环境解决不了高并发问题：因为服务器端会通过nginx代理多台服务器，高并发的请求还是会进来，处理不了`超卖`、`多卖`的情况。
 ![](实际生产部署拓扑样例.png)
 
 > 加锁场景拓展补充：  
 > synchronized：不见不散，适用场景：等不到就一直等
 reentrantLock：过时不候，适用场景：等了一段时间不想等了
 
+###### 正确优化：redis分布式锁（19～23行）
+```java {.line-numbers}
+/**
+ * @author andy_ruohan
+ * @description springBoot整合redis进行商品售卖
+ * 试图以redis分布式锁来解决并发问题，但没有考虑异常导致释放锁失败
+ * @date 2023/6/4 12:54
+ */
+@RestController("GoodsController3")
+@RequestMapping("/factory3")
+public class GoodsController {
+    public static final String REDIS_LOCK = "redisLock";
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
-问题3：出现异常的话，无法释放锁，必须在代码层面finally释放锁  
-解决：加锁解锁，lock/unlock必须同时出现并保证调用
+    @Value("${server.port}")
+    private String severPort;
 
-问题4：部署了微服务jar包的实例挂了，代码层面根本没有走到finally，没办法保证解锁，这个key没有被删除，需要加入一个过期时间限定key  
-解决：需要对LockKey有过期时间的限定
+    @GetMapping("/buy_goods")
+    public String buyGoods() {
+        String value = UUID.randomUUID().toString() + Thread.currentThread().getName();
+        Boolean flag = stringRedisTemplate.opsForValue().setIfAbsent(REDIS_LOCK, value);
+        if (Boolean.FALSE.equals(flag)) {
+            return "抢锁失败，请稍后重试";
+        }
 
-问题5：设置key+过期超时分开了，不具备原子性  
-解决：必须要合并成一行，具备原子性
+        String result = stringRedisTemplate.opsForValue().get("goods:001");
+        int goodsNumber = result == null ? 0: Integer.parseInt(result);
 
-问题6：张冠李戴，删除了别人的锁
-![](错误删锁示例.png)
-解决：只能删除自己的，不能删除别人的  
-redis官网：https://redis.io/commands/set/ 的解决方案：使用lua脚本
-```java
-if redis.call("get",KEYS[1]) == ARGV[1]
-then
-    return redis.call("del",KEYS[1])
-else
-    return 0
-end
+        if (goodsNumber > 0) {
+            int realNumber = goodsNumber - 1;
+            stringRedisTemplate.opsForValue().set("goods:001", String.valueOf(realNumber));
+            System.out.println("成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort);
+            stringRedisTemplate.delete(REDIS_LOCK);
+            return "成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort;
+        } else {
+            System.out.println("商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort);
+        }
+        return "商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort;
+    }
+}
 ```
+
+##### 问题3：出现异常的话，无法释放锁，必须在代码层面finally释放锁  
+解决：加锁解锁，lock/unlock必须同时出现并保证调用（38~40行）
+``` java {.line-numbers}
+/**
+ * @author andy_ruohan
+ * @description springBoot整合redis进行商品售卖
+ * 试图【以redis分布式锁+异常释放锁】来解决并发问题，但没有考虑实例中途宕机不能释放锁的情况
+ * @date 2023/6/4 12:54
+ */
+@RestController("GoodsController4")
+@RequestMapping("/factory4")
+public class GoodsController {
+    public static final String REDIS_LOCK = "redisLock";
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Value("${server.port}")
+    private String severPort;
+
+    @GetMapping("/buy_goods")
+    public String buyGoods() {
+        String value = UUID.randomUUID().toString() + Thread.currentThread().getName();
+        try {
+            Boolean flag = stringRedisTemplate.opsForValue().setIfAbsent(REDIS_LOCK, value);
+            if (Boolean.FALSE.equals(flag)) {
+                return "抢锁失败，请稍后重试";
+            }
+
+            String result = stringRedisTemplate.opsForValue().get("goods:001");
+            int goodsNumber = result == null ? 0: Integer.parseInt(result);
+
+            if (goodsNumber > 0) {
+                int realNumber = goodsNumber - 1;
+                stringRedisTemplate.opsForValue().set("goods:001", String.valueOf(realNumber));
+                System.out.println("成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort);
+                return "成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort;
+            } else {
+                System.out.println("商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort);
+            }
+            return "商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort;
+        } finally {
+            stringRedisTemplate.delete(REDIS_LOCK);
+        }
+    }
+}
+```
+
+##### 问题4：部署了微服务jar包的实例挂了，代码层面根本没有走到finally，没办法保证解锁，这个key没有被删除，需要加入一个过期时间限定key  
+解决：需要对LockKey有过期时间的限定（22行）
+```java {.line-numbers}
+/**
+ * @author andy_ruohan
+ * @description springBoot整合redis进行商品售卖
+ * 试图【以redis分布式锁+异常释放锁+超时释放锁】来解决并发问题，但没有考虑加锁和超时解锁分开了，没有考虑原子性
+ * @date 2023/6/4 12:54
+ */
+@RestController("GoodsController5")
+@RequestMapping("/factory5")
+public class GoodsController {
+    public static final String REDIS_LOCK = "redisLock";
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Value("${server.port}")
+    private String severPort;
+
+    @GetMapping("/buy_goods")
+    public String buyGoods() {
+        String value = UUID.randomUUID().toString() + Thread.currentThread().getName();
+        try {
+            Boolean flag = stringRedisTemplate.opsForValue().setIfAbsent(REDIS_LOCK, value);
+            stringRedisTemplate.expire(REDIS_LOCK, 10L, TimeUnit.SECONDS);
+
+            if (Boolean.FALSE.equals(flag)) {
+                return "抢锁失败，请稍后重试";
+            }
+
+            String result = stringRedisTemplate.opsForValue().get("goods:001");
+            int goodsNumber = result == null ? 0: Integer.parseInt(result);
+
+            if (goodsNumber > 0) {
+                int realNumber = goodsNumber - 1;
+                stringRedisTemplate.opsForValue().set("goods:001", String.valueOf(realNumber));
+                System.out.println("成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort);
+                return "成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort;
+            } else {
+                System.out.println("商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort);
+            }
+            return "商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort;
+        } finally {
+            stringRedisTemplate.delete(REDIS_LOCK);
+        }
+    }
+}
+```
+
+##### 问题5：设置key+过期超时分开了，不具备原子性  
+解决：必须要合并成一行，具备原子性（21行）
+```java {.line-numbers}
+/**
+ * @author andy_ruohan
+ * @description springBoot整合redis进行商品售卖
+ * 试图【以redis分布式锁+异常释放锁+超时释放锁(原子性)】来解决并发问题，但没有考虑错删他人锁的情况
+ * @date 2023/6/4 12:54
+ */
+@RestController("GoodsController6")
+@RequestMapping("/factory6")
+public class GoodsController {
+    public static final String REDIS_LOCK = "redisLock";
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Value("${server.port}")
+    private String severPort;
+
+    @GetMapping("/buy_goods")
+    public String buyGoods() {
+        String value = UUID.randomUUID().toString() + Thread.currentThread().getName();
+        try {
+            Boolean flag = stringRedisTemplate.opsForValue().setIfAbsent(REDIS_LOCK, value, 10L, TimeUnit.SECONDS);
+
+            if (Boolean.FALSE.equals(flag)) {
+                return "抢锁失败，请稍后重试";
+            }
+
+            String result = stringRedisTemplate.opsForValue().get("goods:001");
+            int goodsNumber = result == null ? 0: Integer.parseInt(result);
+
+            if (goodsNumber > 0) {
+                int realNumber = goodsNumber - 1;
+                stringRedisTemplate.opsForValue().set("goods:001", String.valueOf(realNumber));
+                System.out.println("成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort);
+                return "成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort;
+            } else {
+                System.out.println("商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort);
+            }
+            return "商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort;
+        } finally {
+            stringRedisTemplate.delete(REDIS_LOCK);
+        }
+    }
+}
+```
+
+
+##### 问题6：张冠李戴，删除了别人的锁
+![](错误删锁示例.png)
+解决：只能删除自己的，不能删除别人的（40~42行）  
+```java {.line-numbers}
+/**
+ * @author andy_ruohan
+ * @description springBoot整合redis进行商品售卖
+ * 试图【以redis分布式锁+异常释放锁+超时释放锁(原子性)+判断是否删错锁】来解决并发问题，但没有考虑判删锁和删锁代码的原子性
+ * @date 2023/6/11 14:58
+ */
+@RestController("GoodsController8")
+@RequestMapping("/factory7")
+public class GoodsController {
+    public static final String REDIS_LOCK = "redisLock";
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Value("${server.port}")
+    private String severPort;
+
+    @GetMapping("/buy_goods")
+    public String buyGoods() {
+        String value = UUID.randomUUID().toString() + Thread.currentThread().getName();
+        try {
+            Boolean flag = stringRedisTemplate.opsForValue().setIfAbsent(REDIS_LOCK, value, 10L, TimeUnit.SECONDS);
+
+            if (Boolean.FALSE.equals(flag)) {
+                return "抢锁失败，请稍后重试";
+            }
+
+            String result = stringRedisTemplate.opsForValue().get("goods:001");
+            int goodsNumber = result == null ? 0: Integer.parseInt(result);
+
+            if (goodsNumber > 0) {
+                int realNumber = goodsNumber - 1;
+                stringRedisTemplate.opsForValue().set("goods:001", String.valueOf(realNumber));
+                System.out.println("成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort);
+                return "成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort;
+            } else {
+                System.out.println("商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort);
+            }
+            return "商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort;
+        } finally {
+            if (stringRedisTemplate.opsForValue().get(REDIS_LOCK).equals(value)) {
+                stringRedisTemplate.delete(REDIS_LOCK);
+            }
+        }
+    }
+}
+```
+
+##### 问题7：判删锁和删锁代码需具备原子性
+- 解决方案1：使用lua脚本40~58行（理论可参考redis官网：https://redis.io/commands/set/  ）
+
+    ```java{.line-numbers}
+    /**
+    * @author andy_ruohan
+    * @description springBoot整合redis进行商品售卖
+    * 试图【以redis分布式锁+异常释放锁+超时释放锁(原子性)+Lua脚本删除锁】来解决并发问题，但仍余业务未完成而锁过期问题
+    * @date 2023/6/11 15:01
+    */
+    @RestController
+    @RequestMapping("/factory8_1")
+    public class GoodsController {
+        public static final String REDIS_LOCK = "redisLock";
+        @Autowired
+        private StringRedisTemplate stringRedisTemplate;
+
+        @Value("${server.port}")
+        private String severPort;
+
+        @GetMapping("/buy_goods")
+        public String buyGoods() throws Exception {
+            String value = UUID.randomUUID().toString() + Thread.currentThread().getName();
+            try {
+                Boolean flag = stringRedisTemplate.opsForValue().setIfAbsent(REDIS_LOCK, value, 10L, TimeUnit.SECONDS);
+
+                if (Boolean.FALSE.equals(flag)) {
+                    return "抢锁失败，请稍后重试";
+                }
+
+                String result = stringRedisTemplate.opsForValue().get("goods:001");
+                int goodsNumber = result == null ? 0 : Integer.parseInt(result);
+
+                if (goodsNumber > 0) {
+                    int realNumber = goodsNumber - 1;
+                    stringRedisTemplate.opsForValue().set("goods:001", String.valueOf(realNumber));
+                    System.out.println("成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort);
+                    return "成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort;
+                } else {
+                    System.out.println("商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort);
+                }
+                return "商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort;
+            } finally {
+                try (Jedis jedis = RedisUtils.getJedis()) {
+                    // 定义Lua脚本
+                    String luaScript = "if redis.call(\"get\",KEYS[1]) == ARGV[1]\n" +
+                            "then\n" +
+                            "    return redis.call(\"del\",KEYS[1])\n" +
+                            "else\n" +
+                            "    return 0\n" +
+                            "end";
+
+                    // 执行Lua脚本
+                    Object object = jedis.eval(luaScript, Collections.singletonList(REDIS_LOCK), Collections.singletonList(value));
+
+                    // 处理执行结果
+                    if ("1".equals(object)) {
+                        System.out.println("Lock acquired successfully");
+                    } else {
+                        System.out.println("Failed to acquire lock");
+                    }
+                }
+            }
+        }
+    }
+    ```
+
+    ```java
+    /**
+    * @author andy_ruohan
+    * @description Redis工具类
+    * @date 2023/6/17 21:23
+    */
+    public class RedisUtils {
+        private static JedisPool jedisPool;
+
+        static {
+            JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
+            jedisPoolConfig.setMaxTotal(20);
+            jedisPoolConfig.setMaxIdle(10);
+            jedisPool = new JedisPool(jedisPoolConfig, "127.0.0.1", 6379);
+        }
+
+        public static Jedis getJedis() throws Exception {
+            if (null != jedisPool) {
+                return jedisPool.getResource();
+            }
+            throw new Exception("Jedispool is not ok");
+        }
+    }
+    ```
+
+- 解决方案2: 利用redis事务40～53行（理论可参考下文redis事务介绍）
+    ```java{.line-numbers}
+    /**
+    * @author andy_ruohan
+    * @description springBoot整合redis进行商品售卖
+    * 试图【以redis分布式锁+异常释放锁+超时释放锁(原子性)+Redis事务控制删除锁】来解决并发问题，但仍余业务未完成而锁过期问题
+    * @date 2023/6/11 14:58
+    */
+    @RestController("GoodsController8_2")
+    @RequestMapping("/factory8_2")
+    public class GoodsController {
+        public static final String REDIS_LOCK = "redisLock";
+        @Autowired
+        private StringRedisTemplate stringRedisTemplate;
+
+        @Value("${server.port}")
+        private String severPort;
+
+        @GetMapping("/buy_goods")
+        public String buyGoods() {
+            String value = UUID.randomUUID().toString() + Thread.currentThread().getName();
+            try {
+                Boolean flag = stringRedisTemplate.opsForValue().setIfAbsent(REDIS_LOCK, value, 10L, TimeUnit.SECONDS);
+
+                if (Boolean.FALSE.equals(flag)) {
+                    return "抢锁失败，请稍后重试";
+                }
+
+                String result = stringRedisTemplate.opsForValue().get("goods:001");
+                int goodsNumber = result == null ? 0: Integer.parseInt(result);
+
+                if (goodsNumber > 0) {
+                    int realNumber = goodsNumber - 1;
+                    stringRedisTemplate.opsForValue().set("goods:001", String.valueOf(realNumber));
+                    System.out.println("成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort);
+                    return "成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort;
+                } else {
+                    System.out.println("商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort);
+                }
+                return "商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort;
+            } finally {
+                while (true) {
+                    stringRedisTemplate.watch(REDIS_LOCK);
+                    if (stringRedisTemplate.opsForValue().get(REDIS_LOCK).equalsIgnoreCase(value)) {
+                        stringRedisTemplate.setEnableTransactionSupport(true);
+                        stringRedisTemplate.multi();
+                        stringRedisTemplate.delete(REDIS_LOCK);
+                        List<Object> list = stringRedisTemplate.exec();
+                        if (CollectionUtils.isEmpty(list)) {
+                            continue;
+                        }
+                    }
+                    stringRedisTemplate.unwatch();
+                    break;
+                }
+            }
+        }
+    }
+    ```
+    实际生产中，更推荐方案1：lua脚本来解决，方案2仅是针对面试提供的不同思路。
+
+##### 问题8：出现业务代码未完成，但锁过期的情况
+解决方案：使用redissonLock（重新洗牌，无需在此前旧代码上更改）
+```java{.line-numbers}
+/**
+ * @author andy_ruohan
+ * @description springBoot整合redis进行商品售卖
+ * 试图【以redis分布式锁+异常释放锁+超时释放锁(原子性)+redissonLock删除锁】来解决并发问题，但未解决如下报错问题：
+ *  * IllegalMonitorStateException: attempt to unlock lock, not locked by current thread by node id: oda6385f-81a5-4e6c-b8c0
+ * @date 2023/6/17 23:04
+ */
+@RestController("GoodsController9_1")
+@RequestMapping("/factory9_1")
+public class GoodsController {
+    public static final String REDIS_LOCK = "redisLock";
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private Redisson redisson;
+
+    @Value("${server.port}")
+    private String severPort;
+
+    @GetMapping("/buy_goods")
+    public String buyGoods() {
+        RLock redissonLock = redisson.getLock(REDIS_LOCK);
+        redissonLock.lock();
+
+        try {
+            String result = stringRedisTemplate.opsForValue().get("goods:001");
+            int goodsNumber = result == null ? 0: Integer.parseInt(result);
+
+            if (goodsNumber > 0) {
+                int realNumber = goodsNumber - 1;
+                stringRedisTemplate.opsForValue().set("goods:001", String.valueOf(realNumber));
+                System.out.println("成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort);
+                return "成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort;
+            } else {
+                System.out.println("商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort);
+            }
+            return "商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort;
+        } finally {
+            redissonLock.unlock();
+        }
+    }
+}
+```
+注意上述代码，仍有几率出现如下报错：
+> IllegalMonitorStateException: attempt to unlock lock, not locked by current thread by node id: oda6385f-81a5-4e6c-b8c0
+
+终极解决方案：使用redissonLock+删锁校验（39～41行）
+```java{.line-numbers}
+/**
+ * @author andy_ruohan
+ * @description springBoot整合redis进行商品售卖
+ * redissonLock+删锁校验
+ *
+ * @date 2023/6/18 22:30
+ */
+@RestController("GoodsController9_2")
+@RequestMapping("/factory9_2")
+public class GoodsController {
+    public static final String REDIS_LOCK = "redisLock";
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private Redisson redisson;
+
+    @Value("${server.port}")
+    private String severPort;
+
+    @GetMapping("/buy_goods")
+    public String buyGoods() {
+        RLock redissonLock = redisson.getLock(REDIS_LOCK);
+        redissonLock.lock();
+
+        try {
+            String result = stringRedisTemplate.opsForValue().get("goods:001");
+            int goodsNumber = result == null ? 0 : Integer.parseInt(result);
+
+            if (goodsNumber > 0) {
+                int realNumber = goodsNumber - 1;
+                stringRedisTemplate.opsForValue().set("goods:001", String.valueOf(realNumber));
+                System.out.println("成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort);
+                return "成功买到商品，库存还剩下" + realNumber + "件" + "\t服务提供端口 " + severPort;
+            } else {
+                System.out.println("商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort);
+            }
+            return "商品已经售完/活动结束/调用超时，欢迎下次光临" + "\t服务提供端口 " + severPort;
+        } finally {
+            if (redissonLock.isLocked() && redissonLock.isHeldByCurrentThread()) {
+                redissonLock.unlock();
+            }
+        }
+    }
+}
+```
+
 
 ##Redis事务
 ### 事务介绍
