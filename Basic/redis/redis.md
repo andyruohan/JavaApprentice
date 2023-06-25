@@ -785,7 +785,7 @@ find /Users/lijunxin -name redis.conf
   1) "maxmemory"
   2) "0"
   ```
-- **通过命令修改**（临时生效）
+- **通过命令修改**（动态生效）
   ```
   config set maxmemory 1024
   ```
@@ -816,4 +816,32 @@ OK
 (error) OOM command not allowed when used memory > 'maxmemory'.
 ```
 
+##### 
+redis键过期后，并不会立即被删除。常见的处理思想有：
+- **立即删除**：能保证内存中所有数据的最大新鲜度，但对CPU不友好（`以CPU时间换空间`）
+- **惰性删除**：访问数据过期才删除，但存在数据过期一直未被访问不会被删除，对内存不友好（`以空间换CPU时间`）
+- **定期删除**：二者结合，每隔一段时间执行一次删除过期键操作。但这种方案只是一种妥协方案，`上述两点的缺陷其依旧也存在`。
+
+但上述方案都不能很好地解决键值过期问题，因此 redis 缓存 8 大过期策略也由此诞生：  
+1) noeviction：不会驱逐任何key
+2) allkeys-lru: 对所有key使用LRU算法进行删除
+3) volatile-ru：对所有设置了过期时间的key使用LRU算法进行删除
+4) allkeys-random:对所有key随机删除
+5) volatile-random：对所有设置了过期时间的kev随机删除
+6) volatile-tt：删除马上要过期的kev
+7) allkevs-lfu:对所有key使用LFU算法进行删除
+8) volatile-lfu：对所有设置了过期时间的key使用LFu算法进行删除  
+>总结：
+>- 2 个维度（过期键中筛选、所有键中筛选）
+>- 4 个方面（LRU、LFU、random、ttl）  
+
+redis默认的清除策略是noeviction，但其不能作为生产的清除策略，实际工作中第 2 种 `allkeys-lru最常用`。
+
+##### 如何修改redis缓存清除策略（与配置内存类似）
+- 修改redis的conf配置文件（永久生效）
+![](conf文件里修改redis清除策略.png)
+- 通过redis命令（动态生效）
+  ```
+  config set maxmemory-policy allkeys-lru
+  ```
 
