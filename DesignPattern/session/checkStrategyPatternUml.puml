@@ -1,0 +1,35 @@
+@startuml
+class designPatterns.strategy.improve.CheckCreditService {
+~ CheckCreditStrategy checkCreditStrategy
++ boolean checkWhiteList(String cltNbr, String brnNbr)
++ boolean checkOnlineRiskControl(String ilcIdx, String cltNbr)
++ boolean checkBusiness(OnbIlcMst ilcMst)
++ boolean checkNotNoFillMode(String creditMode)
++ boolean checkNotFullDepositMode(String depositMode)
++ boolean checkEdiCustomer(String ediFlag)
++ boolean checkDigitalCert(String cltNbr)
+}
+
+interface designPatterns.strategy.improve.CheckCreditStrategy {
++ boolean checkWhiteList(String cltNbr, String brnNbr)
++ boolean checkOnlineRiskControl(String ilcIdx, String cltNbr)
++ boolean checkBusiness(OnbIlcMst ilcMst)
+}
+
+class designPatterns.strategy.improve.CheckFlashFinanceStrategy {
++ boolean checkWhiteList(String cltNbr, String brnNbr)
++ boolean checkOnlineRiskControl(String ilcIdx, String cltNbr)
++ boolean checkBusiness(OnbIlcMst ilcMst)
+}
+
+class designPatterns.strategy.improve.CheckFlashOpenStrategy {
++ boolean checkWhiteList(String cltNbr, String brnNbr)
++ boolean checkOnlineRiskControl(String ilcIdx, String cltNbr)
++ boolean checkBusiness(OnbIlcMst ilcMst)
+}
+
+designPatterns.strategy.improve.CheckCreditStrategy <|.. designPatterns.strategy.improve.CheckFlashFinanceStrategy
+designPatterns.strategy.improve.CheckCreditStrategy <|.. designPatterns.strategy.improve.CheckFlashOpenStrategy
+designPatterns.strategy.improve.CheckCreditService o- designPatterns.strategy.improve.CheckCreditStrategy
+designPatterns.strategy.improve.Client -- designPatterns.strategy.improve.CheckCreditService
+@enduml

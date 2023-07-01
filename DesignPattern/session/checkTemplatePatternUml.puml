@@ -1,0 +1,35 @@
+@startuml
+class designPatterns.tempalte.improve.CheckCreditTemplateService {
++ abstract boolean checkWhiteList(String cltNbr, String brnNbr)
++ abstract boolean checkOnlineRiskControl(String ilcIdx, String cltNbr)
++ abstract boolean checkBusiness(OnbIlcMst ilcMst)
++ boolean checkNotNoFillMode(String creditMode)
++ boolean checkNotFullDepositMode(String depositMode)
++ boolean checkEdiCustomer(String ediFlag)
++ boolean checkDigitalCert(String cltNbr)
+}
+
+class designPatterns.tempalte.improve.CheckFlashFinanceStrategy {
++ boolean checkWhiteList(String cltNbr, String brnNbr)
++ boolean checkOnlineRiskControl(String ilcIdx, String cltNbr)
++ boolean checkBusiness(OnbIlcMst ilcMst)
++ boolean checkNotNoFillMode(String creditMode)
++ boolean checkNotFullDepositMode(String depositMode)
++ boolean checkEdiCustomer(String ediFlag)
++ boolean checkDigitalCert(String cltNbr)
+}
+
+class designPatterns.tempalte.improve.CheckFlashOpenStrategy {
++ boolean checkWhiteList(String cltNbr, String brnNbr)
++ boolean checkOnlineRiskControl(String ilcIdx, String cltNbr)
++ boolean checkBusiness(OnbIlcMst ilcMst)
++ boolean checkNotNoFillMode(String creditMode)
++ boolean checkNotFullDepositMode(String depositMode)
++ boolean checkEdiCustomer(String ediFlag)
++ boolean checkDigitalCert(String cltNbr)
+}
+
+designPatterns.tempalte.improve.CheckCreditTemplateService <|-- designPatterns.tempalte.improve.CheckFlashFinanceStrategy
+designPatterns.tempalte.improve.CheckCreditTemplateService <|-- designPatterns.tempalte.improve.CheckFlashOpenStrategy
+designPatterns.tempalte.improve.Client -- designPatterns.tempalte.improve.CheckCreditTemplateService
+@enduml

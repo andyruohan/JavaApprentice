@@ -1,0 +1,37 @@
+@startuml
+abstract class designPatterns.builder.improve.AbstractDetailBuilder {
+# DrawerDetail drawerDetail
++ abstract void buildPreviewUrl()
++ abstract void buildAttachmentList()
++ abstract void buildBusinessFlow()
++ DrawerDetail builder()
+}
+class designPatterns.builder.improve.CreditDetailBuilder {
++ void buildPreviewUrl()
++ void buildAttachmentList()
++ void buildBusinessFlow()
+}
+
+class designPatterns.builder.improve.DetailDirector {
+~ AbstractDetailBuilder abstractDetailBuilder
++ void setDetailDirector(AbstractDetailBuilder)
++ DrawerDetail constructDetail()
+}
+class designPatterns.builder.improve.DrawerDetail {
+- String previewUrl;
+- List<Attachment> attachment;
+- List<BusinessFlow> businessFlow;
+}
+class designPatterns.builder.improve.CollectionDetailBuilder {
++ void buildPreviewUrl()
++ void buildAttachmentList()
++ void buildBusinessFlow()
+}
+
+
+designPatterns.builder.improve.AbstractDetailBuilder <|-- designPatterns.builder.improve.CreditDetailBuilder
+designPatterns.builder.improve.AbstractDetailBuilder <|-- designPatterns.builder.improve.CollectionDetailBuilder
+designPatterns.builder.improve.DetailDirector o- designPatterns.builder.improve.AbstractDetailBuilder
+designPatterns.builder.improve.AbstractDetailBuilder *- designPatterns.builder.improve.DrawerDetail
+designPatterns.builder.improve.Client -- designPatterns.builder.improve.DetailDirector
+@enduml
