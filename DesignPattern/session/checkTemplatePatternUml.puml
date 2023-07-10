@@ -9,7 +9,7 @@ class designPatterns.tempalte.improve.CheckCreditTemplateService {
 + boolean checkDigitalCert(String cltNbr)
 }
 
-class designPatterns.tempalte.improve.CheckFlashFinanceStrategy {
+class designPatterns.tempalte.improve.CheckFlashFinanceService {
 + boolean checkWhiteList(String cltNbr, String brnNbr)
 + boolean checkOnlineRiskControl(String ilcIdx, String cltNbr)
 + boolean checkBusiness(OnbIlcMst ilcMst)
@@ -19,7 +19,7 @@ class designPatterns.tempalte.improve.CheckFlashFinanceStrategy {
 + boolean checkDigitalCert(String cltNbr)
 }
 
-class designPatterns.tempalte.improve.CheckFlashOpenStrategy {
+class designPatterns.tempalte.improve.CheckFlashOpenService {
 + boolean checkWhiteList(String cltNbr, String brnNbr)
 + boolean checkOnlineRiskControl(String ilcIdx, String cltNbr)
 + boolean checkBusiness(OnbIlcMst ilcMst)
@@ -29,7 +29,7 @@ class designPatterns.tempalte.improve.CheckFlashOpenStrategy {
 + boolean checkDigitalCert(String cltNbr)
 }
 
-designPatterns.tempalte.improve.CheckCreditTemplateService <|-- designPatterns.tempalte.improve.CheckFlashFinanceStrategy
-designPatterns.tempalte.improve.CheckCreditTemplateService <|-- designPatterns.tempalte.improve.CheckFlashOpenStrategy
+designPatterns.tempalte.improve.CheckCreditTemplateService <|-- designPatterns.tempalte.improve.CheckFlashFinanceService
+designPatterns.tempalte.improve.CheckCreditTemplateService <|-- designPatterns.tempalte.improve.CheckFlashOpenService
 designPatterns.tempalte.improve.Client -- designPatterns.tempalte.improve.CheckCreditTemplateService
 @enduml
