@@ -1,5 +1,5 @@
 @startuml
-class designPatterns.tempalte.improve.CheckCreditTemplateService {
+abstract class designPatterns.tempalte.improve.CheckCreditTemplateService {
 + abstract boolean checkWhiteList(String cltNbr, String brnNbr)
 + abstract boolean checkOnlineRiskControl(String ilcIdx, String cltNbr)
 + abstract boolean checkBusiness(OnbIlcMst ilcMst)
