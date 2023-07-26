@@ -79,6 +79,35 @@ public class basic.AutoIncrementDemo {
       96: invokevirtual #9                  // Method java/io/PrintStream.println:(Ljava/lang/String;)V
       99: return
 }
-
 ```
 
+其中，
+```
+    Code:
+       0: iconst_1               //int i=1;
+       1: istore_1               //int i=1;
+       2: iload_1                //i = i++;
+       3: iinc          1, 1     //i = i++;
+       6: istore_1               //i = i++;
+       7: iload_1                //int j = i++;
+       8: iinc          1, 1     //int j = i++;
+      11: istore_2               //int j = i++;
+      12: iload_1                //int k = i + ++i * i++;
+      13: iinc          1, 1     //int k = i + ++i * i++;
+      16: iload_1                //int k = i + ++i * i++;
+      17: iload_1                //int k = i + ++i * i++;
+      18: iinc          1, 1     //int k = i + ++i * i++;
+      21: imul                   //int k = i + ++i * i++; 乘法操作
+      22: iadd                   //int k = i + ++i * i++; 加法操作
+      23: istore_3               //int k = i + ++i * i++; 
+```
+
+以int j = i++;展示局部变量表和操作数栈（执行此语句前i = 1）
+首先iload_1，把i的值压入操作数栈
+![](iload_1.png)
+
+其次iinc，i变量自增1
+![](iinc.png)
+
+最后istore_2，把操作数中的值赋值给j
+![](istore_2.png)
