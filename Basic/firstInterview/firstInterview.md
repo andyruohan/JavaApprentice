@@ -1,3 +1,5 @@
+### 自增变量
+#### 自增变量举例
 ```java
 /**
  * @author andy_ruohan
@@ -17,6 +19,7 @@ public class AutoIncrementDemo {
 }
 ```
 
+#### 字节码文件解读
 可通过如下命令查看字节码class文件
 >lijunxin@lijunxins-Air firstInterview % javap -c AutoIncrementDemo.class
 
@@ -102,6 +105,7 @@ public class basic.AutoIncrementDemo {
       23: istore_3               //int k = i + ++i * i++; 
 ```
 
+#### 局部变量表和操作数栈过程举例
 以int j = i++;展示局部变量表和操作数栈（执行此语句前i = 1）
 首先iload_1，把i的值压入操作数栈
 ![](iload_1.png)
