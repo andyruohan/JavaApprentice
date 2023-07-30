@@ -194,7 +194,7 @@ public class Son extends Father {
 }
 ```
 
-#### 运行结果：(尚不清楚为何出现了换行)
+#### 运行结果(尚不清楚为何出现了换行)
 ```
 (5)(1)
 (10)(6)(9)(3)(2)
@@ -203,7 +203,7 @@ public class Son extends Father {
 (9)(8)(7) 
 ```
 
-#### 执行细节：  
+#### 执行细节  
 类初始化：(5)(1)(10)(6)，其中(5)(1)为父类初始化，(10)(6)为子类初始化。  
 实例初始化：第一个Son对象实例化，(9)(3)(2)(9)(8)(7)。其中(9)(3)(2)为父类对象实例化，<font color = 'red'>(9)为子类重写方法</font>；(9)(8)(7)为子类对象实例化。  
 实例初始化：第二个Son对象实例化，(9)(3)(2)(9)(8)(7)。其中(9)(3)(2)为父类对象实例化，<font color = 'red'>(9)为子类重写方法</font>；(9)(8)(7)为子类对象实例化。
@@ -237,3 +237,56 @@ public class Son extends Father {
   - 非静态方法默认的调用对象是this
   - this对象在构造器或者说<init>方法中就是正在创建的对象
 
+
+
+### 方法的参数传递机制
+
+#### 参数传递代码举例
+
+```java
+/**
+ * @author andy_ruohan
+ * @description 方法的参数传递机制Demo
+ * @date 2023/7/30 17:07
+ */
+public class ParameterTransmissionDemo {
+    public static void main(String[] args) {
+        int i = 1;
+        String str = "hello";
+        Integer num = 2;
+        int[] arr = {1, 2, 3, 4, 5};
+        MyData my = new MyData();
+        change(i, str, num, arr, my);
+        System.out.println("j = " + i);
+        System.out.println("str = " + str);
+        System.out.println("num = " + num);
+        System.out.println("arr = " + Arrays.toString(arr));
+        System.out.println("my.a = " + my.a);
+    }
+
+    public static void change(int j, String s, Integer n, int[] a, MyData m) {
+        j += 1;
+        s +="world";
+        n += 1;
+        a[0] += 1;
+        m.a += 1;
+    }
+}
+
+class MyData {
+    int a = 10;
+}
+```
+
+#### 运行过程分析
+
+1. main方法局部变量初始化（左侧绿线部分，右侧橙框部分）
+![](main方法局部变量初始化.png)
+
+2. change方法局部变量初始化（左侧黄线部分，右侧蓝框部分）
+![](change方法局部变量初始化.png)
+
+3. 执行change方法（左侧彩线部分，右侧红线部分）
+![](执行change方法.png)
+
+4. 执行完change方法后，右侧蓝框部分全部销毁
