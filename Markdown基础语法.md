@@ -8,6 +8,9 @@ System.out.println("引用java代码块");
 句子换行：  
 输入两个空格，然后接着按下Enter
 
+idea markdown插件显示导航栏：Alt + 7
+参考链接：https://www.w3cschool.cn/intellij_idea_doc/markdown.html
+
 #标题
 # 一级标题
 ## 二级标题
