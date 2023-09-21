@@ -116,6 +116,49 @@ public class basic.AutoIncrementDemo {
 最后istore_2，把操作数中的值赋值给j
 ![](istore_2.png)
 
+### 递归与迭代
+#### 递归
+```java
+    public int fib(int n) {
+        if (n < 1) {
+            throw new IllegalArgumentException(n + "不能小于1");
+        }
+        if (n == 1 || n == 2) {
+            return n;
+        }
+        return (fib(n - 1) + fib(n - 2)) % 1000000007;
+    }
+```
+
+#### 循环迭代
+```java
+    public static int fib(int n) {
+        if (n == 0 || n == 1) {
+            return n;
+        }
+
+        int one = 0;
+        int two = 1;
+        int sum = 0;
+
+        for (int i = 2; i <= n; i++) {
+            sum = (one + two) % 1000000007;
+            one = two;
+            two = sum;
+        }
+        return sum;
+    }
+```
+
+#### 小结
+- 方法调用自身称为递归，利用变量的原值推出新值称为迭代。  
+- 递归
+  - 优点：大问题转化为小问题，可以滅少代码量，同时代码精简，可读性好;
+  - 缺点：递归调用浪费了空间，而且递归太深容易造成堆栈的溢出。
+- 迭代
+  - 优点：代码运行效率好，因为时间只因循环次数增加而增加，而且没有额外的空间开销；
+  - 缺点：代码不如递归简洁，可读性好。
+
 ### 类和对象加载过程
 #### 父类举例
 ```java
