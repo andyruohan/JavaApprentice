@@ -24,3 +24,5 @@ RandomAccessFile 类可以帮助我们合并文件分片，示例代码如下：
 >缺少每片数据的一致性校验和最后合包的一致性校验
 
 参考链接：https://www.yuque.com/snailclimb/mf2z3k/akmquq
+
+### 格式转换
