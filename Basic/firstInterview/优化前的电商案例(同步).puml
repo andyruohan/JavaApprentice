@@ -1,0 +1,27 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+actor actor [
+支付宝
+]
+
+rectangle paymentModule [
+支付模块]
+
+rectangle orderModule [
+订单模块]
+
+rectangle stockModule [
+库存模块]
+
+
+
+actor -> paymentModule : 1.支付宝回调通知
+paymentModule -> orderModule : 2.通知订单模块支付完成
+orderModule -> stockModule : 3.通知库存模块减库存
+stockModule -> orderModule : 4.通知订单模块减库存成功
+orderModule -> paymentModule : 5.通知支付模块订单处理完成
+paymentModule -> actor : 6.返回success
+
+
+@enduml
