@@ -25,4 +25,9 @@ RandomAccessFile 类可以帮助我们合并文件分片，示例代码如下：
 
 参考链接：https://www.yuque.com/snailclimb/mf2z3k/akmquq
 
-### 格式转换
+### 项目积累
+#### 格式转换
+参考本人GitHub链接：https://github.com/andyruohan/RTF2PDF.git
+
+#### 科学计数
+使用BigDecimal进行金额转String时，注意toString会产生科学计数，此时应使用toPlainString
