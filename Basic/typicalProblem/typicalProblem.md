@@ -31,3 +31,4 @@ RandomAccessFile 类可以帮助我们合并文件分片，示例代码如下：
 
 #### 科学计数
 使用BigDecimal进行金额转String时，注意toString会产生科学计数，此时应使用toPlainString
+![](产生科学记数法的问题点.PNG)
