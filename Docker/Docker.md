@@ -26,3 +26,25 @@ VM 与 Docker 的直观对比图：
 #### Docker 的应用场景
 ![](Docker应用场景图例.png)
 Docker 借鉴了标准集装箱的概念。标准集装箱将货物运往世界各地，Docker 将这个模型运用到自己的设计中，唯一不同的是：集装箱运输货物，而 Docker 运输软件。
+
+#### Docker 官网及运行条件
+Docker 官网：https://www.docker.com/  
+Docker Hub 官网：https://hub.docker.com/  
+
+Docker 必须部署在Linux内核的系统上。在 Window 系统上部署 Docker 的方法是先安装一个 Linux 虚拟机，在虚拟机中运行 Docker。  
+> 目前，Centos 仅发行版本中的内核支持 Docker 。 Docker 运行在 Centos 7(64-bit) 上，要求系统为64位、Linux 系统内核版本为3.8以上。
+
+uname命令可用于打印当前系统相关信息（内核版本号、硬件架构、主机名称和操作系统类型等）。
+```
+[ root@zzyy ~]# cat /etc/redhat- release
+CentOS Linux release 7.4. 1708 ( Core)
+[ root@Zzy¥ ~]#
+[ root@zzyy ~]# uname - r
+3. 10. 0- 693. el7. X86_64
+[ root@zzyy ~]#
+```
+
+#### Docker 三要素
+- 镜像（image）
+- 容器（container）
+- 仓库（repository）
