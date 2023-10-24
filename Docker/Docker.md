@@ -48,3 +48,11 @@ CentOS Linux release 7.4. 1708 ( Core)
 - 镜像（image）
 - 容器（container）
 - 仓库（repository）
+
+Docker 平台架构简易版
+![](Docker平台架构简易版.png)
+
+Docker 平台架构进阶版
+![](Docker平台架构进阶版1.png)
+![](Docker平台架构进阶版2.png)
+![](Docker平台架构进阶版3.png)
