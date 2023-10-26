@@ -56,3 +56,15 @@ Docker 平台架构进阶版
 ![](Docker平台架构进阶版1.png)
 ![](Docker平台架构进阶版2.png)
 ![](Docker平台架构进阶版3.png)
+
+#### Docker 的安装
+##### 参考 Docker 官网
+官方网址：https://docs.docker.com/engine/install/centos/
+![](DockerEngine的安装.png)  
+
+注意点：按官网下图中的配置由于在国外会访问卡顿，建议切换至国内的备份节点。
+![](Docker安装过程中注意点.png)
+
+##### Docker 镜像加速
+阿里云官方网址：https://cr.console.aliyun.com/cn-hangzhou/instances/mirrors
+![](阿里云Docker镜像加速.png)
