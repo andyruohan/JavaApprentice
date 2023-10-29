@@ -94,3 +94,11 @@ Docker 平台架构进阶版
 查看 docker 概要信息： docker info
 查看 docker 总体帮助文档：docker -help
 查看 docker 命令帮助文档：docker 具体命令--help
+
+### 镜像命令
+查看本地镜像：docker images
+按某个xxx镜像名字搜索：docker search
+按某个xxx名字拉取镜像：docker pull
+查看镜像/容器/数据卷所占的空间：docker system df
+按某个xxx镜像名宇ID删除：docker rmi
+>面试题：谈谈docker虛悬镜像是什么？
