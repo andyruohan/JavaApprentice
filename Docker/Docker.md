@@ -83,3 +83,14 @@ Docker 平台架构进阶版
 ### Docker 镜像加速
 阿里云官方网址：https://cr.console.aliyun.com/cn-hangzhou/instances/mirrors
 ![](阿里云Docker镜像加速.png)
+
+## Docker 常用命令
+### 帮助类启动命令
+启动 docker: systemctl start docker
+停止 docker: systemctl stop docker
+重启 docker: systemctl restart docker
+查看docker状态：systemctl status docker
+开机启动：systemctl enable docker
+查看 docker 概要信息： docker info
+查看 docker 总体帮助文档：docker -help
+查看 docker 命令帮助文档：docker 具体命令--help
