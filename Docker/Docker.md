@@ -84,6 +84,13 @@ Docker 平台架构进阶版
 阿里云官方网址：https://cr.console.aliyun.com/cn-hangzhou/instances/mirrors
 ![](阿里云Docker镜像加速.png)
 
+### 测试安装
+#### docker version
+![](version命令.png)
+
+#### sudo docker run hello-world
+![](helloWorld命令.png)
+
 ## Docker 常用命令
 ### 帮助类启动命令
 启动 docker: systemctl start docker
