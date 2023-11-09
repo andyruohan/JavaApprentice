@@ -159,7 +159,8 @@ docker run -d ubuntu
 原因：Docker容器后台运行，就必须有一个前台进程。容器运行的命令如果不是那些一直挂起的命令（比如运行top，tail），就是会自动退出的，这个是docker的机制问题。
 >比如你的web容器，我们以 nginx 为例，正常情况下，我们配置启动服务只需要启动响应的 service 即可。例如 service nginx start 。但是这样做，nginx 为后台进程模式运行，就导致 docker 前台没有运行的应用，会立即自杀因为他觉得他没事可做了。所以最佳的解决方案是，将你要运行的程序以前台进程的形式运行，常见就是命令行模式，表示还有交互操作别中断。  
 
-ps：实测 redis 也无法启动后台启动
+ps：实测 redis 可以后台启动
+![](后台启动redis.png)
 
 #### 列出当前容器命令
 ```
@@ -180,6 +181,12 @@ OPTIONS说明（常用）：
 - 方式2：run进去容器，ctrl + p + q退出，容器不停止
 ![](ctrl+p+q命令.png)
 
+#### 重新进入容器
+- 方式1：docker exec -it 容器id，会开启新终端，exit 时容器不会退出 
+![](exec命令测试.png)
+- 方式2：attach attach 容器id，不会开启新终端，exit 时容器会退出
+![](attach命令测试.png)
+
 #### 重启容器  
 docker restart 容器ID或者容器名  
 
@@ -187,7 +194,9 @@ docker restart 容器ID或者容器名
 docker stop 容器ID或者容器名  
 
 #### 强制停止容器  
+```
 docker kill 容器ID或容器名  
+```
 
 #### 删除已停止的容器
 - rm 命令，删除正在运行的容器会报错
@@ -201,3 +210,21 @@ docker kill 容器ID或容器名
 - 方式2：docker ps -a -q | xargs docker rm
 ![](一次性删除多个实例或条件形式.png)
     > 实际上试了下，两种方式都会报权限不足
+
+#### 查看容器日志
+```
+docker log 容器id
+```
+![](查看容器日志.png)
+
+#### 查看容器进程
+```
+docker top 容器id
+```
+![](查看容器进程.png)
+
+#### 查看容器内部细节
+``` 
+docker inspect 容器id
+```
+![](查看容器内部细节.png)
