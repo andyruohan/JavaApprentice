@@ -242,3 +242,20 @@ docker cp 容器id:容器内路径 目的主机路径
 步骤二：cat 本地主机路径/文件名.tar | docker import - 镜像用户/镜像名:镜像版本号
 ```
 ![](export命令.png)
+
+### Docker 镜像的分层概念
+#### UnionFS概念  
+Docker的镜像实际上由一层一层的文件系统组成，这种层级的文件系统称为 UnionFS。  
+**bootfs（boot file system）**：主要包含 bootloader 和 kernel， bootloader主要是引导加载 kernel，Linux 刚启动时会加载 bootfs 文件系统，在 Docker 镜像的最底层是引导文件系统 bootfs。这一层与我们典型的 Linux / Unix 系统是一样的，包含 boot 加载器和内核。当 boot 加载完成之后整个内核就都在内存中了，此时内存的使用权已由 bootfs 转交给内核，此时系统也会卸载 bootfs。  
+**rootfs（root file system）**：在 bootfs 之上包含的就是典型 Linux 系统中的 /dev，/proc，/bin，/etc 等标准目录和文件。rootfs 就是各种不同的操作系统发行版，比如 Ubuntu，Centos 等等。
+![](bootfs和rootfs.png)
+
+#### Docker 镜像分层加载的好处
+
+镜像分层最大的一个好处就是共享资源，方便复制迁移，就是为了复用。
+比如说有多个镜像都从相同的 base 镜像构建而来，那么 Docker Host 只需在磁盘上保存一份 base 镜像；
+同时内存中也只需加载一份 base 镜像，就可以为所有容器服务了。而且镜像的每一层都可以被共享。
+
+/<font color = 'red'>Docker 镜像层都是只读的，容器层是可写的。</font>当容器启动时，一个新的可写层被加载到镜像的顶部。
+这一层通常被称作"容器层"，"容器层"之下的都叫"镜像层"。
+![](Docker各层结构.png)
