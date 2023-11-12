@@ -228,3 +228,17 @@ docker top 容器id
 docker inspect 容器id
 ```
 ![](查看容器内部细节.png)
+
+#### cp命令
+```
+docker cp 容器id:容器内路径 目的主机路径
+```
+![](cp命令前置准备.png)
+![](cp命令.png)
+
+#### export命令
+```
+步骤一：docker export 容器id > 目的主机路径/文件名.tar
+步骤二：cat 本地主机路径/文件名.tar | docker import - 镜像用户/镜像名:镜像版本号
+```
+![](export命令.png)
