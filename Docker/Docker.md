@@ -266,3 +266,77 @@ Docker 中的镜像分层，支持通过扩展现有镜像，创建新的镜像�
 #### Docker 镜像 ubuntu 安装 vim 再打包镜像案例
 ![](安装get和vim.png)
 ![](执行commit.png)
+
+## Docker 仓库操作
+### 阿里云官方参考
+官方网址：https://cr.console.aliyun.com/repository/cn-hangzhou/docker_ruohan/myubuntu/details  
+
+参考步骤（由阿里云官网提供）：
+1. 登录阿里云Docker Registry
+   $ docker login --username=aliyun8972045200 registry.cn-hangzhou.aliyuncs.com
+   用于登录的用户名为阿里云账号全名，密码为开通服务时设置的密码。
+2. 从Registry中拉取镜像
+   $ docker pull registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu:[镜像版本号]
+3. 将镜像推送到Registry
+   $ docker login --username=aliyun8972045200 registry.cn-hangzhou.aliyuncs.com
+   $ docker tag [ImageId] registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu:[镜像版本号]
+   $ docker push registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu:[镜像版本号]
+   请根据实际镜像信息替换示例中的[ImageId]和[镜像版本号]参数。
+
+### 实际操作
+- 登录阿里云，push 本地镜像到仓库
+```
+[parallels@fedora /]$ sudo docker login --username=aliyun8972045200 registry.cn-hangzhou.aliyuncs.com
+[sudo] password for parallels: 
+Password: 
+WARNING! Your password will be stored unencrypted in /root/.docker/config.json.
+Configure a credential helper to remove this warning. See
+https://docs.docker.com/engine/reference/commandline/login/#credentials-store
+
+[parallels@fedora /]$ sudo docker images
+REPOSITORY      TAG       IMAGE ID       CREATED             SIZE
+myubuntu        5.3       c1ebca1d03c7   14 seconds ago      170MB
+ruohan/ubunut   5.2       0041ee48fea6   About an hour ago   69.2MB
+redis           latest    720b987633ae   10 days ago         158MB
+ubuntu          latest    e343402cadef   5 weeks ago         69.2MB
+hello-world     latest    b038788ddb22   6 months ago        9.14kB
+redis           6.0.8     d4deb73856a2   3 years ago         98.5MB
+
+[parallels@fedora /]$ sudo docker push registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu:5.3
+The push refers to repository [registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu]
+0b762ce269dc: Pushed 
+2fdf3ee1d6db: Pushed 
+5.3: digest: sha256:fc4e6f11455d438fd66b82b60a656d0474e20a0128b229d2c60691a42e097fc3 size: 741
+```
+
+- 删除本地镜像
+```
+[parallels@fedora /]$ sudo docker rmi -f c1ebca1d03c7
+Untagged: myubuntu:5.3
+Untagged: registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu:5.3
+Untagged: registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu@sha256:fc4e6f11455d438fd66b82b60a656d0474e20a0128b229d2c60691a42e097fc3
+Deleted: sha256:c1ebca1d03c75fbebae7a9088bc0ee276ddba57aa052cf388f9934a6b66fb070
+Deleted: sha256:b9084b55cb6c8dcd2ea434ed5407a26c3cda2ea2557d9ee114140e224f4d5d5e
+
+[parallels@fedora /]$ sudo docker images
+REPOSITORY      TAG       IMAGE ID       CREATED        SIZE
+ruohan/ubunut   5.2       0041ee48fea6   33 hours ago   69.2MB
+redis           latest    720b987633ae   11 days ago    158MB
+ubuntu          latest    e343402cadef   5 weeks ago    69.2MB
+hello-world     latest    b038788ddb22   6 months ago   9.14kB
+redis           6.0.8     d4deb73856a2   3 years ago    98.5MB
+```
+
+- 拉取远端镜像
+```
+[parallels@fedora /]$ docker pull registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu:5.3
+permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Post "http://%2Fvar%2Frun%2Fdocker.sock/v1.24/images/create?fromImage=registry.cn-hangzhou.aliyuncs.com%2Fdocker_ruohan%2Fmyubuntu&tag=5.3": dial unix /var/run/docker.sock: connect: permission denied
+[parallels@fedora /]$ sudo docker pull registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu:5.3
+5.3: Pulling from docker_ruohan/myubuntu
+34802cd1c5b6: Already exists 
+cabe602f099a: Pull complete 
+Digest: sha256:fc4e6f11455d438fd66b82b60a656d0474e20a0128b229d2c60691a42e097fc3
+Status: Downloaded newer image for registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu:5.3
+registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu:5.3
+
+```
