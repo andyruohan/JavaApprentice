@@ -268,7 +268,9 @@ Docker 中的镜像分层，支持通过扩展现有镜像，创建新的镜像�
 ![](执行commit.png)
 
 ## Docker 仓库操作
-### 阿里云官方参考
+### 公网仓库
+以阿里云仓库为例
+#### 阿里云官方参考
 官方网址：https://cr.console.aliyun.com/repository/cn-hangzhou/docker_ruohan/myubuntu/details  
 
 参考步骤（由阿里云官网提供）：
@@ -283,7 +285,7 @@ Docker 中的镜像分层，支持通过扩展现有镜像，创建新的镜像�
    $ docker push registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu:[镜像版本号]
    请根据实际镜像信息替换示例中的[ImageId]和[镜像版本号]参数。
 
-### 实际操作
+#### 实际操作
 - 登录阿里云，push 本地镜像到仓库
 ```
 [parallels@fedora /]$ sudo docker login --username=aliyun8972045200 registry.cn-hangzhou.aliyuncs.com
@@ -338,5 +340,26 @@ cabe602f099a: Pull complete
 Digest: sha256:fc4e6f11455d438fd66b82b60a656d0474e20a0128b229d2c60691a42e097fc3
 Status: Downloaded newer image for registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu:5.3
 registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu:5.3
+```
 
+### 搭建本地私有仓库
+- 下载 Docker Registry
+```
+[parallels@fedora /]$ sudo docker pull registry
+Using default tag: latest
+latest: Pulling from library/registry
+579b34f0a95b: Pull complete 
+e74bf0db6f91: Pull complete 
+8c44f09e009f: Pull complete 
+a7bb2b8c8a10: Pull complete 
+ea51f02beeb1: Pull complete 
+Digest: sha256:8a60daaa55ab0df4607c4d8625b96b97b06fd2e6ca8528275472963c4ae8afa0
+Status: Downloaded newer image for registry:latest
+docker.io/library/registry:latest
+```
+
+- 运行私有 Registry，相当于当地有个 Docker Hub 
+```
+[parallels@fedora /]$ sudo docker run -d -p 5000:5000 -v /ruohan/myregistry/:/tmp/registry --privileged=true registry
+68df2163d1df7f1287198e7fad49df011baca7e1d052924af1f671d598435c49
 ```
