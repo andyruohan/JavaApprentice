@@ -331,8 +331,6 @@ redis           6.0.8     d4deb73856a2   3 years ago    98.5MB
 
 - 拉取远端镜像
 ```
-[parallels@fedora /]$ docker pull registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu:5.3
-permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Post "http://%2Fvar%2Frun%2Fdocker.sock/v1.24/images/create?fromImage=registry.cn-hangzhou.aliyuncs.com%2Fdocker_ruohan%2Fmyubuntu&tag=5.3": dial unix /var/run/docker.sock: connect: permission denied
 [parallels@fedora /]$ sudo docker pull registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu:5.3
 5.3: Pulling from docker_ruohan/myubuntu
 34802cd1c5b6: Already exists 
@@ -344,6 +342,16 @@ registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu:5.3
 
 ### 搭建本地私有仓库
 - 下载 Docker Registry
+
+
+- 运行私有 Registry，相当于当地有个 Docker Hub 
+
+
+
+
+
+
+1) 下载镜像Docker Registry  
 ```
 [parallels@fedora /]$ sudo docker pull registry
 Using default tag: latest
@@ -357,13 +365,13 @@ Digest: sha256:8a60daaa55ab0df4607c4d8625b96b97b06fd2e6ca8528275472963c4ae8afa0
 Status: Downloaded newer image for registry:latest
 docker.io/library/registry:latest
 ```
-
-- 运行私有 Registry，相当于当地有个 Docker Hub 
+2) 运行私有库Registry，相当于本地有个私有Docker hub  
 ```
 [parallels@fedora /]$ sudo docker run -d -p 5000:5000 -v /ruohan/myregistry/:/tmp/registry --privileged=true registry
 68df2163d1df7f1287198e7fad49df011baca7e1d052924af1f671d598435c49
 ```
 
+3) 案例演示创建一个新镜像，ubuntu安装ifconfig命令  
 - 更新 apt-get
 ```
 root@a4ddd4739e7d:/# apt-get update
@@ -430,7 +438,6 @@ lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
         TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
 
 ```
-
 - commit 添加了 ifconfig 命令的镜像
 ```
 [parallels@fedora /]$ sudo docker ps
@@ -446,4 +453,141 @@ sha256:0ea7afde4c27aadc76fd9c77c6c2594c271a7f8a6f08c1c86437d35f3fb416f9
 REPOSITORY                                                 TAG       IMAGE ID       CREATED              SIZE
 myubuntu                                                   5.2.1     0ea7afde4c27   About a minute ago   113MB
 registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu   5.3       c1ebca1d03c7   4 days ago           170MB
+```
+
+4) curl验证私服库上有什么镜像
+```
+[parallels@fedora /]$ curl -XGET http://127.0.0.1:5000/v2/_catalog
+{"repositories":[]}
+[parallels@fedora /]$ sudo docker images
+REPOSITORY                                                 TAG       IMAGE ID       CREATED        SIZE
+127.0.0.1:5000/myubuntu                                    5.2.1     0ea7afde4c27   2 days ago     113MB
+myubuntu                                                   5.2.1     0ea7afde4c27   2 days ago     113MB
+registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu   5.3       c1ebca1d03c7   6 days ago     170MB
+```
+
+5) 将新镜像myubuntu:5.2.1修改符合私服规范的Tag
+```
+[parallels@fedora /]$ sudo docker tag myubuntu:5.2.1 127.0.0.1:5000/myubuntu:5.2.1
+```
+
+6) 修改配置文件使之支持 http  
+- 修改配置文件并重启 Docker  
+   在 /etc/docker/daemon.json 文件中添加 "insecure-registries": ["127.0.0.1:5000"]  
+   >注意 daemon.json 是一个json文件，添加键值对时，上一行的末尾需要加<font color = 'red'>","</font>。
+```
+[parallels@fedora /]$ sudo nano /etc/docker/daemon.json
+[sudo] password for parallels: 
+[parallels@fedora /]$ vi /etc/docker/daemon.json
+[parallels@fedora /]$ sudo systemctl restart docker
+```
+
+- 查看 Docker 运行状态
+```
+[parallels@fedora /]$ sudo systemctl status docker
+● docker.service - Docker Application Container Engine
+     Loaded: loaded (/usr/lib/systemd/system/docker.service; disabled; vendor preset: disabled)
+     Active: active (running) since Sun 2023-11-19 14:53:59 CST; 17s ago
+TriggeredBy: ● docker.socket
+       Docs: https://docs.docker.com
+   Main PID: 377744 (dockerd)
+      Tasks: 9
+     Memory: 63.7M
+        CPU: 188ms
+     CGroup: /system.slice/docker.service
+             └─ 377744 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+
+Nov 19 14:53:58 fedora dockerd[377744]: time="2023-11-19T14:53:58.995505987+08:00" level=info msg="Firewalld: docker zone already exists, returning"
+Nov 19 14:53:59 fedora dockerd[377744]: time="2023-11-19T14:53:59.161297248+08:00" level=info msg="Firewalld: interface docker0 already part of docker zone, returning"
+Nov 19 14:53:59 fedora dockerd[377744]: time="2023-11-19T14:53:59.170665986+08:00" level=info msg="Firewalld: interface docker0 already part of docker zone, returning"
+Nov 19 14:53:59 fedora dockerd[377744]: time="2023-11-19T14:53:59.298859089+08:00" level=info msg="Default bridge (docker0) is assigned with an IP address 172.17.0.0/16. Daemon opt>
+Nov 19 14:53:59 fedora dockerd[377744]: time="2023-11-19T14:53:59.373073693+08:00" level=info msg="Firewalld: interface docker0 already part of docker zone, returning"
+Nov 19 14:53:59 fedora dockerd[377744]: time="2023-11-19T14:53:59.414271070+08:00" level=info msg="Loading containers: done."
+Nov 19 14:53:59 fedora dockerd[377744]: time="2023-11-19T14:53:59.468112653+08:00" level=info msg="Docker daemon" commit=659604f graphdriver=overlay2 version=24.0.2
+Nov 19 14:53:59 fedora dockerd[377744]: time="2023-11-19T14:53:59.468240945+08:00" level=info msg="Daemon has completed initialization"
+Nov 19 14:53:59 fedora systemd[1]: Started docker.service - Docker Application Container Engine.
+Nov 19 14:53:59 fedora dockerd[377744]: time="2023-11-19T14:53:59.488632924+08:00" level=info msg="API listen on /run/docker.sock"
+
+
+```
+
+7) push 推送到私服库
+- 运行私服库
+```
+[parallels@fedora /]$ sudo docker run -d -p 5000:5000 -v /ruohan/myregistry/:/tmp/registry --privileged=true registry
+d38255b24e34809c54bc67c58a51a02c1af5cf6ddb7adb9bd701c148799c6dbb
+[parallels@fedora /]$ sudo docker ps
+CONTAINER ID   IMAGE      COMMAND                  CREATED          STATUS          PORTS                                       NAMES
+d38255b24e34   registry   "/entrypoint.sh /etc…"   14 seconds ago   Up 12 seconds   0.0.0.0:5000->5000/tcp, :::5000->5000/tcp   hungry_swirles
+```
+
+- 推送镜像
+```
+[parallels@fedora /]$ sudo docker push 127.0.0.1:5000/myubuntu:5.2.1
+The push refers to repository [127.0.0.1:5000/myubuntu]
+5901bdf1d801: Pushed 
+2fdf3ee1d6db: Pushed 
+5.2.1: digest: sha256:09ddb45962886a6b71d4b10787ff0644c1cf55dc325811fc69725b1eecc074d3 size: 741
+```
+
+8) curl验证私服库上有什么镜像
+```
+[parallels@fedora /]$ curl -XGET http://127.0.0.1:5000/v2/_catalog
+{"repositories":["myubuntu"]}
+```
+
+
+9) pull到本地并运行
+- 删除本地 myubuntu:5.2.1 相关镜像，以防干扰
+```
+[parallels@fedora /]$ sudo docker images
+REPOSITORY                                                 TAG       IMAGE ID       CREATED        SIZE
+127.0.0.1:5000/myubuntu                                    5.2.1     0ea7afde4c27   2 days ago     113MB
+myubuntu                                                   5.2.1     0ea7afde4c27   2 days ago     113MB
+registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu   5.3       c1ebca1d03c7   6 days ago     170MB
+[parallels@fedora /]$ sudo docker rmi -f 0ea7afde4c27
+Untagged: 127.0.0.1:5000/myubuntu:5.2.1
+Untagged: 127.0.0.1:5000/myubuntu@sha256:09ddb45962886a6b71d4b10787ff0644c1cf55dc325811fc69725b1eecc074d3
+Untagged: myubuntu:5.2.1
+Deleted: sha256:0ea7afde4c27aadc76fd9c77c6c2594c271a7f8a6f08c1c86437d35f3fb416f9
+Deleted: sha256:74aba3bd834cd35b0ee2d6d1da5b55491124510791ef3ce04364625877f9ee53
+[parallels@fedora /]$ sudo docker images
+REPOSITORY                                                 TAG       IMAGE ID       CREATED        SIZE
+registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu   5.3       c1ebca1d03c7   6 days ago     170MB
+```
+
+- 拉取远端镜像
+```
+[parallels@fedora /]$ sudo docker pull 127.0.0.1:5000/myubuntu:5.2.1
+5.2.1: Pulling from myubuntu
+34802cd1c5b6: Already exists 
+e8547d11e69d: Pull complete 
+Digest: sha256:09ddb45962886a6b71d4b10787ff0644c1cf55dc325811fc69725b1eecc074d3
+Status: Downloaded newer image for 127.0.0.1:5000/myubuntu:5.2.1
+127.0.0.1:5000/myubuntu:5.2.1
+[parallels@fedora /]$ sudo docker images
+REPOSITORY                                                 TAG       IMAGE ID       CREATED        SIZE
+127.0.0.1:5000/myubuntu                                    5.2.1     0ea7afde4c27   2 days ago     113MB
+registry.cn-hangzhou.aliyuncs.com/docker_ruohan/myubuntu   5.3       c1ebca1d03c7   6 days ago     170MB
+```
+
+- 运行从远端拉取的镜像
+```
+[parallels@fedora /]$ sudo docker run -it 0ea7afde4c27 /bin/bash
+root@8ac0e356840b:/# ifconfig
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.17.0.3  netmask 255.255.0.0  broadcast 172.17.255.255
+        ether 02:42:ac:11:00:03  txqueuelen 0  (Ethernet)
+        RX packets 17  bytes 2107 (2.1 KB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
 ```
