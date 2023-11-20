@@ -591,3 +591,22 @@ lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
         TX packets 0  bytes 0 (0.0 B)
         TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
 ```
+
+## Docker 容器数据卷
+【容器出现坑的地方】Docker 挂载主机目录访问如果出现 cannot open directory.：Permission denied  
+解决办法：在挂载目录后多加一个--privileged=true参数即可
+
+容器数据卷的作用：**完成数据的持久化**，映射容器内数据备份到本地主机目录。它完全独立于容器的生存周期，因此Docker不会在容器删除时删除其挂我的数据卷。
+
+命令模版：
+```
+docker run -it --privileged=true -v /宿主机绝对路径目录：/容器内目录镜像名
+```
+
+上文中的 docker run -d -p 5000:5000 -v /ruohan/myregistry/:/tmp/registry --privileged=true registry 即是使用该命令模版。
+
+容器卷的特点：  
+1) 数据卷可在容器之间共享或重用数据  
+2) 卷中的更改可以直接实时生效  
+3) 数据卷中的更改不会包含在镜像的更新中  
+4) 数据卷的生命周期一直持续到没有容器使用它为止  
