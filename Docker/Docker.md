@@ -610,3 +610,75 @@ docker run -it --privileged=true -v /宿主机绝对路径目录：/容器内目
 2) 卷中的更改可以直接实时生效  
 3) 数据卷中的更改不会包含在镜像的更新中  
 4) 数据卷的生命周期一直持续到没有容器使用它为止  
+
+### 案例测试1：文件共享
+- 建立主机到 Docker 的映射
+```
+[parallels@fedora /]$ sudo docker run -it --privileged=true -v /tmp/host_data:/tmp/docker_data --name=u1 ubuntu
+root@95f4510866f5:/# pwd
+/
+root@95f4510866f5:/# cd /tmp/docker_data/
+root@95f4510866f5:/tmp/docker_data# ls
+```
+此时在 Docker 中的 /tmp/docker_data/ 目录下的文件夹为空
+
+- 在 Docker 中的 /tmp/docker_data/ 目录下创建 dockerin.txt 文件
+```
+root@95f4510866f5:/tmp/docker_data# touch dockerin.txt
+root@95f4510866f5:/tmp/docker_data# ls
+dockerin.txt
+```
+此时在主机中的 /tmp/host_data/ 目录下可以看到该文件
+```
+[parallels@fedora /]$ cd /tmp/host_data/
+[parallels@fedora host_data]$ ls
+dockerin.txt
+```
+同理，在主机中创建 hostin.txt 文件，在 Docker 中可以共享看到。
+> Docker 容器停止，在主机中创建共享文件，在 Docker 容器重新启动后依旧可以看到。
+
+### 检查挂载情况
+检查命令
+```
+[parallels@fedora host_data]$ sudo docker inspect 容器id
+```
+
+实测命令
+```
+[parallels@fedora host_data]$ sudo docker ps
+CONTAINER ID   IMAGE          COMMAND                  CREATED          STATUS          PORTS                                       NAMES
+95f4510866f5   ubuntu         "/bin/bash"              10 minutes ago   Up 10 minutes                                               u1
+8ac0e356840b   0ea7afde4c27   "/bin/bash"              2 days ago       Up 2 days                                                   hopeful_booth
+d38255b24e34   registry       "/entrypoint.sh /etc…"   2 days ago       Up 2 days       0.0.0.0:5000->5000/tcp, :::5000->5000/tcp   hungry_swirles
+[parallels@fedora host_data]$ sudo docker inspect 95f4510866f5
+
+```
+
+实测结果
+```json
+[
+  //...
+  
+  {
+    "Mounts": [
+      {
+        "Type": "bind",
+        "Source": "/tmp/host_data",
+        "Destination": "/tmp/docker_data",
+        "Mode": "",
+        "RW": true,
+        "Propagation": "rprivate"
+      }
+    ]
+  }
+  
+  //...
+]
+
+```
+
+
+### 案例测试2：只读权限控制
+```
+
+```
