@@ -679,6 +679,33 @@ d38255b24e34   registry       "/entrypoint.sh /etc…"   2 days ago       Up 2 d
 
 
 ### 案例测试2：只读权限控制
-```
+- 创建只读映射
+    ```
+    [parallels@fedora host_data]$ suddocker run -it --privileged=true -v /mydocker/u:/tmp/u:ro --name u2 ubuntu
+    ```
 
-```
+- 在主机创建文件，在 Docker 中可以同步看到  
+
+  - 主机
+  ```
+  [parallels@fedora u]$ sudo touch a.txt
+  [parallels@fedora u]$ ls
+  a.txt
+  ```
+  - 命令
+  ```
+  root@2351f0701e06:/# cd tmp/u/
+  root@2351f0701e06:/tmp/u# ls
+  a.txt
+  ```
+
+
+
+
+
+- 在 Docker 创建文件会报失败
+    ```
+    root@2351f0701e06:/tmp/u# touch c.txt 
+    touch: cannot touch 'c.txt': Read-only file system
+    ```
+
