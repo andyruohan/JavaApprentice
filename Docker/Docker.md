@@ -699,13 +699,41 @@ d38255b24e34   registry       "/entrypoint.sh /etc…"   2 days ago       Up 2 d
   a.txt
   ```
 
-
-
-
-
 - 在 Docker 创建文件会报失败
     ```
     root@2351f0701e06:/tmp/u# touch c.txt 
     touch: cannot touch 'c.txt': Read-only file system
     ```
 
+### 案例测试3：容器卷之间的继承
+- 容器 u1 下的共享目录
+    ```
+    [parallels@fedora host_data]$ sudo docker ps
+    CONTAINER ID   IMAGE          COMMAND                  CREATED      STATUS      PORTS                                       NAMES
+    95f4510866f5   ubuntu         "/bin/bash"              2 days ago   Up 2 days                                               u1
+    [parallels@fedora host_data]$ sudo docker exec -it 95f4510866f5 /bin/bash
+    root@95f4510866f5:/# cd /tmp/docker_data/
+    root@95f4510866f5:/tmp/docker_data# ls
+    dockerin.txt  hostin.txt 
+    root@95f4510866f5:/tmp/docker_data# 
+    ```
+
+- 容器 u2 继承容器 u1 的共享目录
+    ```
+    [parallels@fedora u]$ sudo docker run -it --privileged=true --volumes-from=u1 --name=u2 ubuntu
+    root@c5ec9b9b9d64:/# cd tmp/docker_data/
+    root@c5ec9b9b9d64:/tmp/docker_data# ls
+    dockerin.txt  hostin.txt
+    ```
+- 在容器 u2 中新建 u2.txt
+    ```
+    root@c5ec9b9b9d64:/tmp/docker_data# touch u2.txt
+    root@c5ec9b9b9d64:/tmp/docker_data# 
+    ```
+- 在容器 u1 中可以看到
+    ```
+    root@95f4510866f5:/# cd /tmp/docker_data/
+    root@95f4510866f5:/tmp/docker_data# ls
+    dockerin.txt  hostin.txt  u2.txt
+    ```
+  > Note：u1 容器停止运行，u2 修改或新建了文本，u1 重启了仍可以共享过程文件
