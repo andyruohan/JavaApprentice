@@ -674,7 +674,6 @@ d38255b24e34   registry       "/entrypoint.sh /etc…"   2 days ago       Up 2 d
   
   //...
 ]
-
 ```
 
 
@@ -737,3 +736,88 @@ d38255b24e34   registry       "/entrypoint.sh /etc…"   2 days ago       Up 2 d
     dockerin.txt  hostin.txt  u2.txt
     ```
   > Note：u1 容器停止运行，u2 修改或新建了文本，u1 重启了仍可以共享过程文件
+
+## Docker 上安装常用软件
+### 最新版运行 tomcat
+- 拉取并运行 tomcat
+```
+[parallels@fedora host_data]$ docker pull tomcat
+Using default tag: latest
+latest: Pulling from library/tomcat
+94a23d3cb5be: Pull complete 
+ac9d381bd1e9: Pull complete 
+aa9c5b49b9db: Pull complete 
+841dd868500b: Pull complete 
+42dee876d816: Pull complete 
+c4851c976ae9: Pull complete 
+e80a0433b650: Pull complete 
+e10afb8c99ce: Pull complete 
+7870523e466f: Pull complete 
+Digest: sha256:9dee185c3b161cdfede1f5e35e8b56ebc9de88ed3a79526939701f3537a52324
+Status: Downloaded newer image for tomcat:latest
+docker.io/library/tomcat:latest
+[parallels@fedora host_data]$ sudo docker run -d -p 8080:8080 --name t1 tomcat
+26057dc8d993c13aa4351deb616f1dd739b851764ab95840714fe33a945dd653
+```
+![](直接访问localhost8080.png)
+
+- exec 查看正在运行的 tomcat，发现 webapps 目录下为空
+```
+[parallels@fedora host_data]$ sudo docker ps
+CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS         PORTS                                       NAMES
+26057dc8d993   tomcat         "catalina.sh run"        3 minutes ago   Up 3 minutes   0.0.0.0:8080->8080/tcp, :::8080->8080/tcp   t1
+[parallels@fedora host_data]$ sudo docker exec -it 26057dc8d993 /bin/bash
+root@26057dc8d993:/usr/local/tomcat# ls -l
+total 124
+-rw-r--r--. 1 root root 18994 Dec  2  2021 BUILDING.txt
+-rw-r--r--. 1 root root  6210 Dec  2  2021 CONTRIBUTING.md
+-rw-r--r--. 1 root root 60269 Dec  2  2021 LICENSE
+-rw-r--r--. 1 root root  2333 Dec  2  2021 NOTICE
+-rw-r--r--. 1 root root  3378 Dec  2  2021 README.md
+-rw-r--r--. 1 root root  6905 Dec  2  2021 RELEASE-NOTES
+-rw-r--r--. 1 root root 16517 Dec  2  2021 RUNNING.txt
+drwxr-xr-x. 1 root root   452 Dec 21  2021 bin
+drwxr-xr-x. 1 root root    16 Nov 26 15:12 conf
+drwxr-xr-x. 1 root root  1114 Dec 21  2021 lib
+drwxrwxrwx. 1 root root   116 Nov 26 15:12 logs
+drwxr-xr-x. 1 root root   210 Dec 21  2021 native-jni-lib
+drwxrwxrwx. 1 root root    32 Dec 21  2021 temp
+drwxr-xr-x. 1 root root     0 Dec 21  2021 webapps
+drwxr-xr-x. 1 root root    70 Dec  2  2021 webapps.dist
+drwxrwxrwx. 1 root root     0 Dec  2  2021 work
+root@26057dc8d993:/usr/local/tomcat# cd webapps
+root@26057dc8d993:/usr/local/tomcat/webapps# ls -l
+total 0
+```
+
+- 删除webapps，并移动 webapps.dist 至 webapps
+```
+root@26057dc8d993:/usr/local/tomcat# rm -r webapps
+root@26057dc8d993:/usr/local/tomcat# mv webapps.dist webapps
+root@26057dc8d993:/usr/local/tomcat# ls -l
+total 124
+-rw-r--r--. 1 root root 18994 Dec  2  2021 BUILDING.txt
+-rw-r--r--. 1 root root  6210 Dec  2  2021 CONTRIBUTING.md
+-rw-r--r--. 1 root root 60269 Dec  2  2021 LICENSE
+-rw-r--r--. 1 root root  2333 Dec  2  2021 NOTICE
+-rw-r--r--. 1 root root  3378 Dec  2  2021 README.md
+-rw-r--r--. 1 root root  6905 Dec  2  2021 RELEASE-NOTES
+-rw-r--r--. 1 root root 16517 Dec  2  2021 RUNNING.txt
+drwxr-xr-x. 1 root root   452 Dec 21  2021 bin
+drwxr-xr-x. 1 root root    16 Nov 26 15:12 conf
+drwxr-xr-x. 1 root root  1114 Dec 21  2021 lib
+drwxrwxrwx. 1 root root   116 Nov 26 15:12 logs
+drwxr-xr-x. 1 root root   210 Dec 21  2021 native-jni-lib
+drwxrwxrwx. 1 root root    32 Dec 21  2021 temp
+drwxr-xr-x. 1 root root    70 Dec  2  2021 webapps
+drwxrwxrwx. 1 root root     0 Dec  2  2021 work
+```
+![](调整后的localhost8080.png)
+
+### 低版本运行 tomcat
+```
+[parallels@fedora host_data]$ sudo docker pull billygoo/tomcat8-jdk8
+[parallels@fedora host_data]$ sudo docker run -d -p 8080:8080 --name mytomcat8 billygoo/tomcat8-jdk8
+```
+
+
