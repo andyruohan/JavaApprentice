@@ -365,13 +365,13 @@ Digest: sha256:8a60daaa55ab0df4607c4d8625b96b97b06fd2e6ca8528275472963c4ae8afa0
 Status: Downloaded newer image for registry:latest
 docker.io/library/registry:latest
 ```
-2) 运行私有库Registry，相当于本地有个私有Docker hub  
+2) 运行私有库 Registry ，相当于本地有个私有 Docker hub  
 ```
 [parallels@fedora /]$ sudo docker run -d -p 5000:5000 -v /ruohan/myregistry/:/tmp/registry --privileged=true registry
 68df2163d1df7f1287198e7fad49df011baca7e1d052924af1f671d598435c49
 ```
 
-3) 案例演示创建一个新镜像，ubuntu安装ifconfig命令  
+3) 案例演示创建一个新镜像，ubuntu 安装 ifconfig 命令  
 - 更新 apt-get
 ```
 root@a4ddd4739e7d:/# apt-get update
@@ -738,7 +738,8 @@ d38255b24e34   registry       "/entrypoint.sh /etc…"   2 days ago       Up 2 d
   > Note：u1 容器停止运行，u2 修改或新建了文本，u1 重启了仍可以共享过程文件
 
 ## Docker 上安装常用软件
-### 最新版运行 tomcat
+### 安装tomcat
+#### 最新版运行 tomcat
 - 拉取并运行 tomcat
 ```
 [parallels@fedora host_data]$ docker pull tomcat
@@ -814,10 +815,109 @@ drwxrwxrwx. 1 root root     0 Dec  2  2021 work
 ```
 ![](调整后的localhost8080.png)
 
-### 低版本运行 tomcat
+#### 低版本运行 tomcat
 ```
 [parallels@fedora host_data]$ sudo docker pull billygoo/tomcat8-jdk8
 [parallels@fedora host_data]$ sudo docker run -d -p 8080:8080 --name mytomcat8 billygoo/tomcat8-jdk8
 ```
 
+### 安装 mysql
+1) 拉取 mysql
+    ```
+    [parallels@fedora host_data]$ sudo docker pull mysql
+    Using default tag: latest
+    latest: Pulling from library/mysql
+    latest: Pulling from library/mysql
+    e39ec8f010eb: Pull complete 
+    e2b7fadc33ec: Pull complete 
+    9d193449aafd: Pull complete 
+    6ea497c74b15: Pull complete 
+    7778acbf55f3: Pull complete 
+    a633e58f9669: Pull complete 
+    edd3047f9b4b: Pull complete 
+    70ae0c334fe1: Pull complete 
+    b139fc79e81c: Pull complete 
+    6956b492354c: Pull complete 
+    Digest: sha256:1773f3c7aa9522f0014d0ad2bbdaf597ea3b1643c64c8ccc2123c64afd8b82b1
+    Status: Downloaded newer image for mysql:latest
+    docker.io/library/mysql:latest
+    ```
+   
+2) 运行 mysql
+    ```
+    [parallels@fedora host_data]$ sudo docker run -p 3306:3306 -e MYSQL_ROOT_PASSWORD=123456 -d mysql
+    8d721219096089462b5cdc74e434748755811e3b6d9d5cb193f487a1483c5b29
+    ```
+   注意：如果3306启动不起来，可以使用以下命令查看 Linux 是否本地已经有 mysql 在运行了
+    ```
+    ps -ef | grep mysql
+    ```
+   
+3) 进入 mysql
+    ```
+    [parallels@fedora host_data]$ sudo docker ps
+    CONTAINER ID   IMAGE          COMMAND                  CREATED              STATUS              PORTS                                                  NAMES
+    8d7212190960   mysql          "docker-entrypoint.s…"   About a minute ago   Up About a minute   0.0.0.0:3306->3306/tcp, :::3306->3306/tcp, 33060/tcp   keen_banach
+    [parallels@fedora host_data]$ sudo docker exec -it 8d7212190960 /bin/bash
+    bash-4.4#
+    ```
+   
+4) 输入账号、密码（密码为步骤2中的"123456"）
+    ```
+    bash-4.4# mysql -uroot -p
+    Enter password:
+    Welcome to the MySQL monitor.  Commands end with ; or \g.
+    Your MySQL connection id is 8
+    Server version: 8.2.0 MySQL Community Server - GPL
+    
+    Copyright (c) 2000, 2023, Oracle and/or its affiliates.
+    
+    Oracle is a registered trademark of Oracle Corporation and/or its
+    affiliates. Other names may be trademarks of their respective
+    owners.
+    
+    Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+    ```
 
+5) 建库建表插入数据
+    ```
+    mysql> create database db01;
+    Query OK, 1 row affected (0.04 sec)
+    
+    mysql> use db01;
+    Database changed
+    mysql> create table t1(id int, name varchar(20));
+    Query OK, 0 rows affected (0.06 sec)
+    
+    mysql> insert into t1 values(1, 'z3');
+    Query OK, 1 row affected (0.04 sec)
+    
+    mysql> select * from t1;
+    +------+------+
+    | id   | name |
+    +------+------+
+    |    1 | z3   |
+    +------+------+
+    1 row in set (0.01 sec)
+    ```
+
+#### 两个典型问题
+##### 数据库字符集
+
+```
+mysql> show variables like 'character%';
++--------------------------+--------------------------------+
+| Variable_name            | Value                          |
++--------------------------+--------------------------------+
+| character_set_client     | latin1                         |
+| character_set_connection | latin1                         |
+| character_set_database   | utf8mb4                        |
+| character_set_filesystem | binary                         |
+| character_set_results    | latin1                         |
+| character_set_server     | utf8mb4                        |
+| character_set_system     | utf8mb3                        |
+| character_sets_dir       | /usr/share/mysql-8.2/charsets/ |
++--------------------------+--------------------------------+
+8 rows in set (0.04 sec)
+
+```
