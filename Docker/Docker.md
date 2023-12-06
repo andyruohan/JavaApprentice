@@ -919,5 +919,55 @@ mysql> show variables like 'character%';
 | character_sets_dir       | /usr/share/mysql-8.2/charsets/ |
 +--------------------------+--------------------------------+
 8 rows in set (0.04 sec)
+```
+<font color = 'red'>**通过挂载容器数据卷**</font>：
+```
+sudo docker run -d -p 3306:3306 --privileged=true \
+  -v /zzyyuse/mysql/log:/var/log/mysql \
+  -v /zzyyuse/mysql/data:/var/lib/mysql \
+  -v /zzyyuse/mysql/conf:/etc/mysql/conf.d \
+  -e MYSQL_ROOT_PASSWORD=123456 \
+  --name mysql mysql   
+```
+在 Linux 主机 /zzyyuse/mysql/conf 目录下的 my.cnf 输入如下内容：
+```
+[client]
+default_character_set = utf8
+[mysqld]
+collation_server = utf8_general_ci
+character_set_server = utf8
+```
+再重启容器后
+```
+[parallels@fedora conf]$ sudo docker restart mysql
+mysql
+```
+可以看到字符集已经改变
+```
+mysql> show variables like 'character%';
++--------------------------+--------------------------------+
+| Variable_name            | Value                          |
++--------------------------+--------------------------------+
+| character_set_client     | utf8mb3                        |
+| character_set_connection | utf8mb3                        |
+| character_set_database   | utf8mb3                        |
+| character_set_filesystem | binary                         |
+| character_set_results    | utf8mb3                        |
+| character_set_server     | utf8mb3                        |
+| character_set_system     | utf8mb3                        |
+| character_sets_dir       | /usr/share/mysql-8.2/charsets/ |
++--------------------------+--------------------------------+
+8 rows in set (0.02 sec)
+```
+>注意：不要相信应用软件显示的字符集，一定要以此处底层的字符集为准
 
+##### 容器删除数据即消失
+【非常重要】<font color = 'red'>**也是通过挂载容器数据卷，生产上必须挂载容器数据卷**</font>。容器删除后重新运行，数据还在。
+```
+sudo docker run -d -p 3306:3306 --privileged=true \
+  -v /zzyyuse/mysql/log:/var/log/mysql \
+  -v /zzyyuse/mysql/data:/var/lib/mysql \
+  -v /zzyyuse/mysql/conf:/etc/mysql/conf.d \
+  -e MYSQL_ROOT_PASSWORD=123456 \
+  --name mysql mysql   
 ```
