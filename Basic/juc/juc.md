@@ -131,8 +131,8 @@ public class SafeDemoByVector {
 }
 ```
 
->Vector JDK 1.0：加锁，并发行急剧下降
-Array JDK 1.2：以牺牲多线程安全性为代价，提升并发性能
+>Vector JDK 1.0：加锁，并发行急剧下降  
+Array JDK 1.2：以牺牲多线程安全性为代价，提升并发性能  
 所以，不建议使用Vector，相当于在开倒车
 
 ####解决方法二：Collections.synchronizedList
