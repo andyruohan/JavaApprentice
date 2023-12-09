@@ -1,3 +1,78 @@
+## 实现多线程的方式
+### 继承 Thread 类
+   通过继承 Thread 类来创建线程。需要重写 run() 方法，在其中定义线程要执行的任务。
+   ```java
+   class MyThread extends Thread {
+       public void run() {
+           // 线程执行的任务
+       }
+   }
+   
+   // 创建并启动线程
+   MyThread thread = new MyThread();
+   thread.start();
+   ```
+
+### 实现 Runnable 接口
+   通过实现 Runnable 接口创建线程。这种方式更灵活，因为 Java 不支持多重继承，但可以实现多个接口。
+   ```java
+   class MyRunnable implements Runnable {
+       public void run() {
+           // 线程执行的任务
+       }
+   }
+   
+   // 创建并启动线程
+   Thread thread = new Thread(new MyRunnable());
+   thread.start();
+   ```
+   其还有两种变体：
+   1) 匿名内部类
+   ```java
+   Thread thread=new Thread(new Runnable(){
+    public void run(){
+            // 线程执行的代码
+        }
+    });
+    thread.start();
+   ```
+   2) Lambda表达式
+   ```java
+   Thread thread = new Thread(() -> {
+       // 线程执行的代码
+   });
+   thread.start();
+   ```
+
+### 使用 Callable 和 FutureTask
+   利用 Callable 接口创建线程，允许线程返回结果。需要借助 FutureTask 类来接收线程执行的结果。
+   ```java
+   import java.util.concurrent.Callable;
+   import java.util.concurrent.FutureTask;
+   
+   class MyCallable implements Callable<String> {
+       public String call() {
+           // 线程执行的任务并返回结果
+           return "Task complete";
+       }
+   }
+   
+   // 创建Callable实例
+   Callable<String> callable = new MyCallable();
+   
+   // 将Callable包装成FutureTask
+   FutureTask<String> futureTask = new FutureTask<>(callable);
+   
+   // 创建并启动线程
+   Thread thread = new Thread(futureTask);
+   thread.start();
+   
+   // 获取结果
+   String result = futureTask.get();
+   System.out.println("Result: " + result);
+   ```
+   以上三种方式都能创建并启动线程，但各自适用于不同的场景。Runnable 接口和 Callable 接口适用于需要传递给多个线程的任务，而继承 Thread 类更适合简单的线程创建。
+
 ##集合类不安全之并发修改异常
 ###ArrayList
 ```java
@@ -793,7 +868,7 @@ public class ThreadPoolDemo {
 3. DiscardOldestPolicy：抛弃队列中等待最久的任务，然后把当前任务加入队列中尝试再次提交。
 4. DiscardPolicy：接丢弃任务，不予任何处理也不抛出异常。如果允许任务丢失，这是最好的拒绝策略。
 
-#####<font color = 'red'>【超级大坑】你在工作中单一的/固定数的/可变你的三种创建线程池的方法，你用哪个多?</font>
+#####<font color = 'red'>【超级大坑】你在工作中单一的/固定数的/可变的三种创建线程池的方法，你用哪个多?</font>
 答案是：一个都不用，我们生产上只能使用自定义的。参考阿里巴巴《阿里巴巴java开发手册》
 >【强制】线程池不允许使用Executors去创建，而是通过ThreadPoolExecutor的方式，这样的处理方式让写的同学更加明确线程池的运行规则，规避资源耗尽的风险。说明：Executors返回的线程池对象的弊端如下：
 1）<font color = 'red'>FixedThreadPool</font>和<font color = 'red'>SingleThreadPool</font>:允许的请求队列长度为Integer.MAX_VALUE，可能会堆积大量的请求，从而导致OOM。
