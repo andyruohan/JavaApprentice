@@ -218,12 +218,12 @@ A里面设置了B
 
 各事务隔离级别解决并发问题的能力：
 
-|  隔离级别   | 脏读  | 不可重复度 | 幻读 |
-|  ----  | ----  | ---- | ---- |
-| READ UNCOMMITTED  | 有 | 有 | 有 |
-| READ COMMITTED  | 无 | 有 | 有 |
-| REPEATABLE READ | 无 | 无 | 有 |
-| SERIALIZABLE | 无 | 无 | 无 |
+|  隔离级别   | 脏读 | 不可重复读 | 幻读 |
+|  ----  | ----  |-----| --- |
+| READ UNCOMMITTED  | √ | √   | √ |
+| READ COMMITTED  | × | √   | √ |
+| REPEATABLE READ | × | ×   | √ |
+| SERIALIZABLE | × | ×   | × |
 
 ### Spring数据库隔离级别
 各种数据库产品对事务隔离级别的支持程度：
