@@ -29,6 +29,61 @@ Java 虚拟机采用延迟加载和按需初始化的策略，只有在需要使
 
 虚拟机的类生命周期即在`虚拟机的类加载机制`的基础上，新增`使用`和`卸载`两步。
 
+### 类加载器拓展
+#### 何为类加载器
+官网关于类加载器的定义，参考链接：https://docs.oracle.com/javase/8/docs/api/java/lang/ClassLoader.html）
+> A class loader is an object that is responsible for loading classes. The class ClassLoader is an abstract class. Given the binary name of a class, a class loader should attempt to locate or generate data that constitutes a definition for the class. A typical strategy is to transform the name into a file name and then read a "class file" of that name from a file system.
+>
+> Every Class object contains a reference to the ClassLoader that defined it.
+>
+> Class objects for array classes are not created by class loaders, but are created automatically as required by the Java runtime. The class loader for an array class, as returned by Class.getClassLoader() is the same as the class loader for its element type; if the element type is a primitive type, then the array class has no class loader.
+
+从上面的介绍可以看出:
+- 类加载器是一个负责加载类的对象，用于实现类加载过程中的加载这一步。
+- 每个 Java 类都有一个引用指向加载它的 `ClassLoader`。
+- 数组类不是通过 `ClassLoader` 创建的（数组类没有对应的二进制字节流），是由 JVM 直接生成的。
+
+##### JVM 内置的三个 ClassLoader
+1) **BootstrapClassLoader(启动类加载器)**：最顶层的加载类，由 C++实现，通常表示为 null，并且没有父级，主要用来加载 JDK 内部的核心类库（ %JAVA_HOME%/lib目录下的 rt.jar、resources.jar、charsets.jar等 jar 包和类）以及被 -Xbootclasspath参数指定的路径下的所有类。
+2) **ExtensionClassLoader(扩展类加载器)**：主要负责加载 %JRE_HOME%/lib/ext 目录下的 jar 包和类以及被 java.ext.dirs 系统变量所指定的路径下的所有类。
+3) **AppClassLoader(应用程序类加载器)**：面向我们用户的加载器，负责加载当前应用 classpath 下的所有 jar 包和类。  
+
+每个 ClassLoader 可以通过 getParent() 获取其父 ClassLoader ，如果获取到 ClassLoader 为 null 的话，那么该类是通过 BootstrapClassLoader 加载的。
+
+##### 为什么获取到 ClassLoader 为 null 就是 BootstrapClassLoader 加载的呢？
+>这是因为 BootstrapClassLoader 由 C++ 实现，由于这个 C++ 实现的类加载器在 Java 中是没有与之对应的类的，所以拿到的结果是 null。
+
+#### 类加载器加载规则
+JVM 启动的时候，并不会一次性加载所有的类，而是根据需要去动态加载。也就是说，大部分类在具体用到的时候才会去加载，这样对内存更加友好。
+
+- 对于已经加载的类会被放在 ClassLoader 中。在类加载的时候，系统会首先判断当前类是否被加载过，已经被加载的类会直接返回。
+- 对于未被加载的类会根据`双亲委派模型`（参照下文介绍）去加载，其加载示意图如下： 
+
+  ![](类加载器加载示意图.png)
+
+#### 双亲委派模型
+##### 当我们想要加载一个类的时候，具体是哪个类加载器加载呢？
+通过 Parent Delegation，国内译为双亲委派（实际上应该译为`父类委派`更贴切）。官网描述为：
+> The ClassLoader class uses a delegation model to search for classes and resources. Each instance of ClassLoader has an associated parent class loader. When requested to find a class or resource, a ClassLoader instance will delegate the search for the class or resource to its parent class loader before attempting to find the class or resource itself. The virtual machine's built-in class loader, called the "bootstrap class loader", does not itself have a parent but may serve as the parent of a ClassLoader instance.
+
+从上面的介绍可以看出：
+- ClassLoader 类使用委托模型来搜索类和资源。
+- 双亲委派模型要求除了顶层的启动类加载器外，其余的类加载器都应有自己的父类加载器。
+- ClassLoader 实例会在试图亲自查找类或资源之前，将搜索类或资源的任务委托给其父类加载器。
+
+##### <font color = 'red'>为什么要使用双亲委派模型呢？</font>
+
+如果没有使用双亲委派模型，而是每个类加载器加载自己的话就会出现一些问题，比如我们编写一个称为 java.lang.Object 类的话，那么程序运行的时候，系统就会出现两个不同的 Object 类。双亲委派模型可以保证加载的是 JRE 里的那个 Object 类，而不是你写的 Object 类。
+>这是因为 AppClassLoader 在加载你的 Object 类时，会委托给 ExtClassLoader 去加载，而 ExtClassLoader 又会委托给 BootstrapClassLoader，BootstrapClassLoader 发现自己已经加载过了 Object 类，会直接返回，不会去加载你写的 Object 类。
+
+##### 如何不打破/打破双亲委派模型？
+
+自定义加载器的话，需要继承 ClassLoader 。如果我们不想打破双亲委派模型，就重写 ClassLoader 类中的 findClass() 方法即可，无法被父类加载器加载的类最终会通过这个方法被加载。但是，如果想打破双亲委派模型则需要重写 loadClass() 方法。
+
+##### 为什么是重写 loadClass() 方法打破双亲委派模型呢？
+双亲委派模型的执行流程已经解释了：类加载器在进行类加载的时候，它首先不会自己去尝试加载这个类，而是把这个请求委派给父类加载器去完成（调用父加载器 loadClass()方法来加载类）。
+
+
 ###GC是什么（分代收集算法）
 次数上频繁收集young区 Minor GC
 次数上较少手机old区 Full GC
