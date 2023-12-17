@@ -137,6 +137,116 @@ Java 的泛型是通过类型擦除来实现的，在编译时会进行类型擦
 3) 删除元素限制： 不是所有的集合都支持 remove() 操作，如果迭代器不支持 remove()，调用此方法会抛出 UnsupportedOperationException 异常。  
 总体来说，迭代器是一种方便而强大的工具，但需要注意在使用过程中遵循集合的规则，避免并发修改和不支持的操作，以保证程序的稳定性和正确性。
 
+## 反射
+Class类在Java中代表着类的定义，它是Java反射的基础。Java反射是指在运行时动态地获取类的信息、调用类的方法、操作字段等能力。
+
+`Class`类在Java中代表着类的定义，它是Java反射的基础。Java反射是指在运行时动态地获取类的信息、调用类的方法、操作字段等能力。
+
+### Class类
+
+1. **表示类的定义**：`Class`类是Java中用来表示类和接口定义的类。每个类在运行时都有一个对应的`Class`对象，可以用来获取类的信息。
+
+2. **获取Class对象**：可以通过类的全限定名（包括包名）使用`Class.forName("com.example.ClassName")`方法或者直接通过对象的`.getClass()`方法获取对应的`Class`对象。
+
+3. **提供类的信息**：`Class`对象提供了获取类名、父类、实现的接口、构造方法、字段、方法等信息的方法。
+
+### Java反射
+
+1. **动态获取信息**：通过`Class`对象可以动态获取类的信息，比如类名、方法名、字段名等。
+
+2. **动态创建对象**：可以使用反射机制在运行时动态创建类的对象，即使在编译时不知道类名，也可以在运行时实例化对象。
+
+3. **调用方法**：可以通过反射调用类的方法，包括公有方法、私有方法，甚至是构造方法。
+
+4. **操作字段**：可以通过反射动态获取和修改类的字段值。
+
+#### 示例代码
+```java
+public class MyClass {
+    private String message = "Hello, Reflective World!";
+
+    public void displayMessage() {
+        System.out.println(message);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        Class<?> myClass = Class.forName("MyClass");
+
+        // 创建对象
+        Object obj = myClass.getDeclaredConstructor().newInstance();
+
+        // 获取字段
+        Field field = myClass.getDeclaredField("message");
+        field.setAccessible(true);
+        System.out.println("Field value: " + field.get(obj));
+
+        // 调用方法
+        Method method = myClass.getDeclaredMethod("displayMessage");
+        method.invoke(obj);
+    }
+}
+```
+在这个示例中，使用反射获取了MyClass的Class对象，动态地创建了类的对象，获取了字段的值并修改了可访问性，最后通过反射调用了类的方法。反射提供了一种动态地操作类和对象的方式，可以应用于许多场景，但也需要谨慎使用以避免安全问题和性能损耗。
+
+### Annotation
+注解和反射在Java中可以结合使用，以实现更灵活和动态的编程方式。通过注解，我们可以在代码中标记和描述元素，而通过反射，可以在运行时获取这些注解并据此进行一些操作。
+
+#### 如何配合使用
+
+1. **获取注解信息**：使用反射API可以获取类、方法、字段等元素上的注解信息。比如可以通过 `getAnnotations()`、`getAnnotation()` 方法获取注解对象。
+
+2. **根据注解信息做操作**：一旦获取到注解信息，可以根据注解的内容做相应的操作。例如，根据自定义的注解信息进行逻辑判断、生成代码、进行配置等。
+
+3. **动态创建对象**：根据注解信息，反射可以动态地创建对象。例如，在某些框架中，根据注解信息动态实例化特定类型的对象，比如基于配置的Bean实例化。
+
+4. **动态调用方法**：可以根据注解信息选择性地调用类的特定方法。例如，在测试框架中根据注解信息选择性地执行特定的测试方法。
+
+#### 示例代码
+
+假设有一个自定义注解 `@MyAnnotation`：
+
+```java
+import java.lang.annotation.*;
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE, ElementType.METHOD})
+public @interface MyAnnotation {
+    String value();
+}
+```
+
+使用这个注解并配合反射：
+```java
+@MyAnnotation("This is a sample annotation")
+public class MyClass {
+    @MyAnnotation("This is a method annotation")
+    public void myMethod() {
+        // Code here
+    }
+}
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        Class<?> myClass = Class.forName("MyClass");
+
+        // 获取类级别的注解
+        MyAnnotation classAnnotation = myClass.getAnnotation(MyAnnotation.class);
+        if (classAnnotation != null) {
+            System.out.println("Class annotation: " + classAnnotation.value());
+        }
+
+        // 获取方法级别的注解
+        Method method = myClass.getMethod("myMethod");
+        MyAnnotation methodAnnotation = method.getAnnotation(MyAnnotation.class);
+        if (methodAnnotation != null) {
+            System.out.println("Method annotation: " + methodAnnotation.value());
+        }
+    }
+}
+```
+在这个示例中，MyAnnotation注解被应用在类和方法上，然后使用反射获取了这些注解，并根据注解信息进行了打印。这种结合使用方式可以用于许多场景，比如自定义框架、配置管理、测试框架等。
 
 ## 一些比较好的观点
 当代三高互联网架构：高并发、高性能、高可用。--多、快、稳
