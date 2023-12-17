@@ -875,22 +875,29 @@ public class ThreadPoolDemo {
 
 即源码中的new LinkedBlockingQueue<Runnable>( )：
 ```java
-    public static ExecutorService newFixedThreadPool(int nThreads) {
-        return new ThreadPoolExecutor(nThreads, nThreads,
+public static ExecutorService newFixedThreadPool(int nThreads) {
+    return new ThreadPoolExecutor(nThreads, nThreads,
                                       0L, TimeUnit.MILLISECONDS,
                                       new LinkedBlockingQueue<Runnable>());
-    }
+}
+```
+
+其中 new LinkedBlockingQueue<Runnable>() 无参构造函数的默认 capacity 为 Integer.MAX_VALUE。
+```java
+public LinkedBlockingQueue(){
+    this(Integer.MAX_VALUE);
+}
 ```
 
 >2）<font color = 'red'>CachedThreadPool</font>和<font color = 'red'>ScheduledThreadPool</font>:允许的创建线程数量为Integer.MAX_VALUE，可能会创建大量的线程，从而导致OOM。
 
 即源码中的Integer.MAX_VALUE：
 ```java
-    public static ExecutorService newCachedThreadPool() {
-        return new ThreadPoolExecutor(0, Integer.MAX_VALUE,
-                                      60L, TimeUnit.SECONDS,
-                                      new SynchronousQueue<Runnable>());
-    }
+public static ExecutorService newCachedThreadPool() {
+    return new ThreadPoolExecutor(0, Integer.MAX_VALUE,
+                                  60L, TimeUnit.SECONDS,
+                                  new SynchronousQueue<Runnable>());
+}
 ```
 
 #####如何合理配置线程池？
