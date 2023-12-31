@@ -1002,3 +1002,23 @@ sudo docker run -p 6379:6379 --name myr3 --privileged=true \
 - 进入 redis-cli，运行 select 12，不会报错
 - 更改 database 数，从默认值改为10
 - 运行 redis-cli，运行 select 12，会报错
+
+#### 安装中出现的问题
+- redis.conf 配置文件使用 vim 打开，报只读保存不了
+    ```添加 sudo
+    sudo vim + 文件名
+    ```
+
+- 宿主机用的 redis.conf 是 7.0.11 版本，docker 用的 6.0.8  
+  >最后使用了 docker logs + 容器名发现，因有些配置不支持导致容器启动不起来，注释掉才解决 
+
+- 数据卷未挂载成功，重启数据就丢了  
+  - 添加文件夹权限
+    ```
+    chmod +x 宿主机文件夹名
+    chmod u+w 宿主机文件夹名
+    ```
+  - 添加 redis.conf 命令
+    ```
+    save 900 1
+    ```
