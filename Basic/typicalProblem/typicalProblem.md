@@ -29,6 +29,18 @@ RandomAccessFile 类可以帮助我们合并文件分片，示例代码如下：
 #### 格式转换
 参考本人GitHub链接：https://github.com/andyruohan/RTF2PDF.git
 
-#### 科学计数
+#### 科学计数问题
 使用BigDecimal进行金额转String时，注意toString会产生科学计数，此时应使用toPlainString
 ![](产生科学记数法的问题点.PNG)
+
+#### 或有金额计算问题
+前台使用浮点数计算
+
+#### MyBatis-plus 不会查出数据库为 [Null] 的数据？
+[Null] 代表不确定的值（='a' 和 !='a' 都会不成立），数据库函数对 [Null] 和对 "" 的处理不一样，很多对 [Null] 不起作用。
+
+#### 多线程使用样例
+1. 格式转换多个word的启动
+2. 一事通任务的派发
+3. 异步事件表的运行
+
