@@ -971,3 +971,34 @@ sudo docker run -d -p 3306:3306 --privileged=true \
   -e MYSQL_ROOT_PASSWORD=123456 \
   --name mysql mysql   
 ```
+
+### 安装redis
+1) 在宿主机新建目录
+```
+mkdir -p /app/redis
+```
+
+2) 在宿主机拷贝 redis.conf 文件
+> 最好拷贝与 docker 相同版本的 redis.conf，实际测试时：宿主机用的 redis7.0.11 版本，docker 用的 redis6.0.8，因有些配置不支持导致容器启动不起来，最后注释掉才解决  
+> 
+> 苹果电脑使用 parallel desktop，可以直接在 fedora 的 home 文件夹下访问苹果电脑的文件
+![](fedora访问源系统文件.png)
+
+3) 修改 redis.conf 文件
+- 开启 redis 验证（可选），即 requirepass + 密码
+- 允许 redis 外地连接，需注释掉 bind 127.0.0.1，即 #bind 127.0.0.1
+- 不启动 daemon，该配置会与 docker run 中的 -d 参数冲突，即 daemonize no
+- 开启 redis 数据持久化（可选），即 appendonly yes
+
+4) 运行 redis 6.0.8
+```
+sudo docker run -p 6379:6379 --name myr3 --privileged=true \
+ -v /app/redis/redis.conf:/etc/redis/redis.conf \
+ -v /app/redis/data:/data \
+ -d redis:6.0.8 redis-server /etc/redis/redis.conf
+```
+
+5) 检查是否运行了挂载的配置
+- 进入 redis-cli，运行 select 12，不会报错
+- 更改 database 数，从默认值改为10
+- 运行 redis-cli，运行 select 12，会报错
