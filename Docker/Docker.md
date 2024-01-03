@@ -1025,6 +1025,45 @@ sudo docker run -p 6379:6379 --name myr3 --privileged=true \
     ```
 
 # Docker 高级篇
+### mysql 主从复制
+```
+docker run -p 3307:3306 --name mysql-master \
+-v /mydata/mysql-master/log:/var/log/mysql \
+-v /mydata/mysql-master/data:/var/lib/mysql \
+-v /mydata/mysql-master/conf:/etc/mysql/conf.d \
+-e MYSQL_ROOT_PASSWORD=root \
+-d mysql
+```
+
+```
+[mysqld]
+## 设置server_id，同一局域网中需要唯一
+server_id=101
+##指定不需要同步的数据库名称
+binlog-ignore-db=mysql
+## 开启二进制日志功能
+log-bin=mall-mysql-bin
+##设置二进制日志使用内存大小（事务）
+binlog_cache_size=1M
+#设置使用的二进制日志格式（mixed,statement,row）
+binlog_format=mixed
+##二进制日志过期清理时间。默认值为0，表示不自动清理。
+expire_logs_days=7
+## 跳过主从复制中遇到的所有错误或指定类型的错误，避免slave端复制中断。
+##如：1062错误是指一些主键重复，1032错误是因为主从数据库数据不一致
+slave_skip_errors=1062
+```
+
+暂时遇到两个问题：
+1. Docker Hub 拉取的 mysql:5.7 镜像不支持您的系统架构（在这种情况下是 ARM64）
+2. 高版本 8.2.0 报很多配置过时，日志显示 MySQL 报告了一些弃用的配置项，例如 --skip-host-cache、binlog_format 和 slave_skip_errors。这些配置项在 MySQL 的新版本中不再被支持或已被替换。
+
+在 MySQL 8.2.0 中，如果 expire_logs_days 变量已弃用或更改，请根据官方文档找到正确的替代配置方法。例如，您可能需要使用 binlog_expire_logs_seconds 来设置二进制日志的过期时间。
+数据目录不可用：
+
+确保 /var/lib/mysql/ 目录存在，并且 MySQL 用户有权访问和写入该目录。如果该目录中有以前版本的 MySQL 数据文件，这可能会导致问题。在启动新容器之前，请尝试清空这个目录（确保先备份任何重要数据）。
+如果 /var/lib/mysql/ 是一个挂载的卷，请确保挂载正确，并且 Docker 有权访问该卷。
+
 ### 分布式存储
 典型面试题：1～2亿条数据需要缓存，请问如何设计这个存储案例
 #### 哈希取余算法
