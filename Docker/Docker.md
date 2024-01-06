@@ -1035,7 +1035,13 @@ docker run -p 3307:3306 --name mysql-master \
 -d mysql
 ```
 
-```
+安装时遇到的遇到两个问题：
+1. Docker Hub 拉取的 mysql:5.7 镜像不支持您的系统架构（在这种情况下是 ARM64）
+2. MySQL 8.2.0 使用粘贴的 MySQL 5.7 配置，Docker 日志显示 MySQL 报告了一些弃用的配置项，例如 --skip-host-cache、binlog_format 和 slave_skip_errors。这些配置项在 MySQL 的新版本中不再被支持或已被替换。
+
+#### MySQL 5.7 配置
+本配置<font color = 'red'>**在 Mysql 8.2.0 中运行不起**</font>
+```lombok.config
 [mysqld]
 ## 设置server_id，同一局域网中需要唯一
 server_id=101
@@ -1054,15 +1060,33 @@ expire_logs_days=7
 slave_skip_errors=1062
 ```
 
-暂时遇到两个问题：
-1. Docker Hub 拉取的 mysql:5.7 镜像不支持您的系统架构（在这种情况下是 ARM64）
-2. 高版本 8.2.0 报很多配置过时，日志显示 MySQL 报告了一些弃用的配置项，例如 --skip-host-cache、binlog_format 和 slave_skip_errors。这些配置项在 MySQL 的新版本中不再被支持或已被替换。
+#### MySQL 8.2.0 配置
+```lombok.config
+[mysqld]
+## 设置server_id，同一局域网中需要唯一
+server_id=101
+## 指定不需要同步的数据库名称
+binlog-ignore-db=mysql
+## 开启二进制日志功能
+log-bin=mall-mysql-bin
+## 设置二进制日志使用内存大小（事务）
+binlog_cache_size=1M
+# 设置使用的二进制日志格式（mixed,statement,row）
+binlog_format=mixed
+## 二进制日志过期清理时间（以秒为单位）
+binlog_expire_logs_seconds=604800
+## 跳过主从复制中遇到的特定错误，避免副本端复制中断
+replica_skip_errors=1062
+```
 
-在 MySQL 8.2.0 中，如果 expire_logs_days 变量已弃用或更改，请根据官方文档找到正确的替代配置方法。例如，您可能需要使用 binlog_expire_logs_seconds 来设置二进制日志的过期时间。
-数据目录不可用：
+解决配置问题后，使用了如下命令删除原容器，仍出现 Docker 无法正常运行。
+```
+sudo docker rm -f mysql-master
+```
 
-确保 /var/lib/mysql/ 目录存在，并且 MySQL 用户有权访问和写入该目录。如果该目录中有以前版本的 MySQL 数据文件，这可能会导致问题。在启动新容器之前，请尝试清空这个目录（确保先备份任何重要数据）。
-如果 /var/lib/mysql/ 是一个挂载的卷，请确保挂载正确，并且 Docker 有权访问该卷。
+使用 ChatGPT 推荐命令完全清理原容器，最后 Docker 可正常运行 MySQL 了。
+- 停止并删除容器：sudo docker stop mysql-master 和 sudo docker rm mysql-master。
+- 清理或重命名旧数据目录：例如，sudo mv /mydata/mysql-master/data /mydata/mysql-master/data_backup。
 
 ### 分布式存储
 典型面试题：1～2亿条数据需要缓存，请问如何设计这个存储案例
