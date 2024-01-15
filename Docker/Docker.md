@@ -1040,41 +1040,55 @@ docker run -p 3307:3306 --name mysql-master \
 2. MySQL 8.2.0 使用粘贴的 MySQL 5.7 配置，Docker 日志显示 MySQL 报告了一些弃用的配置项，例如 --skip-host-cache、binlog_format 和 slave_skip_errors。这些配置项在 MySQL 的新版本中不再被支持或已被替换。
 
 #### MySQL 5.7 配置
-本配置<font color = 'red'>**在 Mysql 8.2.0 中运行不起**</font>
 ```lombok.config
 [mysqld]
 ## 设置server_id，同一局域网中需要唯一
 server_id=101
+
 ##指定不需要同步的数据库名称
 binlog-ignore-db=mysql
+
 ## 开启二进制日志功能
 log-bin=mall-mysql-bin
+
 ##设置二进制日志使用内存大小（事务）
 binlog_cache_size=1M
+
 #设置使用的二进制日志格式（mixed,statement,row）
 binlog_format=mixed
+
 ##二进制日志过期清理时间。默认值为0，表示不自动清理。
 expire_logs_days=7
+
 ## 跳过主从复制中遇到的所有错误或指定类型的错误，避免slave端复制中断。
 ##如：1062错误是指一些主键重复，1032错误是因为主从数据库数据不一致
 slave_skip_errors=1062
 ```
+本配置<font color = 'red'>**在 MySQL 8.2.0 中运行不起**</font>，关于 MySQL 8.2.0 的特定警告和错误:
+- The syntax 'slave_skip_errors' is deprecated：使用 replica_skip_errors 替代。
+- unknown variable 'expire_logs_days=7'：在 MySQL 8.0 及以后版本中，这个选项已被 binlog_expire_logs_seconds 替代。您需要将 expire_logs_days 更改为 binlog_expire_logs_seconds 并将天数转换为秒
 
 #### MySQL 8.2.0 配置
 ```lombok.config
 [mysqld]
 ## 设置server_id，同一局域网中需要唯一
 server_id=101
+
 ## 指定不需要同步的数据库名称
 binlog-ignore-db=mysql
+
 ## 开启二进制日志功能
 log-bin=mall-mysql-bin
+
 ## 设置二进制日志使用内存大小（事务）
 binlog_cache_size=1M
+
 # 设置使用的二进制日志格式（mixed,statement,row）
 binlog_format=mixed
+
 ## 二进制日志过期清理时间（以秒为单位）
 binlog_expire_logs_seconds=604800
+
 ## 跳过主从复制中遇到的特定错误，避免副本端复制中断
 replica_skip_errors=1062
 ```
