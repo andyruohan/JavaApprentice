@@ -1102,6 +1102,85 @@ sudo docker rm -f mysql-master
 - 停止并删除容器：sudo docker stop mysql-master 和 sudo docker rm mysql-master。
 - 清理或重命名旧数据目录：例如，sudo mv /mydata/mysql-master/data /mydata/mysql-master/data_backup。
 
+CREATE USER 'slave'@'%' IDENTIFIED BY '123456';
+GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'slave'@'%';
+
+docker run -p 3308:3306 --name mysql-slave \
+-v /mydata/mysql-slave/log:/var/log/mysql \
+-v /mydata/mysql-slave/data:/var/lib/mysql \
+-v /mydata/mysql-slave/conf:/etc/mysql/conf.d \
+-e MYSQL_ROOT_PASSWORD=root \
+-d mysql
+
+```
+[mysqld]
+# 设置server_id，确保在复制集群中唯一
+server_id=102
+
+# 开启二进制日志功能，为设置Slave作为其他数据库实例的Master时使用
+log-bin=mall-mysql-slave1-bin
+
+# 指定不需要同步的数据库名称
+binlog-ignore-db=mysql
+
+# 设置二进制日志使用内存大小
+binlog_cache_size=1M
+
+# 设置二进制日志格式
+binlog_format=mixed
+
+# 二进制日志文件的自动清理时间（以秒为单位）
+# 例如，7天，转换为秒：7 * 24 * 60 * 60 = 604800秒
+binlog_expire_logs_seconds=604800
+
+# 用replica_skip_errors替代slave_skip_errors以避免弃用的警告
+# 注意：跳过错误可能会导致数据不一致
+# replica_skip_errors=1062
+
+# relay_log配置中继日志
+relay_log=mall-mysql-relay-bin
+
+# 使用log_replica_updates替代log_slave_updates，避免弃用警告
+log_replica_updates=1
+
+# 将slave设置为只读
+read_only=1
+```
+
+```
+change master to master_host='10.211.55.5', master_user='slave', master_password='123456', master_port=3307, master log file='mall-mysql-bin.000003', master_log_pos=713, master_connect_retry=30;
+```
+
+CHANGE MASTER TO
+MASTER_HOST='10.211.55.5',
+MASTER_USER='slave',
+MASTER_PASSWORD='123456',
+MASTER_PORT=3307,
+MASTER_LOG_FILE='mall-mysql-bin.000003',
+MASTER_LOG_POS=1402,
+MASTER_CONNECT_RETRY=30;
+
+存在问题：
+```
+mysql> show slave status \G
+*************************** 1. row ***************************
+Slave_IO_State:
+Master_Host: 10.211.55.5
+Master_User: slave
+Master_Port: 3307
+Connect_Retry: 30
+Master_Log_File: mall-mysql-bin.000003
+Read_Master_Log_Pos: 1402
+Relay_Log_File: mall-mysql-relay-bin.000001
+Relay_Log_Pos: 4
+Relay_Master_Log_File: mall-mysql-bin.000001
+Slave_IO_Running: No
+Slave_SQL_Running: Yes
+```
+从机的 Slave_IO_Running 配置一直为 No
+
+
+
 ### 分布式存储
 典型面试题：1～2亿条数据需要缓存，请问如何设计这个存储案例
 #### 哈希取余算法
