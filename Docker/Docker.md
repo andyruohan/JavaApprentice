@@ -1179,6 +1179,13 @@ Slave_SQL_Running: Yes
 ```
 从机的 Slave_IO_Running 配置一直为 No
 
+执行以下语句关闭防火墙后，telnet 可以成功了
+```
+[parallels@fedora ~]$ systemctl stop firewalld
+[parallels@fedora ~]$ telnet 10.211.55.5 3307
+Trying 10.211.55.5...
+Connected to 10.211.55.5.
+```
 
 
 ### 分布式存储
