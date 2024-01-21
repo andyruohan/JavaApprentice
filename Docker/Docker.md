@@ -1343,7 +1343,24 @@ Connected to 10.211.55.5.
 ```
 
 但从机还是访问不到主机，注意是网络不通、不是 mysql 主从配置不通。
+```
+bash-4.4# mysql -h 10.211.55.5 -P 3307 -u slave -p
+Enter password: 
+ERROR 2003 (HY000): Can't connect to MySQL server on '10.211.55.5:3307' (113)
+```
 
+```
+bash-4.4# mysql -h 172.17.0.3 -P 3307 -u root -p
+Enter password: 
+ERROR 2003 (HY000): Can't connect to MySQL server on '172.17.0.3:3307' (110)
+```
+
+```
+bash-4.4# mysql -h mysql-master -P 3307 -u root -p
+Enter password: 
+ERROR 2005 (HY000): Unknown MySQL server host 'mysql-master' (-2)
+```
+尝试了在从机以上几种方式（以及更改端口为 3306、用户更改为 slave 均进行了不同组合尝试），直接访问 mysql 主机都不通。
 
 
 ### 分布式存储
