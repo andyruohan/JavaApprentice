@@ -1026,6 +1026,7 @@ sudo docker run -p 6379:6379 --name myr3 --privileged=true \
 
 # Docker 高级篇
 ### mysql 主从复制
+#### 主机配置
 ```
 docker run -p 3307:3306 --name mysql-master \
 -v /mydata/mysql-master/log:/var/log/mysql \
@@ -1039,7 +1040,7 @@ docker run -p 3307:3306 --name mysql-master \
 1. Docker Hub 拉取的 mysql:5.7 镜像不支持您的系统架构（在这种情况下是 ARM64）
 2. MySQL 8.2.0 使用粘贴的 MySQL 5.7 配置，Docker 日志显示 MySQL 报告了一些弃用的配置项，例如 --skip-host-cache、binlog_format 和 slave_skip_errors。这些配置项在 MySQL 的新版本中不再被支持或已被替换。
 
-#### MySQL 5.7 配置
+##### MySQL 5.7 配置
 ```lombok.config
 [mysqld]
 ## 设置server_id，同一局域网中需要唯一
@@ -1068,7 +1069,7 @@ slave_skip_errors=1062
 - The syntax 'slave_skip_errors' is deprecated：使用 replica_skip_errors 替代。
 - unknown variable 'expire_logs_days=7'：在 MySQL 8.0 及以后版本中，这个选项已被 binlog_expire_logs_seconds 替代。您需要将 expire_logs_days 更改为 binlog_expire_logs_seconds 并将天数转换为秒
 
-#### MySQL 8.2.0 配置
+##### MySQL 8.2.0 配置
 ```lombok.config
 [mysqld]
 ## 设置server_id，同一局域网中需要唯一
@@ -1102,16 +1103,18 @@ sudo docker rm -f mysql-master
 - 停止并删除容器：sudo docker stop mysql-master 和 sudo docker rm mysql-master。
 - 清理或重命名旧数据目录：例如，sudo mv /mydata/mysql-master/data /mydata/mysql-master/data_backup。
 
-CREATE USER 'slave'@'%' IDENTIFIED BY '123456';
-GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'slave'@'%';
-
+#### 从机配置
+1) 配置从机映射关系
+```
 docker run -p 3308:3306 --name mysql-slave \
 -v /mydata/mysql-slave/log:/var/log/mysql \
 -v /mydata/mysql-slave/data:/var/lib/mysql \
 -v /mydata/mysql-slave/conf:/etc/mysql/conf.d \
 -e MYSQL_ROOT_PASSWORD=root \
 -d mysql
+```
 
+2) 添加从机mysql自定义配置
 ```
 [mysqld]
 # 设置server_id，确保在复制集群中唯一
@@ -1147,18 +1150,102 @@ log_replica_updates=1
 read_only=1
 ```
 
+3) 获取主机节点访问信息
+- 主机添加从机访问权限
 ```
-change master to master_host='10.211.55.5', master_user='slave', master_password='123456', master_port=3307, master log file='mall-mysql-bin.000003', master_log_pos=713, master_connect_retry=30;
+CREATE USER 'slave'@'%' IDENTIFIED BY '123456';
+GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'slave'@'%';
 ```
 
-CHANGE MASTER TO
-MASTER_HOST='10.211.55.5',
-MASTER_USER='slave',
-MASTER_PASSWORD='123456',
-MASTER_PORT=3307,
-MASTER_LOG_FILE='mall-mysql-bin.000003',
-MASTER_LOG_POS=1402,
-MASTER_CONNECT_RETRY=30;
+- 查看主机主节点状态
+```
+mysql> show master status;
++-----------------------+----------+--------------+------------------+-------------------+
+| File                  | Position | Binlog_Do_DB | Binlog_Ignore_DB | Executed_Gtid_Set |
++-----------------------+----------+--------------+------------------+-------------------+
+| mall-mysql-bin.000003 |     1402 |              | mysql            |                   |
++-----------------------+----------+--------------+------------------+-------------------+
+1 row in set, 1 warning (0.01 sec)
+
+```
+
+- 查看宿主机 ip，即 10.211.55.5
+```
+[parallels@fedora conf]$ ifconfig
+docker0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        ether 02:42:7e:86:2d:ae  txqueuelen 0  (Ethernet)
+        RX packets 415  bytes 11620 (11.3 KiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 152192  bytes 14763322 (14.0 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+enp0s5: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.211.55.5  netmask 255.255.255.0  broadcast 10.211.55.255
+        inet6 fe80::a693:c9f8:ce48:357c  prefixlen 64  scopeid 0x20<link>
+        inet6 fdb2:2c26:f4e4:0:81d:a17c:1c77:9aed  prefixlen 64  scopeid 0x0<global>
+        ether 00:1c:42:5e:6d:01  txqueuelen 1000  (Ethernet)
+        RX packets 850635  bytes 855096179 (815.4 MiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 562802  bytes 47109741 (44.9 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 174308  bytes 12807288 (12.2 MiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 174308  bytes 12807288 (12.2 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+veth448a4d4: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::5414:1eff:fe1e:3f1  prefixlen 64  scopeid 0x20<link>
+        ether 56:14:1e:1e:03:f1  txqueuelen 0  (Ethernet)
+        RX packets 34  bytes 1428 (1.3 KiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 47103  bytes 5027519 (4.7 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+veth4ae283a: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::9426:b1ff:feb8:11ce  prefixlen 64  scopeid 0x20<link>
+        ether 96:26:b1:b8:11:ce  txqueuelen 0  (Ethernet)
+        RX packets 404  bytes 20360 (19.8 KiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 22717  bytes 2434355 (2.3 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+```
+
+4) 从机添加主机节点访问权限
+- 进入从机
+```
+[parallels@fedora conf]$ sudo docker exec -it mysql-slave /bin/bash
+bash-4.4# mysql -u root -p
+Enter password: 
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 35
+Server version: 8.2.0 MySQL Community Server - GPL
+
+Copyright (c) 2000, 2023, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+```
+
+- 在从机中配置主节点访问
+```
+mysql> change master to master_host='10.211.55.5', master_user='slave', master_password='123456', master_port=3307, master_log_file='mall-mysql-bin.000003', master_log_pos=1402, master_connect_retry=30;
+Query OK, 0 rows affected, 10 warnings (0.10 sec)
+```
+
+5) 启动从机从节点访问
+```
+mysql> start slave;
+Query OK, 0 rows affected, 1 warning (0.07 sec)
+```
 
 存在问题：
 ```
@@ -1179,13 +1266,84 @@ Slave_SQL_Running: Yes
 ```
 从机的 Slave_IO_Running 配置一直为 No
 
-执行以下语句关闭防火墙后，telnet 可以成功了
+执行以下语句关闭防火墙后，telnet 可以成功了，但从机仍无法访问的主机
 ```
 [parallels@fedora ~]$ systemctl stop firewalld
 [parallels@fedora ~]$ telnet 10.211.55.5 3307
 Trying 10.211.55.5...
 Connected to 10.211.55.5.
 ```
+
+期间还尝试了获取主机、从机的子网 ip：
+```
+[parallels@fedora conf]$ sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' mysql-master
+172.17.0.3
+```
+
+```
+[parallels@fedora conf]$ sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' mysql-slave 
+172.17.0.2
+```
+
+以及检查了 docker 的桥接通信
+```
+[parallels@fedora conf]$ sudo docker network inspect bridge
+[
+    {
+        "Name": "bridge",
+        "Id": "c0ee94ff8bfdb469adae150aebe2b2833e65cddc31ee1c6355bff8d84a4d3b1a",
+        "Created": "2023-12-06T22:19:25.184500703+08:00",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": null,
+            "Config": [
+                {
+                    "Subnet": "172.17.0.0/16",
+                    "Gateway": "172.17.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {
+            "406ad2bac33e06605ff37efe8bb25ff0ba86502a5cbab348d187ecb791cb4a1f": {
+                "Name": "mysql-master",
+                "EndpointID": "589f8ab6ec08008a45f220f10e22748f6d0ca2536b61c40252daa4c050178c7f",
+                "MacAddress": "02:42:ac:11:00:03",
+                "IPv4Address": "172.17.0.3/16",
+                "IPv6Address": ""
+            },
+            "d8d7744dfde4c23cc66666b0fe7a7ca14614f45ee82e41b05b1a9daae35a7033": {
+                "Name": "mysql-slave",
+                "EndpointID": "b36544c3bbc32a12a36c7f4032ef128112506dd8a63a183d2ca9dd84ac94c0c4",
+                "MacAddress": "02:42:ac:11:00:02",
+                "IPv4Address": "172.17.0.2/16",
+                "IPv6Address": ""
+            }
+        },
+        "Options": {
+            "com.docker.network.bridge.default_bridge": "true",
+            "com.docker.network.bridge.enable_icc": "true",
+            "com.docker.network.bridge.enable_ip_masquerade": "true",
+            "com.docker.network.bridge.host_binding_ipv4": "0.0.0.0",
+            "com.docker.network.bridge.name": "docker0",
+            "com.docker.network.driver.mtu": "1500"
+        },
+        "Labels": {}
+    }
+]
+```
+
+但从机还是访问不到主机，注意是网络不通、不是 mysql 主从配置不通。
+
 
 
 ### 分布式存储
