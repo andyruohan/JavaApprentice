@@ -1402,3 +1402,103 @@ ERROR 2005 (HY000): Unknown MySQL server host 'mysql-master' (-2)
 
 优点：加入和删除节点只影响哈希环中顺时针方向的相邻的节点，对其他节点无影响。
 缺点：数据的分布和节点的位置有关，因为这些节点不是均匀的分布在哈希环上的，所以数据在进行存储时达不到均匀分布的效果。
+
+### redis 主从集群配置
+```
+sudo docker run -d --name redis-node-1 --net host --privileged=true -v /data/redis/share/redis-node-1:/data redis:6.0.8 --cluster-enabled yes --appendonly yes --port 6381
+sudo docker run -d --name redis-node-2 --net host --privileged=true -v /data/redis/share/redis-node-2:/data redis:6.0.8 --cluster-enabled yes --appendonly yes --port 6382
+sudo docker run -d --name redis-node-3 --net host --privileged=true -v /data/redis/share/redis-node-3:/data redis:6.0.8 --cluster-enabled yes --appendonly yes --port 6383
+sudo docker run -d --name redis-node-4 --net host --privileged=true -v /data/redis/share/redis-node-4:/data redis:6.0.8 --cluster-enabled yes --appendonly yes --port 6384
+sudo docker run -d --name redis-node-5 --net host --privileged=true -v /data/redis/share/redis-node-5:/data redis:6.0.8 --cluster-enabled yes --appendonly yes --port 6385
+sudo docker run -d --name redis-node-6 --net host --privileged=true -v /data/redis/share/redis-node-6:/data redis:6.0.8 --cluster-enabled yes --appendonly yes --port 6386
+``` 
+
+```
+redis-cli --cluster create 10.211.55.5:6381 10.211.55.5:6382 10.211.55.5:6383 10.211.55.5:6384 10.211.55.5:6385 10.211.55.5:6386 --cluster-replicas 1
+```
+
+```
+[parallels@fedora redis]$ sudo docker exec -it b2ebd3df86fb /bin/bash
+root@fedora:/data# redis-cli --cluster create 10.211.55.5:6381 10.211.55.5:6382 10.211.55.5:6383 10.211.55.5:6384 10.211.55.5:6385 10.211.55.5:6386 --cluster-replicas 1
+>>> Performing hash slots allocation on 6 nodes...
+Master[0] -> Slots 0 - 5460
+Master[1] -> Slots 5461 - 10922
+Master[2] -> Slots 10923 - 16383
+Adding replica 10.211.55.5:6385 to 10.211.55.5:6381
+Adding replica 10.211.55.5:6386 to 10.211.55.5:6382
+Adding replica 10.211.55.5:6384 to 10.211.55.5:6383
+>>> Trying to optimize slaves allocation for anti-affinity
+[WARNING] Some slaves are in the same host as their master
+M: 5b10489d5b91d1ff7f4904918af2ef4b01d63e00 10.211.55.5:6381
+   slots:[0-5460] (5461 slots) master
+M: 022df18f62985a5d79c491c15c67030751ce96c2 10.211.55.5:6382
+   slots:[5461-10922] (5462 slots) master
+M: 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505 10.211.55.5:6383
+   slots:[10923-16383] (5461 slots) master
+S: 64b108b1a5cdd873db3dbd7d9856debb3c76dd2c 10.211.55.5:6384
+   replicates 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505
+S: e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3 10.211.55.5:6385
+   replicates 5b10489d5b91d1ff7f4904918af2ef4b01d63e00
+S: 5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386
+   replicates 022df18f62985a5d79c491c15c67030751ce96c2
+Can I set the above configuration? (type 'yes' to accept): yes
+>>> Nodes configuration updated
+>>> Assign a different config epoch to each node
+>>> Sending CLUSTER MEET messages to join the cluster
+Waiting for the cluster to join
+..
+>>> Performing Cluster Check (using node 10.211.55.5:6381)
+M: 5b10489d5b91d1ff7f4904918af2ef4b01d63e00 10.211.55.5:6381
+   slots:[0-5460] (5461 slots) master
+   1 additional replica(s)
+M: 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505 10.211.55.5:6383
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+M: 022df18f62985a5d79c491c15c67030751ce96c2 10.211.55.5:6382
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+S: e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3 10.211.55.5:6385
+   slots: (0 slots) slave
+   replicates 5b10489d5b91d1ff7f4904918af2ef4b01d63e00
+S: 5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386
+   slots: (0 slots) slave
+   replicates 022df18f62985a5d79c491c15c67030751ce96c2
+S: 64b108b1a5cdd873db3dbd7d9856debb3c76dd2c 10.211.55.5:6384
+   slots: (0 slots) slave
+   replicates 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+```
+
+```
+root@fedora:/data# redis-cli -p 6381
+127.0.0.1:6381> cluster info
+cluster_state:ok
+cluster_slots_assigned:16384
+cluster_slots_ok:16384
+cluster_slots_pfail:0
+cluster_slots_fail:0
+cluster_known_nodes:6
+cluster_size:3
+cluster_current_epoch:6
+cluster_my_epoch:1
+cluster_stats_messages_ping_sent:134
+cluster_stats_messages_pong_sent:139
+cluster_stats_messages_sent:273
+cluster_stats_messages_ping_received:134
+cluster_stats_messages_pong_received:134
+cluster_stats_messages_meet_received:5
+cluster_stats_messages_received:273
+```
+
+```
+127.0.0.1:6381> cluster nodes
+6e43f43ab3e3d8c7bda9660d26ea4a31939b0505 10.211.55.5:6383@16383 master - 0 1706431568000 3 connected 10923-16383
+022df18f62985a5d79c491c15c67030751ce96c2 10.211.55.5:6382@16382 master - 0 1706431568490 2 connected 5461-10922
+e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3 10.211.55.5:6385@16385 slave 5b10489d5b91d1ff7f4904918af2ef4b01d63e00 0 1706431569501 1 connected
+5b10489d5b91d1ff7f4904918af2ef4b01d63e00 10.211.55.5:6381@16381 myself,master - 0 1706431566000 1 connected 0-5460
+5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386@16386 slave 022df18f62985a5d79c491c15c67030751ce96c2 0 1706431567000 2 connected
+64b108b1a5cdd873db3dbd7d9856debb3c76dd2c 10.211.55.5:6384@16384 slave 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505 0 1706431568000 3 connected
+```
