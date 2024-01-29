@@ -1404,6 +1404,7 @@ ERROR 2005 (HY000): Unknown MySQL server host 'mysql-master' (-2)
 缺点：数据的分布和节点的位置有关，因为这些节点不是均匀的分布在哈希环上的，所以数据在进行存储时达不到均匀分布的效果。
 
 ### redis 主从集群配置
+#### 新建六个容器实例
 ```
 sudo docker run -d --name redis-node-1 --net host --privileged=true -v /data/redis/share/redis-node-1:/data redis:6.0.8 --cluster-enabled yes --appendonly yes --port 6381
 sudo docker run -d --name redis-node-2 --net host --privileged=true -v /data/redis/share/redis-node-2:/data redis:6.0.8 --cluster-enabled yes --appendonly yes --port 6382
@@ -1413,10 +1414,35 @@ sudo docker run -d --name redis-node-5 --net host --privileged=true -v /data/red
 sudo docker run -d --name redis-node-6 --net host --privileged=true -v /data/redis/share/redis-node-6:/data redis:6.0.8 --cluster-enabled yes --appendonly yes --port 6386
 ``` 
 
+容器配置命令分解
+
+| 命令                                      | 释义                   | 
+|-----------------------------------------|----------------------|
+| docker run                              | 创建并运行docker容器实例      |
+| --name redis-node-6                     | 容器名字                 |
+| --net host                              | 使用宿主机的IP和端口，默认       |
+| --privileged=true                       | 获取宿主机root用户权限        |
+| -v /data/redis/share/redis-node-6:/data | 容器卷，宿主机地址:docker内部地址 |
+| redis:6.0.8                             | redis镜像和版本号          |
+| --cluster-enabled yes                   | 开启redis集群            |
+| --appendonly yes                        | 开启持久化                |
+| --port 6386                             | redis端口号             |
+
+#### 配置集群关系
+查询六个容器 docker 运行信息
 ```
-redis-cli --cluster create 10.211.55.5:6381 10.211.55.5:6382 10.211.55.5:6383 10.211.55.5:6384 10.211.55.5:6385 10.211.55.5:6386 --cluster-replicas 1
+[parallels@fedora redis]$ sudo docker ps
+CONTAINER ID   IMAGE         COMMAND                  CREATED         STATUS         PORTS                                                  NAMES
+24093f7afa03   redis:6.0.8   "docker-entrypoint.s…"   7 seconds ago   Up 7 seconds                                                          redis-node-6
+ff37d374992f   redis:6.0.8   "docker-entrypoint.s…"   8 seconds ago   Up 7 seconds                                                          redis-node-5
+8183c3336978   redis:6.0.8   "docker-entrypoint.s…"   8 seconds ago   Up 8 seconds                                                          redis-node-4
+0ea01e0ae3e4   redis:6.0.8   "docker-entrypoint.s…"   8 seconds ago   Up 8 seconds                                                          redis-node-3
+0e4da58a8535   redis:6.0.8   "docker-entrypoint.s…"   9 seconds ago   Up 8 seconds                                                          redis-node-2
+b2ebd3df86fb   redis:6.0.8   "docker-entrypoint.s…"   3 minutes ago   Up 3 minutes                                                          redis-node-1
+[parallels@fedora redis]$ sudo docker exec -it b2ebd3df86fb /bin/bash
 ```
 
+在 redis-node-1 为六台机器构建集群关系
 ```
 [parallels@fedora redis]$ sudo docker exec -it b2ebd3df86fb /bin/bash
 root@fedora:/data# redis-cli --cluster create 10.211.55.5:6381 10.211.55.5:6382 10.211.55.5:6383 10.211.55.5:6384 10.211.55.5:6385 10.211.55.5:6386 --cluster-replicas 1
@@ -1472,6 +1498,7 @@ S: 64b108b1a5cdd873db3dbd7d9856debb3c76dd2c 10.211.55.5:6384
 [OK] All 16384 slots covered.
 ```
 
+#### 查看集群信息
 ```
 root@fedora:/data# redis-cli -p 6381
 127.0.0.1:6381> cluster info
@@ -1502,3 +1529,10 @@ e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3 10.211.55.5:6385@16385 slave 5b10489d5b
 5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386@16386 slave 022df18f62985a5d79c491c15c67030751ce96c2 0 1706431567000 2 connected
 64b108b1a5cdd873db3dbd7d9856debb3c76dd2c 10.211.55.5:6384@16384 slave 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505 0 1706431568000 3 connected
 ```
+
+M S  
+1 5  
+2 6  
+3 4  
+
+![](redis三主三从案例.png)
