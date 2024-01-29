@@ -11,6 +11,12 @@ System.out.println("引用java代码块");
 idea markdown插件显示导航栏：Alt + 7
 参考链接：https://www.w3cschool.cn/intellij_idea_doc/markdown.html
 
+| 列1标题 | 列2标题 | 列3标题 |
+|---------|---------|---------|
+| 行1单元格 | 行1单元格 | 行1单元格 |
+| 行2单元格 | 行2单元格 | 行2单元格 |
+
+
 #标题
 # 一级标题
 ## 二级标题
