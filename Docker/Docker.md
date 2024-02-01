@@ -1536,3 +1536,83 @@ M S
 3 4  
 
 ![](redis三主三从案例.png)
+
+### redis 集群读写
+#### 使用非集群命令（错误写法）
+```
+root@fedora:/data# redis-cli -p 6381
+127.0.0.1:6381> keys *
+(empty array)
+127.0.0.1:6381> set k1 v1
+(error) MOVED 12706 10.211.55.5:6383
+127.0.0.1:6381> set k2 v2
+OK
+127.0.0.1:6381> set k3 v3
+OK
+127.0.0.1:6381> set k4 v4
+(error) MOVED 8455 10.211.55.5:6382
+```
+set k1、k4 会出现 error，因为哈希槽不在本台服务器，无法切换到正确的机器。
+
+#### 使用集群命令（正确写法）
+```
+redis-cli -p 6381 -c
+```
+即启动命令添加-c即可
+
+```
+root@fedora:/data# redis-cli -p 6381 -c
+127.0.0.1:6381> flushall
+OK
+127.0.0.1:6381> set k1 v1
+-> Redirected to slot [12706] located at 10.211.55.5:6383
+OK
+10.211.55.5:6383> set k2 v2
+-> Redirected to slot [449] located at 10.211.55.5:6381
+OK
+10.211.55.5:6381> set k3 v3
+OK
+10.211.55.5:6381> set k4 v4
+-> Redirected to slot [8455] located at 10.211.55.5:6382
+OK
+```
+set k1、k2、k3、k4 均正常，且明确标记出计算的哈希槽点。
+
+#### 查看集群信息
+```
+redis-cli -cluster check 集群ip:端口号
+```
+
+```
+root@fedora:/data# redis-cli -cluster check 10.211.55.5:6381
+Unrecognized option or bad number of args for: '-cluster'
+root@fedora:/data# redis-cli --cluster check 10.211.55.5:6381
+10.211.55.5:6381 (5b10489d...) -> 2 keys | 5461 slots | 1 slaves.
+10.211.55.5:6383 (6e43f43a...) -> 1 keys | 5461 slots | 1 slaves.
+10.211.55.5:6382 (022df18f...) -> 1 keys | 5462 slots | 1 slaves.
+[OK] 4 keys in 3 masters.
+0.00 keys per slot on average.
+>>> Performing Cluster Check (using node 10.211.55.5:6381)
+M: 5b10489d5b91d1ff7f4904918af2ef4b01d63e00 10.211.55.5:6381
+   slots:[0-5460] (5461 slots) master
+   1 additional replica(s)
+M: 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505 10.211.55.5:6383
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+M: 022df18f62985a5d79c491c15c67030751ce96c2 10.211.55.5:6382
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+S: e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3 10.211.55.5:6385
+   slots: (0 slots) slave
+   replicates 5b10489d5b91d1ff7f4904918af2ef4b01d63e00
+S: 5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386
+   slots: (0 slots) slave
+   replicates 022df18f62985a5d79c491c15c67030751ce96c2
+S: 64b108b1a5cdd873db3dbd7d9856debb3c76dd2c 10.211.55.5:6384
+   slots: (0 slots) slave
+   replicates 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+```
