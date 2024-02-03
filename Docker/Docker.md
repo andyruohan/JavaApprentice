@@ -1616,3 +1616,58 @@ S: 64b108b1a5cdd873db3dbd7d9856debb3c76dd2c 10.211.55.5:6384
 >>> Check slots coverage...
 [OK] All 16384 slots covered.
 ```
+
+#### 主从容错切换
+1) 停止 redis-node-1 节点
+```
+[parallels@fedora redis]$ sudo docker stop redis-node-1
+redis-node-1
+```
+
+2) 查看集群信息
+```
+[parallels@fedora redis]$ sudo docker exec -it redis-node-2 /bin/bash
+root@fedora:/data# redis-cli -p 6382 -c
+127.0.0.1:6382> cluster nodes
+e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3 10.211.55.5:6385@16385 master - 0 1706971060179 7 connected 0-5460
+6e43f43ab3e3d8c7bda9660d26ea4a31939b0505 10.211.55.5:6383@16383 master - 0 1706971058000 3 connected 10923-16383
+5b10489d5b91d1ff7f4904918af2ef4b01d63e00 10.211.55.5:6381@16381 master,fail - 1706970997427 1706970994000 1 disconnected
+64b108b1a5cdd873db3dbd7d9856debb3c76dd2c 10.211.55.5:6384@16384 slave 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505 0 1706971059000 3 connected
+022df18f62985a5d79c491c15c67030751ce96c2 10.211.55.5:6382@16382 myself,master - 0 1706971058000 2 connected 5461-10922
+5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386@16386 slave 022df18f62985a5d79c491c15c67030751ce96c2 0 1706971059183 2 connected
+```
+可以看到，redis-node-1 已经不再是主节点，主节点切换到 redis-node-1。
+
+3) 查看是否可以，读取到之前存储的键值对信息
+```
+127.0.0.1:6382> get k1
+-> Redirected to slot [12706] located at 10.211.55.5:6383
+"v1"
+10.211.55.5:6383> get k2
+-> Redirected to slot [449] located at 10.211.55.5:6385
+"v2"
+10.211.55.5:6385> get k3
+"v3"
+10.211.55.5:6385> get k4
+-> Redirected to slot [8455] located at 10.211.55.5:6382
+"v4"
+```
+可以看到，由于 redis 主从复制的存在，仍可以读取到此前的存储信息。
+
+4) 重新启动 redis-node-1 节点
+```
+[parallels@fedora ~]$ sudo docker start redis-node-1
+redis-node-1
+```
+
+5) 查看集群信息
+```
+10.211.55.5:6382> cluster nodes
+e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3 10.211.55.5:6385@16385 master - 0 1706971296393 7 connected 0-5460
+6e43f43ab3e3d8c7bda9660d26ea4a31939b0505 10.211.55.5:6383@16383 master - 0 1706971295000 3 connected 10923-16383
+5b10489d5b91d1ff7f4904918af2ef4b01d63e00 10.211.55.5:6381@16381 slave e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3 0 1706971295000 7 connected
+64b108b1a5cdd873db3dbd7d9856debb3c76dd2c 10.211.55.5:6384@16384 slave 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505 0 1706971295000 3 connected
+022df18f62985a5d79c491c15c67030751ce96c2 10.211.55.5:6382@16382 myself,master - 0 1706971293000 2 connected 5461-10922
+5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386@16386 slave 022df18f62985a5d79c491c15c67030751ce96c2 0 1706971295385 2 connected
+```
+可以看到，redis-node-1 节点重启后不会再成为主节点，而是 redis-node-1 的从节点。
