@@ -1671,3 +1671,297 @@ e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3 10.211.55.5:6385@16385 master - 0 17069
 5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386@16386 slave 022df18f62985a5d79c491c15c67030751ce96c2 0 1706971295385 2 connected
 ```
 可以看到，redis-node-1 节点重启后不会再成为主节点，而是 redis-node-1 的从节点。
+
+#### 主从扩容案例
+1) 新建 redis-node-7、redis-node-8 两个节点
+```
+sudo docker run -d --name redis-node-7 --net host --privileged=true -v /data/redis/share/redis-node-7:/data redis:6.0.8 --cluster-enabled yes --appendonly yes --port 6387
+sudo docker run -d --name redis-node-8 --net host --privileged=true -v /data/redis/share/redis-node-8:/data redis:6.0.8 --cluster-enabled yes --appendonly yes --port 6388
+```
+
+2) 新增 redis-node-7 作为 master 节点加入原集群
+```
+redis-cli --cluster add-node ip:新端口 ip:master节点端口
+```
+```
+[parallels@fedora ~]$ sudo docker exec -it redis-node-7 /bin/bash
+root@fedora:/data# redis-cli --cluster add-node 10.211.55.5:6387 10.211.55.5:6381
+>>> Adding node 10.211.55.5:6387 to cluster 10.211.55.5:6381
+>>> Performing Cluster Check (using node 10.211.55.5:6381)
+S: 5b10489d5b91d1ff7f4904918af2ef4b01d63e00 10.211.55.5:6381
+   slots: (0 slots) slave
+   replicates e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3
+S: 5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386
+   slots: (0 slots) slave
+   replicates 022df18f62985a5d79c491c15c67030751ce96c2
+M: 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505 10.211.55.5:6383
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+M: e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3 10.211.55.5:6385
+   slots:[0-5460] (5461 slots) master
+   1 additional replica(s)
+S: 64b108b1a5cdd873db3dbd7d9856debb3c76dd2c 10.211.55.5:6384
+   slots: (0 slots) slave
+   replicates 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505
+M: 022df18f62985a5d79c491c15c67030751ce96c2 10.211.55.5:6382
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+>>> Send CLUSTER MEET to node 10.211.55.5:6387 to make it join the cluster.
+[OK] New node added correctly.
+```
+
+3) 检查集群状态
+```
+redis-cli --cluster check ip:任意集群端口
+```
+```
+root@fedora:/data# redis-cli --cluster check 10.211.55.5:6381
+10.211.55.5:6387 (11e3a3cd...) -> 0 keys | 0 slots | 0 slaves.
+10.211.55.5:6383 (6e43f43a...) -> 1 keys | 5461 slots | 1 slaves.
+10.211.55.5:6385 (e02495ce...) -> 2 keys | 5461 slots | 1 slaves.
+10.211.55.5:6382 (022df18f...) -> 1 keys | 5462 slots | 1 slaves.
+[OK] 4 keys in 4 masters.
+0.00 keys per slot on average.
+>>> Performing Cluster Check (using node 10.211.55.5:6381)
+S: 5b10489d5b91d1ff7f4904918af2ef4b01d63e00 10.211.55.5:6381
+   slots: (0 slots) slave
+   replicates e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3
+S: 5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386
+   slots: (0 slots) slave
+   replicates 022df18f62985a5d79c491c15c67030751ce96c2
+M: 11e3a3cd13fe68a29d24c7e6f258d4b37ae5ff88 10.211.55.5:6387
+   slots: (0 slots) master
+M: 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505 10.211.55.5:6383
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+M: e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3 10.211.55.5:6385
+   slots:[0-5460] (5461 slots) master
+   1 additional replica(s)
+S: 64b108b1a5cdd873db3dbd7d9856debb3c76dd2c 10.211.55.5:6384
+   slots: (0 slots) slave
+   replicates 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505
+M: 022df18f62985a5d79c491c15c67030751ce96c2 10.211.55.5:6382
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+```
+可以看到 6387 已作为 master 节点加入集群，但其还未分配到槽号。
+
+4) 重新分配槽号
+   1) 输入分配命令
+    ```
+    redis-cli --cluster reshard ip:步骤2关联的节点端口
+    ```
+    ```
+    root@fedora:/data# redis-cli --cluster reshard 10.211.55.5:6381
+    >>> Performing Cluster Check (using node 10.211.55.5:6381)
+    S: 5b10489d5b91d1ff7f4904918af2ef4b01d63e00 10.211.55.5:6381
+       slots: (0 slots) slave
+       replicates e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3
+    S: 5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386
+       slots: (0 slots) slave
+       replicates 022df18f62985a5d79c491c15c67030751ce96c2
+    M: 11e3a3cd13fe68a29d24c7e6f258d4b37ae5ff88 10.211.55.5:6387
+       slots: (0 slots) master
+    M: 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505 10.211.55.5:6383
+       slots:[10923-16383] (5461 slots) master
+       1 additional replica(s)
+    M: e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3 10.211.55.5:6385
+       slots:[0-5460] (5461 slots) master
+       1 additional replica(s)
+    S: 64b108b1a5cdd873db3dbd7d9856debb3c76dd2c 10.211.55.5:6384
+       slots: (0 slots) slave
+       replicates 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505
+    M: 022df18f62985a5d79c491c15c67030751ce96c2 10.211.55.5:6382
+       slots:[5461-10922] (5462 slots) master
+       1 additional replica(s)
+    [OK] All nodes agree about slots configuration.
+    >>> Check for open slots...
+    >>> Check slots coverage...
+    [OK] All 16384 slots covered.
+    ```
+   
+   2) 平均分配槽位 (16386 / 4 = 4096)
+   ```
+   How many slots do you want to move (from 1 to 16384)? 4096
+   What is the receiving node ID? 11e3a3cd13fe68a29d24c7e6f258d4b37ae5ff88
+
+   ```
+   
+   3) 重新分配所有槽号
+    ```
+    Please enter all the source node IDs.
+    Type 'all' to use all the nodes as source nodes for the hash slots.
+    Type 'done' once you entered all the source nodes IDs.
+    Source node #1: all
+    
+    Ready to move 4096 slots.
+      Source nodes:
+        M: 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505 10.211.55.5:6383
+           slots:[10923-16383] (5461 slots) master
+           1 additional replica(s)
+        M: e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3 10.211.55.5:6385
+           slots:[0-5460] (5461 slots) master
+           1 additional replica(s)
+        M: 022df18f62985a5d79c491c15c67030751ce96c2 10.211.55.5:6382
+           slots:[5461-10922] (5462 slots) master
+           1 additional replica(s)
+      Destination node:
+        M: 11e3a3cd13fe68a29d24c7e6f258d4b37ae5ff88 10.211.55.5:6387
+           slots: (0 slots) master
+      Resharding plan:
+        Moving slot 5461 from 022df18f62985a5d79c491c15c67030751ce96c2
+        Moving slot 5462 from 022df18f62985a5d79c491c15c67030751ce96c2
+        Moving slot 5463 from 022df18f62985a5d79c491c15c67030751ce96c2
+        Moving slot 5464 from 022df18f62985a5d79c491c15c67030751ce96c2
+        Moving slot 5465 from 022df18f62985a5d79c491c15c67030751ce96c2
+        Moving slot 5466 from 022df18f62985a5d79c491c15c67030751ce96c2
+        ...
+    ```
+   
+   4) 执行分配
+    ```
+    Do you want to proceed with the proposed reshard plan (yes/no)? yes
+    Moving slot 5461 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    Moving slot 5462 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    Moving slot 5463 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    Moving slot 5464 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    Moving slot 5465 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    Moving slot 5466 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    Moving slot 5467 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    Moving slot 5468 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    Moving slot 5469 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    Moving slot 5470 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    Moving slot 5471 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    Moving slot 5472 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    Moving slot 5473 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    Moving slot 5474 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    Moving slot 5475 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    Moving slot 5476 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    Moving slot 5477 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    Moving slot 5478 from 10.211.55.5:6382 to 10.211.55.5:6387: 
+    ...
+    ```
+   
+5) 查看分配槽位分配结果
+```
+root@fedora:/data# redis-cli --cluster check 10.211.55.5:6381
+10.211.55.5:6387 (11e3a3cd...) -> 1 keys | 4096 slots | 0 slaves.
+10.211.55.5:6383 (6e43f43a...) -> 1 keys | 4096 slots | 1 slaves.
+10.211.55.5:6385 (e02495ce...) -> 1 keys | 4096 slots | 1 slaves.
+10.211.55.5:6382 (022df18f...) -> 1 keys | 4096 slots | 1 slaves.
+[OK] 4 keys in 4 masters.
+0.00 keys per slot on average.
+>>> Performing Cluster Check (using node 10.211.55.5:6381)
+S: 5b10489d5b91d1ff7f4904918af2ef4b01d63e00 10.211.55.5:6381
+   slots: (0 slots) slave
+   replicates e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3
+S: 5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386
+   slots: (0 slots) slave
+   replicates 022df18f62985a5d79c491c15c67030751ce96c2
+M: 11e3a3cd13fe68a29d24c7e6f258d4b37ae5ff88 10.211.55.5:6387
+   slots:[0-1364],[5461-6826],[10923-12287] (4096 slots) master
+M: 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505 10.211.55.5:6383
+   slots:[12288-16383] (4096 slots) master
+   1 additional replica(s)
+M: e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3 10.211.55.5:6385
+   slots:[1365-5460] (4096 slots) master
+   1 additional replica(s)
+S: 64b108b1a5cdd873db3dbd7d9856debb3c76dd2c 10.211.55.5:6384
+   slots: (0 slots) slave
+   replicates 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505
+M: 022df18f62985a5d79c491c15c67030751ce96c2 10.211.55.5:6382
+   slots:[6827-10922] (4096 slots) master
+   1 additional replica(s)
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+```
+可以看到，6387 端口的槽位已经分配，为原来的三个主节点各匀出了一部分：[0-1364],[5461-6826],[10923-12287]。（此举主要减少重新分配成本消耗）
+
+6. 配置 redis-node-8 为 redis-node-7 的从节点
+```
+redis-cli --cluster add-node ip:新从节点 ip:新主节点 --cluster-slave --cluster-master-id 新主节点的长实例号
+```
+```
+root@fedora:/data# redis-cli --cluster add-node 10.211.55.5:6388 10.211.55.5:6387 --cluster-slave --cluster-master-id 11e3a3cd13fe68a29d24c7e6f258d4b37ae5ff88
+>>> Adding node 10.211.55.5:6388 to cluster 10.211.55.5:6387
+>>> Performing Cluster Check (using node 10.211.55.5:6387)
+M: 11e3a3cd13fe68a29d24c7e6f258d4b37ae5ff88 10.211.55.5:6387
+   slots:[0-1364],[5461-6826],[10923-12287] (4096 slots) master
+S: 5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386
+   slots: (0 slots) slave
+   replicates 022df18f62985a5d79c491c15c67030751ce96c2
+S: 64b108b1a5cdd873db3dbd7d9856debb3c76dd2c 10.211.55.5:6384
+   slots: (0 slots) slave
+   replicates 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505
+M: e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3 10.211.55.5:6385
+   slots:[1365-5460] (4096 slots) master
+   1 additional replica(s)
+S: 5b10489d5b91d1ff7f4904918af2ef4b01d63e00 10.211.55.5:6381
+   slots: (0 slots) slave
+   replicates e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3
+M: 022df18f62985a5d79c491c15c67030751ce96c2 10.211.55.5:6382
+   slots:[6827-10922] (4096 slots) master
+   1 additional replica(s)
+M: 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505 10.211.55.5:6383
+   slots:[12288-16383] (4096 slots) master
+   1 additional replica(s)
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+>>> Send CLUSTER MEET to node 10.211.55.5:6388 to make it join the cluster.
+Waiting for the cluster to join
+
+>>> Configure node as replica of 10.211.55.5:6387.
+[OK] New node added correctly.
+```
+
+7) 最后查看新加入的主从节点分配结果
+```
+root@fedora:/data# redis-cli --cluster check 10.211.55.5:6382
+10.211.55.5:6382 (022df18f...) -> 1 keys | 4096 slots | 1 slaves.
+10.211.55.5:6387 (11e3a3cd...) -> 1 keys | 4096 slots | 1 slaves.
+10.211.55.5:6385 (e02495ce...) -> 1 keys | 4096 slots | 1 slaves.
+10.211.55.5:6383 (6e43f43a...) -> 1 keys | 4096 slots | 1 slaves.
+[OK] 4 keys in 4 masters.
+0.00 keys per slot on average.
+>>> Performing Cluster Check (using node 10.211.55.5:6382)
+M: 022df18f62985a5d79c491c15c67030751ce96c2 10.211.55.5:6382
+   slots:[6827-10922] (4096 slots) master
+   1 additional replica(s)
+M: 11e3a3cd13fe68a29d24c7e6f258d4b37ae5ff88 10.211.55.5:6387
+   slots:[0-1364],[5461-6826],[10923-12287] (4096 slots) master
+   1 additional replica(s)
+M: e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3 10.211.55.5:6385
+   slots:[1365-5460] (4096 slots) master
+   1 additional replica(s)
+M: 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505 10.211.55.5:6383
+   slots:[12288-16383] (4096 slots) master
+   1 additional replica(s)
+S: 896673c5d0c5b29c1c15de15619185d11cce874a 10.211.55.5:6388
+   slots: (0 slots) slave
+   replicates 11e3a3cd13fe68a29d24c7e6f258d4b37ae5ff88
+S: 5b10489d5b91d1ff7f4904918af2ef4b01d63e00 10.211.55.5:6381
+   slots: (0 slots) slave
+   replicates e02495ce8ec7c06b6e5dec9072ae7f3cb0f351f3
+S: 64b108b1a5cdd873db3dbd7d9856debb3c76dd2c 10.211.55.5:6384
+   slots: (0 slots) slave
+   replicates 6e43f43ab3e3d8c7bda9660d26ea4a31939b0505
+S: 5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386
+   slots: (0 slots) slave
+   replicates 022df18f62985a5d79c491c15c67030751ce96c2
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+```
