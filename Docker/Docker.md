@@ -814,7 +814,7 @@ drwxrwxrwx. 1 root root    32 Dec 21  2021 temp
 drwxr-xr-x. 1 root root    70 Dec  2  2021 webapps
 drwxrwxrwx. 1 root root     0 Dec  2  2021 work
 ```
-![](调整后的localhost8080.png)
+![](正常运行的localhost8080.png)
 
 #### 低版本运行 tomcat
 ```
@@ -2183,3 +2183,67 @@ S: 5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386
 [OK] All 16384 slots covered.
 ```
 可以看到，集群已经变为三主三从了。
+
+
+### Dockerfile
+参考 https://github.com/docker-library/tomcat
+- **FROM**：指明当前新镜像是基于哪个镜像的，第一条必须是 FROM。  
+- **MAINTAINER**：镜像维护者的姓名和邮箱信息。  
+- **RUN**：容器构建时需要运行的命令，即 docker build 时运行。
+  - shell 格式
+    ```shell
+    RUN <命令行命令＞
+    #＜命令行命令>等同于，在终端操作的 shell 命令。
+    ```
+    如 docker 精简版的fedora 没有 vim 命令。需要执行 run yum -y install vim，才能运行 vim 命令。
+  - exec 格式：
+    ```
+    RUN [“可执行文件“，“参数1"，“参数2"]
+    # 例如：
+    # RUN ["-/test.php", "dev", "offline"] #11F RUN ./test.php dev offline
+    ```
+- **EXPOSE**：当前容器对外暴露出的端口。
+- **WORKDIR**：指定在容器创建后，终端默认登录进来的工作目录。
+- **USER**：指定该镜像以什么样的用户去执行，如果都不指定，默认是 root 。（实际项目一般不特殊指定）
+- **ENV**：用来在构建镜像过程中设置环境变量。
+- **COPY**：拷贝宿主机目录下的文件到镜像中。
+- **ADD**：与 COPY 类似（相当于COPY + 解压），拷贝宿主机目录下的文件进镜像，<font color = 'red'>且会自动处理 URL 和解压 tar 压缩包</font>。
+- **VOLUME**：容器数据卷，用于数据保存和持久化工作。
+- **CMD**：指定容器启动后要运行的命令。  
+  Dockerfile 中可以有多个 CMD 指令，但只有最后一个生效。<font color = 'red'>CMD 会被 docker run 之后的参数替换</font>。
+  - 正常运行的样例
+    ```
+    docker run -it -p 8080:8080 tomcat
+    ```
+    ![](正常运行的localhost8080.png)
+  - 添加 docker run 参数，未正常运行的样例
+    ```
+    docker run -it -p 8080:8080 tomcat /bin/bash
+    ```
+    ![](添加冗余后缀未正常运行的localhost8080.png)
+- **ENTRYPOINT**：与 CMD 类似，也是用来指定一个容器启动时要运行的命令。
+  ENTRYPOINT 和 RUN 一起用，一般是 <font color = 'red'>变参</font> 才使用 CMD，这里的 CMD 等于是 ENTRYPOINT 的传参。  
+  
+  案例：假设已通过 Dockerfile 构建了 nginx:test镜像
+    ```
+    FROM nginx
+    ENTRYPOINT ［"nginx"，"-c"］ #定参
+    CMD ［"/etc/nginx/nginx.conf"］# 变参
+    ```
+  运行效果为: 
+
+    | 是否传参 | 按照 dockerfile 编写执行 | 传参运行                           |
+    |-----------|---------------------------|--------------------------------|
+    | Docker命令 | `docker run nginx:test`   | `docker run nginx:test -c /etc/nginx/new.conf` |
+    | 衍生出的实际命令 | `nginx -c /etc/nginx/nginx.conf` | `nginx -c /etc/nginx/new.conf` |
+    
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
