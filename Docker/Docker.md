@@ -2185,8 +2185,9 @@ S: 5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386
 可以看到，集群已经变为三主三从了。
 
 
-### Dockerfile
-参考 https://github.com/docker-library/tomcat
+### Dockerfile 配置命令
+配置命令参考：https://docs.docker.com/engine/reference/builder/  
+配置样例参考 https://github.com/docker-library/tomcat
 - **FROM**：指明当前新镜像是基于哪个镜像的，第一条必须是 FROM。  
 - **MAINTAINER**：镜像维护者的姓名和邮箱信息。  
 - **RUN**：容器构建时需要运行的命令，即 docker build 时运行。
@@ -2237,13 +2238,104 @@ S: 5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386
     | Docker命令 | `docker run nginx:test`   | `docker run nginx:test -c /etc/nginx/new.conf` |
     | 衍生出的实际命令 | `nginx -c /etc/nginx/nginx.conf` | `nginx -c /etc/nginx/new.conf` |
     
+### Dockerfile 实际案例
+精简版 centOS + vim + ifconfig + jdk8
+JDK 镜像下载地址：https://mirrors.yangxingzhen.com/jdk/  
+官网下载地址：https://www.oracle.com/java/technologies/downloads/#java8
+  
+```Dockerfile
+FROM centos
+MAINTAINER zzyy<zzyybs@126.com>
 
+ENV MYPATH /usr/local
+WORKDIR $MYPATH
+
+#安装vim编辑器
+RUN yum -y install vim
+#安装ifconfig命令查看网络IP
+RUN yum -y install net-tools
+#安装java8及lib库
+RUN yum -y install glibc.i686
+RUN mkdir /usr/local/java
+#ADD 是相对路径jar，把jdk-8u401-linux-x64.tar.gz添加到容器中，安装包必须要和Dockerfile文件在同一位置
+ADD jdk-8u401-linux-x64.tar.gz /usr/local/java/
+#配置java环境变量
+ENV JAVA_HOME /usr/local/java/jdk1.8.0_401
+ENV JRE_HOME $JAVA_HOME/jre
+ENV CLASSPATH $JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar:$JRE_HOME/lib:$CLASSPATH
+ENV PATH $JAVA_HOME/bin:$PATH
+EXPOSE 80
+CMD echo $MYPATH
+CMD echo "success------------ok"
+CMD /bin/bash
+```
   
-  
-  
-  
-  
-  
-  
+安装时，出现以下两个问题：
+
+```
+[parallels@fedora myfile]$ sudo docker build -t centosjava8:1.5 .
+[sudo] password for parallels: 
+[+] Building 15.6s (11/11) FINISHED                                                                                                                                                  
+ => [internal] load .dockerignore                                                                                                                                               0.0s
+ => => transferring context: 2B                                                                                                                                                 0.0s
+ => [internal] load build definition from Dockerfile                                                                                                                            0.0s
+ => => transferring dockerfile: 830B                                                                                                                                            0.0s
+ => [internal] load metadata for docker.io/library/centos:latest                                                                                                               15.4s
+ => CANCELED [1/7] FROM docker.io/library/centos@sha256:a27fd8080b517143cbbbab9dfb7c8571c40d67d534bbdee55bd6c473f432b177                                                        0.1s
+ => => resolve docker.io/library/centos@sha256:a27fd8080b517143cbbbab9dfb7c8571c40d67d534bbdee55bd6c473f432b177                                                                 0.1s
+ => => sha256:a27fd8080b517143cbbbab9dfb7c8571c40d67d534bbdee55bd6c473f432b177 762B / 762B                                                                                      0.0s
+ => => sha256:65a4aad1156d8a0679537cb78519a17eb7142e05a968b26a5361153006224fdc 529B / 529B                                                                                      0.0s
+ => => sha256:e6a0117ec169eda93dc5ca978c6ac87580e36765a66097a6bfb6639a3bd4038a 2.16kB / 2.16kB                                                                                  0.0s
+ => [internal] load build context                                                                                                                                               0.1s
+ => => transferring context: 2B                                                                                                                                                 0.0s
+ => CACHED [2/7] WORKDIR /usr/local                                                                                                                                             0.0s
+ => CACHED [3/7] RUN yum -y install vim                                                                                                                                         0.0s
+ => CACHED [4/7] RUN yum -y install net-tools                                                                                                                                   0.0s
+ => CACHED [5/7] RUN yum -y install glibc.i686                                                                                                                                  0.0s
+ => CACHED [6/7] RUN mkdir /usr/local/java                                                                                                                                      0.0s
+ => ERROR [7/7] ADD jdk-8u401-linux-x64.tar.gz /usr/local/java/                                                                                                                 0.0s
+------
+ > [7/7] ADD jdk-8u401-linux-x64.tar.gz /usr/local/java/:
+------
+Dockerfile:15
+--------------------
+  13 |     RUN mkdir /usr/local/java
+  14 |     #ADD 是相对路径jar，把jdk-8u401-linux-x64.tar.gz添加到容器中，安装包必须要和Dockerfile文件在同一位置
+  15 | >>> ADD jdk-8u401-linux-x64.tar.gz /usr/local/java/
+  16 |     #配置java环境变量
+  17 |     ENV JAVA_HOME /usr/local/java/jdk1.8.0_401
+--------------------
+ERROR: failed to solve: failed to compute cache key: failed to calculate checksum of ref 0d1b90ee-b3b5-4502-a073-cddac63f87f5::98ls856gw8zi0ez0skn2yqmu8: "/jdk-8u401-linux-x64.tar.gz": not found
+```
+
+
+```
+[parallels@fedora myfile]$ sudo docker build -t centosjava8:1.5 .
+[+] Building 27.6s (7/11)                                                                                                                                                            
+ => [internal] load build definition from Dockerfile                                                                                                                            0.1s
+ => => transferring dockerfile: 827B                                                                                                                                            0.0s
+ => [internal] load .dockerignore                                                                                                                                               0.0s
+ => => transferring context: 2B                                                                                                                                                 0.0s
+ => [internal] load metadata for docker.io/library/centos:latest                                                                                                               15.2s
+ => [1/7] FROM docker.io/library/centos@sha256:a27fd8080b517143cbbbab9dfb7c8571c40d67d534bbdee55bd6c473f432b177                                                                 0.0s
+ => [internal] load build context                                                                                                                                               0.0s
+ => => transferring context: 106B                                                                                                                                               0.0s
+ => CACHED [2/7] WORKDIR /usr/local                                                                                                                                             0.0s
+ => ERROR [3/7] RUN yum -y install vim                                                                                                                                          7.9s
+------                                                                                                                                                                               
+ > [3/7] RUN yum -y install vim:
+#0 7.813 CentOS Linux 8 - AppStream                      5.2  B/s |  38  B     00:07    
+#0 7.821 Error: Failed to download metadata for repo 'appstream': Cannot prepare internal mirrorlist: No URLs in mirrorlist
+------
+Dockerfile:8
+--------------------
+   6 |     
+   7 |     #安装vim编辑器
+   8 | >>> RUN yum -y install vim
+   9 |     #安装ifconfig命令查看网络IP
+  10 |     RUN yum -y install net-tools
+--------------------
+ERROR: failed to solve: process "/bin/sh -c yum -y install vim" did not complete successfully: exit code: 1
+```
   
   
