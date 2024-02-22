@@ -1403,6 +1403,46 @@ ERROR 2005 (HY000): Unknown MySQL server host 'mysql-master' (-2)
 优点：加入和删除节点只影响哈希环中顺时针方向的相邻的节点，对其他节点无影响。
 缺点：数据的分布和节点的位置有关，因为这些节点不是均匀的分布在哈希环上的，所以数据在进行存储时达不到均匀分布的效果。
 
+#### 哈希槽分区算法
+##### 能干什么
+解决<font color = 'red'>一致性哈希算法的数据倾斜</font>问题：在数据和节点之间又加入了一层，把这层称为哈希槽 (slot)，用于管理数据和节点之间的关系，现在就相当子节点上放的是槽，槽里放的是数据。
+![](哈希槽图解.png)
+
+##### 多少个 hash 槽
+一个集群只能有 16384 个槽，编号 0-16383（0-2^14-1）。这些槽会分配给集群中的所有主节点，分配策略没有要求。可以指定哪些编号的槽分配给哪个主节点，集群会记录节点和槽的对应关系。解决了节点和槽的关系后，接下来就需要对 key 求哈希值，然后对 16384 取余，余数是几 key 就落入对应的槽里。slot = CRC16(key) % 16384。以槽为单位移动数据，因为槽的数目是固定的，处理起来比较容易，这样数据移动问题就解决了。
+
+##### 为什么 redis 集群的最大槽位数是 16384?
+CRC16 算法产生的 hash 值有 16bit，该算法可以产生 2^16 = 65536 个值。换句话说值是分布在 0 ~ 65535 之间。那作者在做 mod 运算的时候，为什么不 mod 65536，而选择 mod 16384？  
+参考 redis 之父 antirez 在 github 上的回复：https://github.com/redis/redis/issues/2576
+```
+The reason is:
+
+Normal heartbeat packets carry the full configuration of a node, that can be replaced in an idempotent way with the old in order to update an old config. This means they contain the slots configuration for a node, in raw form, that uses 2k of space with16k slots, but would use a prohibitive 8k of space using 65k slots.
+At the same time it is unlikely that Redis Cluster would scale to more than 1000 mater nodes because of other design tradeoffs.
+So 16k was in the right range to ensure enough slots per master with a max of 1000 maters, but a small enough number to propagate the slot configuration as a raw bitmap easily. Note that in small clusters the bitmap would be hard to compress because when N is small the bitmap would have slots/N bits set that is a large percentage of bits set.
+```
+1) **如果槽位为 65536，发送心跳信息的消息头达 8k，发送的心跳包过于庞大。**    
+在消息头中最占空间的是 myslots[CLUSTER_SLOTS/8] 。当槽位为 65536 时，这块的大小是：65536 - 8 - 1024 = 8kb。  
+因为每秒钟，redis 节点需要发送一定数量的 ping 消息作为心跳包，如果槽位为 65536，这个 ping 消息的消息头太大了，浪费带宽。  
+2) **redis 的集群主节点数量基本不可能超过 1000 个。**  
+集群节点越多，心跳包的消息体内携带的数据越多。如果节点过 1000 个，也会导致网络拥堵。因此 redis 作者不建议 redis cluster 节点数量超过 1000 个。那么，对于节点数在 1000 以内的 redis cluster 集群，16384 个槽位够用了。没有必要拓展到 65536 个。  
+3) **槽位越小，节点少的情况下，压缩比高，容易传输。**  
+redis 主节点的配置信息中它所负责的哈希槽是通过一张 bitmap 的形式来保存的，在传输过程中会对 bitmap 进行压缩，但是如果 bitmap 的填充率 slots / N 很高的话（N 表示节点数），bitmap 的压缩率就很低。如果节点数很少，而哈希槽数量很多的话，bitmap 的压缩率就很低。  
+
+##### 实际哈希槽分配案例
+redis 集群中内置了16384 个哈希槽，redis 会根据节点数量大致均等的将哈希槽映射到不同的节点。当需要在 redis 集群中放置一个 key-value 时，redis 先对key 使用crc16 算法算出一个结果，然后把结果对 16384 求余数，这样每个 key 都会对应一个编号在 0 - 16383 之间的哈希槽，也就是映射到某个节点上。如下代码，key 之 A、B 在 Node2 ，key 之 C 落在 Node3 上。
+![](哈希槽算法案例.png)
+```java
+@Test
+public void test() {
+    //import io.Lettuce.core.cluster.SlotHash;
+    System.out.println(SlotHash.getSlot("A")); //6373
+    System.out.println(SlotHash.getSlot("B")); //10374
+    System.out.println(SlotHash.getSlot("c")); //14503
+    System.out.println(SlotHash.getSlot("hello")); //866
+}
+```
+
 ### redis 主从集群配置
 #### 新建六个容器实例
 ```
