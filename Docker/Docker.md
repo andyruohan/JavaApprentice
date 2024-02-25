@@ -2377,5 +2377,52 @@ Dockerfile:8
 --------------------
 ERROR: failed to solve: process "/bin/sh -c yum -y install vim" did not complete successfully: exit code: 1
 ```
+
+### 虚悬镜像  
+随便指定一个简单的 Dockerfile：
+```dockerfile
+from ubuntu
+CMD echo 'action is success'
+```
   
+直接执行 `docker build .`
+```
+[parallels@fedora temp]$ sudo docker build .
+[+] Building 0.2s (5/5) FINISHED                                                                                                                                                     
+ => [internal] load build definition from Dockerfile                                                                                                                            0.0s
+ => => transferring dockerfile: 137B                                                                                                                                            0.0s
+ => [internal] load .dockerignore                                                                                                                                               0.0s
+ => => transferring context: 2B                                                                                                                                                 0.0s
+ => [internal] load metadata for docker.io/library/ubuntu:latest                                                                                                                0.0s
+ => CACHED [1/1] FROM docker.io/library/ubuntu                                                                                                                                  0.0s
+ => exporting to image                                                                                                                                                          0.0s
+ => => exporting layers                                                                                                                                                         0.0s
+ => => writing image sha256:c9110309d91d0080f80f9cef1ed97dca48c8fe644796d37ecbffa4838c247c33                                                                                    0.0s
+```
+
+#### 虚悬镜像查看
+使用`docker images`便会看到<font color = 'red'>虚悬镜像: repository 和 tag 均为 none。</font>
+```
+[parallels@fedora temp]$ sudo docker images
+REPOSITORY                                                 TAG       IMAGE ID       CREATED        SIZE
+<none>                                                     <none>    c9110309d91d   4 months ago   69.2MB
+```
+
+也可以通过`docker image ls -f dangling=true`命令查看：
+```
+[parallels@fedora temp]$ sudo docker image ls -f dangling=true
+REPOSITORY   TAG       IMAGE ID       CREATED        SIZE
+<none>       <none>    6d4e92947709   4 months ago   69.2MB
+```
+
+#### 虚悬镜像删除
+使用`docker prune`可以删除久悬镜像
+```
+[parallels@fedora temp]$ sudo docker image prune
+[sudo] password for parallels: 
+WARNING! This will remove all dangling images.
+Are you sure you want to continue? [y/N] y
+Deleted Images:
+deleted: sha256:6d4e92947709f532536c19aa2e2ab7834834b66bf15108e2c0770d4ab779e776
+```
   
