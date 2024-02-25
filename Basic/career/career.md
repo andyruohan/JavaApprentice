@@ -15,5 +15,5 @@
 有招聘，目前没有看到总行成都的岗
 
 交通银行：https://job.bankcomm.com/societyPosition.do
-![](../bcm20240225.png)
+![](bcm20240225.png)
 有招聘，目前没有看到总行成都的岗
