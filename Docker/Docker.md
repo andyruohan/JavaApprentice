@@ -2311,7 +2311,7 @@ CMD /bin/bash
 ```
   
 安装时，出现以下两个问题：
-
+1) 后缀名问题
 ```
 [parallels@fedora myfile]$ sudo docker build -t centosjava8:1.5 .
 [sudo] password for parallels: 
@@ -2347,8 +2347,9 @@ Dockerfile:15
 --------------------
 ERROR: failed to solve: failed to compute cache key: failed to calculate checksum of ref 0d1b90ee-b3b5-4502-a073-cddac63f87f5::98ls856gw8zi0ez0skn2yqmu8: "/jdk-8u401-linux-x64.tar.gz": not found
 ```
+在 fedora 系统中下载 jdk-8u401-linux-x64.tar.gz 下来的文件全称为 jdk-8u401-linux-x64.tar，没有 .gz后缀。修改 Dockerfile 中的后缀名配置可解决。
 
-
+2) 将问题1修改后，接着又出现了 No URLs in mirrorlist。<font color = 'red'>（该问题暂未解决）</font>
 ```
 [parallels@fedora myfile]$ sudo docker build -t centosjava8:1.5 .
 [+] Building 27.6s (7/11)                                                                                                                                                            
@@ -2377,6 +2378,53 @@ Dockerfile:8
 --------------------
 ERROR: failed to solve: process "/bin/sh -c yum -y install vim" did not complete successfully: exit code: 1
 ```
+
+仅运行以下 Dockerfile 配置是没有问题的：
+```dockerfile
+#期间以为是初始镜像的问题，此处将contos改为了fedora
+FROM fedora
+MAINTAINER zzyy<zzyybs@126.com>
+
+ENV MYPATH /usr/local
+WORKDIR $MYPATH
+
+#ADD 是相对路径jar，把jdk-8u401-linux-x64.tar.gz添加到容器中，安装包必须要和Dockerfile文件在同一位置
+ADD jdk-8u401-linux-x64.tar.gz /usr/local/java/
+#配置java环境变量
+ENV JAVA_HOME /usr/local/java/jdk1.8.0_401
+ENV JRE_HOME $JAVA_HOME/jre
+ENV CLASSPATH $JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar:$JRE_HOME/lib:$CLASSPATH
+ENV PATH $JAVA_HOME/bin:$PATH
+EXPOSE 80
+CMD echo $MYPATH
+CMD echo "success------------ok"
+CMD /bin/bash
+```
+
+运行结果如下：
+```
+[parallels@fedora myfile]$ sudo docker build -t fedorajava8:1.5 .
+[+] Building 20.4s (9/9) FINISHED                                                                                                                                                    
+ => [internal] load build definition from Dockerfile                                                                                                                            0.0s
+ => => transferring dockerfile: 822B                                                                                                                                            0.0s
+ => [internal] load .dockerignore                                                                                                                                               0.0s
+ => => transferring context: 2B                                                                                                                                                 0.0s
+ => [internal] load metadata for docker.io/library/fedora:latest                                                                                                               15.7s
+ => [1/4] FROM docker.io/library/fedora@sha256:40ba585f0e25c096a08c30ab2f70ef3820b8ea5a4bdd16da0edbfc0a6952fa57                                                                 0.0s
+ => [internal] load build context                                                                                                                                               0.1s
+ => => transferring context: 106B                                                                                                                                               0.0s
+ => CACHED [2/4] WORKDIR /usr/local                                                                                                                                             0.0s
+ => [3/4] RUN mkdir /usr/local/java                                                                                                                                             0.8s
+ => [4/4] ADD jdk-8u401-linux-x64.tar /usr/local/java/                                                                                                                          2.5s
+ => exporting to image                                                                                                                                                          1.1s
+ => => exporting layers                                                                                                                                                         1.1s
+ => => writing image sha256:6dec0b25f3a2a8bdfce8e3fd6f1d5020fe90e09a654f69a1bcf022a05f5e2165                                                                                    0.0s
+ => => naming to docker.io/library/fedorajava8:1.5                                                                                                                              0.0s
+[parallels@fedora myfile]$ sudo docker images
+REPOSITORY                                                 TAG       IMAGE ID       CREATED          SIZE
+fedorajava8                                                1.5       6dec0b25f3a2   13 seconds ago   518MB
+```
+
 
 ### 虚悬镜像  
 随便指定一个简单的 Dockerfile：
