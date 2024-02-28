@@ -2381,7 +2381,7 @@ ERROR: failed to solve: process "/bin/sh -c yum -y install vim" did not complete
 
 仅运行以下 Dockerfile 配置是没有问题的：
 ```dockerfile
-#期间以为是初始镜像的问题，此处将contos改为了fedora
+#期间以为是初始镜像的问题，此处将centos改为了fedora
 FROM fedora
 MAINTAINER zzyy<zzyybs@126.com>
 
@@ -2473,4 +2473,34 @@ Are you sure you want to continue? [y/N] y
 Deleted Images:
 deleted: sha256:6d4e92947709f532536c19aa2e2ab7834834b66bf15108e2c0770d4ab779e776
 ```
+
+# Docker 微服务实战
+## 打包 jar 包部署到云端
+1) 打包 jar 包
+2) 编写 Dockerfile 文件
+```dockerfile
+# 基础镜像使用java
+FROM java:8
+# 作者
+MAINTAINER zzyy
+# VOLUME 指定临时文件目录为/tmp，在主机/var/lib/docker目录下创建了一个临时文件并链接到容器的/tmp
+VOLUME /tmp
+# 将jar包添加到容器中并更名为zzyy_docker.jar
+ADD docker_boot-O.0.1-SNAPSHOT.jar zzyy_docker.jar
+# 运行jar包
+RUN bash -c 'touch /zzyy_docker.jar'
+# ENTRYPOINT 使用正常括号
+ENTRYPOINT ["java", "-jar", "/zzyy_docker.jar"]
+# 暴露6001端口作为微服务
+EXPOSE 6001
+```
+3) 构建镜像
+```
+docker build -t zzyy_docker:1.6 
+```
+4) 运行镜像
+```
+docker run -d -p 6001:6001 zzyy_docker:1.6
+```
+5) 访问测试
   
