@@ -2474,8 +2474,8 @@ Deleted Images:
 deleted: sha256:6d4e92947709f532536c19aa2e2ab7834834b66bf15108e2c0770d4ab779e776
 ```
 
-# Docker 微服务实战
-## 打包 jar 包部署到云端
+## Docker 微服务实战
+### 打包 jar 包部署到云端
 1) 打包 jar 包
 2) 编写 Dockerfile 文件
 ```dockerfile
@@ -2503,4 +2503,83 @@ docker build -t zzyy_docker:1.6
 docker run -d -p 6001:6001 zzyy_docker:1.6
 ```
 5) 访问测试
-  
+
+## Docker 网络
+### 查看网络的命令
+linux 可以通过两个命令查看网络，一是 `ifconfig`，`另一个是 ip addr`：
+```
+[parallels@fedora myfile]$ ifconfig
+docker0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        ether 02:42:7e:86:2d:ae  txqueuelen 0  (Ethernet)
+        RX packets 16184  bytes 703714 (687.2 KiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 186065  bytes 62583435 (59.6 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+enp0s5: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.211.55.5  netmask 255.255.255.0  broadcast 10.211.55.255
+        inet6 fe80::a693:c9f8:ce48:357c  prefixlen 64  scopeid 0x20<link>
+        inet6 fdb2:2c26:f4e4:0:81d:a17c:1c77:9aed  prefixlen 64  scopeid 0x0<global>
+        ether 00:1c:42:5e:6d:01  txqueuelen 1000  (Ethernet)
+        RX packets 1532177  bytes 1398081059 (1.3 GiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 993882  bytes 89297484 (85.1 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 1831592  bytes 1822918406 (1.6 GiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 1831592  bytes 1822918406 (1.6 GiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+```
+
+
+```
+[parallels@fedora myfile]$ ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: enp0s5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 00:1c:42:5e:6d:01 brd ff:ff:ff:ff:ff:ff
+    inet 10.211.55.5/24 brd 10.211.55.255 scope global dynamic noprefixroute enp0s5
+       valid_lft 1469sec preferred_lft 1469sec
+    inet6 fdb2:2c26:f4e4:0:81d:a17c:1c77:9aed/64 scope global dynamic noprefixroute 
+       valid_lft 2591851sec preferred_lft 604651sec
+    inet6 fe80::a693:c9f8:ce48:357c/64 scope link noprefixroute 
+       valid_lft forever preferred_lft forever
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether 02:42:7e:86:2d:ae brd ff:ff:ff:ff:ff:ff
+```
+- docker0:
+    - 描述： Docker创建的桥接网络。
+    - 用途： 用于Docker容器之间的通信和与主机的通信。
+- enp0s5:
+    - 描述： 物理网卡（Ethernet Port 0, Slot 5）。
+    - 用途： 连接到主机的物理网络，可能是通过以太网线连接到路由器或交换机的接口。
+- lo:
+    - 描述： Loopback接口。
+    - 用途： 用于本地回环，即主机自己与自己通信。常用于本地测试和网络调试。
+
+### Docker network 常用命令
+```
+[parallels@fedora myfile]$ sudo docker network --help
+
+Usage:  docker network COMMAND
+
+Manage networks
+
+Commands:
+  connect     Connect a container to a network
+  create      Create a network
+  disconnect  Disconnect a container from a network
+  inspect     Display detailed information on one or more networks
+  ls          List networks
+  prune       Remove all unused networks
+  rm          Remove one or more networks
+```
