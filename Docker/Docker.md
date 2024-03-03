@@ -2567,6 +2567,17 @@ lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
     - 用途： 用于本地回环，即主机自己与自己通信。常用于本地测试和网络调试。
 
 ### Docker network 常用命令
+Docker network 命令主要是为了：容器间的互联和通信以及端口映射，以及容器 IP 变动时候可以通过服务名直接网络道信而不受到影响。常用的命令如 `docker network ls`：
+```
+[parallels@fedora myfile]$ sudo docker network ls
+[sudo] password for parallels: 
+NETWORK ID     NAME      DRIVER    SCOPE
+821f336e8907   bridge    bridge    local
+95dbf0f8eb94   host      host      local
+34500d06d37c   none      null      local
+```
+
+其他常见命令可通过 `docker network --hlep` 查看
 ```
 [parallels@fedora myfile]$ sudo docker network --help
 
@@ -2583,3 +2594,17 @@ Commands:
   prune       Remove all unused networks
   rm          Remove one or more networks
 ```
+
+| 网络模式      | 简介                                                                |
+|-----------|-------------------------------------------------------------------|
+| bridge    | 为每一个容器分配、设置 IP 等，并将容器连接到一个 `docker0`。虚拟网桥，默认为该模式。                 | 
+| host      | 容器将不会虚拟出自己的网卡，配置自己的 IP 等，而是使用宿主机的IP 和端口。                          |
+| none<br/>(很少用) | 容器有独立的 Network namespace，但并没有对其进行任何网络设置，如分配 veth pair 和网桥连接，IP 等。 |
+| container | 新创建的容器不会创建自己的网卡和配置自己的 IP ，而是和一个指定的容器共享 IP 、端口范围等。                 |
+
+
+
+
+
+
+
