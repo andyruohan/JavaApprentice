@@ -2603,49 +2603,9 @@ Commands:
 | none<br/>(很少用) | 容器有独立的 Network namespace，但并没有对其进行任何网络设置，如分配 veth pair 和网桥连接，IP 等。 |
 | container | 新创建的容器不会创建自己的网卡和配置自己的 IP ，而是和一个指定的容器共享 IP 、端口范围等。                 |
 
-#### 桥接模式
-```
-[parallels@fedora myfile]$ sudo docker inspect bridge
-[
-    {
-        "Name": "bridge",
-        "Id": "34a09bec5db8790b50a1f43525828cd7dbc191d89b9d2b0bd753f9b2fa7449a7",
-        "Created": "2024-03-03T16:32:53.295532541+08:00",
-        "Scope": "local",
-        "Driver": "bridge",
-        "EnableIPv6": false,
-        "IPAM": {
-            "Driver": "default",
-            "Options": null,
-            "Config": [
-                {
-                    "Subnet": "172.17.0.0/16",
-                    "Gateway": "172.17.0.1"
-                }
-            ]
-        },
-        "Internal": false,
-        "Attachable": false,
-        "Ingress": false,
-        "ConfigFrom": {
-            "Network": ""
-        },
-        "ConfigOnly": false,
-        "Containers": {},
-        "Options": {
-            "com.docker.network.bridge.default_bridge": "true",
-            "com.docker.network.bridge.enable_icc": "true",
-            "com.docker.network.bridge.enable_ip_masquerade": "true",
-            "com.docker.network.bridge.host_binding_ipv4": "0.0.0.0",
-            "com.docker.network.bridge.name": "docker0",
-            "com.docker.network.driver.mtu": "1500"
-        },
-        "Labels": {}
-    }
-]
-```
+#### 桥接模式（交换机）
 ![](桥接模式.png)
-1) 新建两个 tomcat 容器实例
+1) 以默认网络模式，新建两个 tomcat 容器实例
 ```
 [parallels@fedora myfile]$ sudo docker run -d -p 8081:8080 --name tomcat81 tomcat
 5f74bdd7c8eefc8d6dc28f742d1b3b58118cceeab925de3b8ee0e15de07e079a
@@ -2684,7 +2644,7 @@ Commands:
        valid_lft forever preferred_lft forever
 ```
 
-3) 检查 tomcat 实例网络情况
+3) 进入 tomcat 实例内，检查网络情况
 >如果 `ip addr` 不可运行，可以先执行以下语句安装：
 >```
 >apt-get update
@@ -2721,67 +2681,152 @@ tomcat82:
 197: veth6cef2f6@if196  
 196: eth0@if197
 
-### 主机模式
+#### 主机模式
+![](主机模式.png)
+1) 以主机模式新建 tomcat 容器实例
+使用主机模式，`无需指定端口`，如果指定了会报警告：
 ```
-[parallels@fedora myfile]$ sudo docker inspect host
-[
-    {
-        "Name": "host",
-        "Id": "95dbf0f8eb94c79aed06308112a5f9e734814daec4f46be71858b809eb340ff0",
-        "Created": "2023-10-31T22:49:28.911421105+08:00",
-        "Scope": "local",
-        "Driver": "host",
-        "EnableIPv6": false,
-        "IPAM": {
-            "Driver": "default",
-            "Options": null,
-            "Config": []
-        },
-        "Internal": false,
-        "Attachable": false,
-        "Ingress": false,
-        "ConfigFrom": {
-            "Network": ""
-        },
-        "ConfigOnly": false,
-        "Containers": {},
-        "Options": {},
-        "Labels": {}
+[parallels@fedora myfile]$ sudo docker run -d -p 8083:8080 --network host --name tomcat83 tomcat
+WARNING: Published ports are discarded when using host network mode
+36ecbbdaf4de11b00fa5281aa1137f87a43a2d1b93647f3ba7e75f939bb70b0c
+```
+
+直接按如下命令执行即可：
+```
+[parallels@fedora myfile]$ sudo docker run -d --network host --name tomcat83 tomcat
+7e6bd2158b8dad2de604ebcd165653e2a92bc559192ab27049dc715293ff1288
+```
+
+2) 检查 tomcat83 实例
+```
+[parallels@fedora myfile]$ sudo docker inspect tomcat83 | tail -n 20
+            "Networks": {
+                "host": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "95dbf0f8eb94c79aed06308112a5f9e734814daec4f46be71858b809eb340ff0",
+                    "EndpointID": "65e699ce8ead09119f0777f92c01d7bb6a7258e6209870c81660e4b2b59c8b62",
+                    "Gateway": "",
+                    "IPAddress": "",
+                    "IPPrefixLen": 0,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "",
+                    "DriverOpts": null
+                }
+            }
+        }
     }
 ]
 ```
 
-### none 模式
+3) 宿主机网络情况
 ```
-[parallels@fedora myfile]$ sudo docker inspect none
-[
-    {
-        "Name": "none",
-        "Id": "34500d06d37c06d7bed42e55c0c4c00392fbfba9ce99abcb574170bc9f289630",
-        "Created": "2023-10-31T22:49:28.896579641+08:00",
-        "Scope": "local",
-        "Driver": "null",
-        "EnableIPv6": false,
-        "IPAM": {
-            "Driver": "default",
-            "Options": null,
-            "Config": []
-        },
-        "Internal": false,
-        "Attachable": false,
-        "Ingress": false,
-        "ConfigFrom": {
-            "Network": ""
-        },
-        "ConfigOnly": false,
-        "Containers": {},
-        "Options": {},
-        "Labels": {}
+[parallels@fedora myfile]$ ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: enp0s5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 00:1c:42:5e:6d:01 brd ff:ff:ff:ff:ff:ff
+    inet 10.211.55.5/24 brd 10.211.55.255 scope global dynamic noprefixroute enp0s5
+       valid_lft 1649sec preferred_lft 1649sec
+    inet6 fdb2:2c26:f4e4:0:81d:a17c:1c77:9aed/64 scope global dynamic noprefixroute 
+       valid_lft 2591661sec preferred_lft 604461sec
+    inet6 fe80::a693:c9f8:ce48:357c/64 scope link noprefixroute 
+       valid_lft forever preferred_lft forever
+3: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:7e:86:2d:ae brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+195: veth1817f72@if194: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether 72:69:8b:ba:f5:31 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet6 fe80::7069:8bff:feba:f531/64 scope link 
+       valid_lft forever preferred_lft forever
+197: veth6cef2f6@if196: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether 4a:1d:ae:5c:7e:3f brd ff:ff:ff:ff:ff:ff link-netnsid 1
+    inet6 fe80::481d:aeff:fe5c:7e3f/64 scope link 
+       valid_lft forever preferred_lft forever
+```
+
+3) 进入 tomcat83 容器，检查网络情况
+```
+root@fedora:/usr/local/tomcat# ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: enp0s5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 00:1c:42:5e:6d:01 brd ff:ff:ff:ff:ff:ff
+    inet 10.211.55.5/24 brd 10.211.55.255 scope global dynamic noprefixroute enp0s5
+       valid_lft 1041sec preferred_lft 1041sec
+    inet6 fdb2:2c26:f4e4:0:81d:a17c:1c77:9aed/64 scope global dynamic noprefixroute 
+       valid_lft 2591953sec preferred_lft 604753sec
+    inet6 fe80::a693:c9f8:ce48:357c/64 scope link noprefixroute 
+       valid_lft forever preferred_lft forever
+3: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:7e:86:2d:ae brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+195: veth1817f72@if194: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether 72:69:8b:ba:f5:31 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet6 fe80::7069:8bff:feba:f531/64 scope link 
+       valid_lft forever preferred_lft forever
+197: veth6cef2f6@if196: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether 4a:1d:ae:5c:7e:3f brd ff:ff:ff:ff:ff:ff link-netnsid 1
+    inet6 fe80::481d:aeff:fe5c:7e3f/64 scope link 
+       valid_lft forever preferred_lft forever
+```
+会发现与步骤2中的网络情况几乎一致。
+
+
+#### none 模式
+1) 以 none 模式新建容器实例
+```
+[parallels@fedora ~]$ sudo docker run -d -p 8084:8080 --network none --name tomcat84 tomcat
+54d2768178a96fda26ef29fb37dba05b5e74dda1441732cf2a46d930b39f762e
+```
+
+2) 检查 tomcat84 容器实例
+```
+[parallels@fedora ~]$ sudo docker inspect tomcat84 | tail -n 20
+            "Networks": {
+                "none": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "34500d06d37c06d7bed42e55c0c4c00392fbfba9ce99abcb574170bc9f289630",
+                    "EndpointID": "830c97ece5ce9e7496706aef787ef23097ee04c715e8f205320aede9cdc92216",
+                    "Gateway": "",
+                    "IPAddress": "",
+                    "IPPrefixLen": 0,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "",
+                    "DriverOpts": null
+                }
+            }
+        }
     }
 ]
 ```
 
-
+3) 进入 tomcat84 容器内，检查网络情况
+由于此次使用的简版 tomcat，自身没有带 ip addr 命令，且为 none 模式无法安装该命令。正常情况下，应为只能看到回环 lo 的虚拟网卡。类似于下面这种：
+```
+root@5f74bdd7c8ee:/usr/local/tomcat# ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+```
 
 
 
