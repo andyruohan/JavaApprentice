@@ -2828,5 +2828,58 @@ root@5f74bdd7c8ee:/usr/local/tomcat# ip addr
        valid_lft forever preferred_lft forever
 ```
 
+#### container 模式（共用一个吸管）
+![](container模式.png)
 
+1) 以 container 模式，新建两个 tomcat 容器实例
+```
+[parallels@fedora ~]$ sudo docker run -d -p 8085:8080 --name tomcat85 tomcat
+fc192fe3b819b9c5f60ef9c65c955b1fa0ef7c3e1c7d24fb0d9b134ea774fa5a
+[parallels@fedora ~]$ sudo docker run -d -p 8086:8080 --network container:tomcat85 --name tomcat86 tomcat
+docker: Error response from daemon: conflicting options: port publishing and the container type network mode.
+```
+两个实例共用 8080 网络端口，导致 tomcat86 启动失败。
 
+2) 以 container 模式，新建两个 alpine 容器实例
+> alpine 是一款以小巧、简单、安全著称的非商用 Linux 发行版。镜像不到 6M 的大小，特别适合容器打包。
+
+```alpine1
+[parallels@fedora ~]$ sudo docker run -it --name alpine1 alpine /bin/sh
+/ # ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+202: eth0@if203: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue state UP 
+    link/ether 02:42:ac:11:00:04 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.4/16 brd 172.17.255.255 scope global eth0
+       valid_lft forever preferred_lft forever
+```
+
+```alpine2
+[parallels@fedora myfile]$ sudo docker run -it --network container:alpine1 --name alpine2 alpine /bin/sh
+/ # ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+202: eth0@if203: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue state UP 
+    link/ether 02:42:ac:11:00:04 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.4/16 brd 172.17.255.255 scope global eth0
+       valid_lft forever preferred_lft forever
+```
+可以看到，以 container 模式关联的两个容器实例的网络情况一摸一样。
+
+3) 退出 alpine1，查看 alpine2 的网络情况
+```alpine1
+/ # exit
+```
+
+```alpine2
+/ # ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+```
+可以看到，alpine2 的网络只剩下 lo 了。
