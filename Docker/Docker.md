@@ -2976,3 +2976,29 @@ tomcat82
     64 bytes from tomcat81.andy_network (172.18.0.2): icmp_seq=7 ttl=64 time=0.137 ms
     ```
    
+### Docker-Compose
+#### 能做什么？  
+Docker-Compose 解决了容器与容器之间如何管理编排的问题。
+
+```java
+String strA = new String();
+String strB = new String();
+String strC = new String();
+List<String> list1 = new ArrayList();
+List<String> list2 = new ArrayList();
+list1.add(A);
+list1.add(B);
+list2.add(C);
+```
+
+```
+docker run redis
+docker run mysql
+docker run nginx
+...
+# 解决一些容器实例需启动的问题(如 redis + mysql 需先启动)，来做好编排进行一键启动
+...
+
+# 然后统一关闭
+docker stop
+```
