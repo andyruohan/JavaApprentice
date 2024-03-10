@@ -2883,3 +2883,95 @@ docker: Error response from daemon: conflicting options: port publishing and the
        valid_lft forever preferred_lft forever
 ```
 可以看到，alpine2 的网络只剩下 lo 了。
+
+
+```
+apt-get update && apt-get install -y iputils-ping
+```
+
+#### 自定义网络模式（防止 IP 变动）
+自定义网络模式解决的问题：容器 IP 变动时候可以通过服务名直接网络通信而不受影响。 
+
+以此前的桥接模式为例，通过 IP 来 ping 是 OK 的：
+```tomcat81
+root@5f74bdd7c8ee:/usr/local/tomcat# ping 172.17.0.3
+PING 172.17.0.3 (172.17.0.3) 56(84) bytes of data.
+64 bytes from 172.17.0.3: icmp_seq=1 ttl=64 time=1.25 ms
+64 bytes from 172.17.0.3: icmp_seq=2 ttl=64 time=0.271 ms
+64 bytes from 172.17.0.3: icmp_seq=3 ttl=64 time=0.226 ms
+64 bytes from 172.17.0.3: icmp_seq=4 ttl=64 time=0.350 ms
+64 bytes from 172.17.0.3: icmp_seq=5 ttl=64 time=0.187 ms
+64 bytes from 172.17.0.3: icmp_seq=6 ttl=64 time=0.217 ms
+64 bytes from 172.17.0.3: icmp_seq=7 ttl=64 time=0.251 ms
+```
+
+```tomcat82
+root@519a749e605f:/usr/local/tomcat# ping 172.17.0.2
+PING 172.17.0.2 (172.17.0.2) 56(84) bytes of data.
+64 bytes from 172.17.0.2: icmp_seq=1 ttl=64 time=0.261 ms
+64 bytes from 172.17.0.2: icmp_seq=2 ttl=64 time=0.256 ms
+64 bytes from 172.17.0.2: icmp_seq=3 ttl=64 time=0.275 ms
+64 bytes from 172.17.0.2: icmp_seq=4 ttl=64 time=0.338 ms
+64 bytes from 172.17.0.2: icmp_seq=5 ttl=64 time=0.316 ms
+64 bytes from 172.17.0.2: icmp_seq=6 ttl=64 time=0.155 ms
+64 bytes from 172.17.0.2: icmp_seq=7 ttl=64 time=0.239 ms
+```
+
+但是通过服务名来 ping，却是 ping 不通的：
+```tomcat81
+root@5f74bdd7c8ee:/usr/local/tomcat# ping tomcat82
+ping: tomcat82: Name or service not known
+```
+
+```tomcat82
+root@519a749e605f:/usr/local/tomcat# ping tomcat81
+ping: tomcat81: Name or service not known
+```
+这样将会导致，如果某台容器实例中断了，请求不能正确地被转发到相应实例。
+
+##### 如何使用自定义网络模式
+1) 创建自定义网络 andy_network
+```
+[parallels@fedora ~]$ sudo docker run -d -p 8081:8080 --network andy_network  --name andy_tomcat81 tomcat
+4c9107af199b3790506a2641e541a1b96ea5cc09c265b56bcc1cf3f7af8aee0b
+```
+
+2) tomcat81、tomcat82 以自定义网络启动容器实例
+因为之前已经使用过了 tomcat81、tomcat82，所以此处先进行删除
+```
+[parallels@fedora ~]$ sudo docker rm -f andy_tomcat81
+andy_tomcat81
+[parallels@fedora ~]$ sudo docker run -d -p 8081:8080 --network andy_network  --name tomcat81 tomcat
+06c180341de4804e122297d22378d7790622ee5fcd6d9042b478d9f076e28ec5
+[parallels@fedora ~]$ sudo docker rm -f tomcat82
+tomcat82
+[parallels@fedora ~]$ sudo docker run -d -p 8082:8080 --network andy_network  --name tomcat82 tomcat
+591e7c4ec9615b603c4f116dc4340df61ee65728f4b592e33dfa57be9a3e5602
+```
+
+3) 以服务名运行 ping 命令  
+   1) tomcat81 ping tomcat82
+    ```tomcat81
+    root@06c180341de4:/usr/local/tomcat# ping tomcat82
+    PING tomcat82 (172.18.0.3) 56(84) bytes of data.
+    64 bytes from tomcat82.andy_network (172.18.0.3): icmp_seq=1 ttl=64 time=0.839 ms
+    64 bytes from tomcat82.andy_network (172.18.0.3): icmp_seq=2 ttl=64 time=0.289 ms
+    64 bytes from tomcat82.andy_network (172.18.0.3): icmp_seq=3 ttl=64 time=0.306 ms
+    64 bytes from tomcat82.andy_network (172.18.0.3): icmp_seq=4 ttl=64 time=0.129 ms
+    64 bytes from tomcat82.andy_network (172.18.0.3): icmp_seq=5 ttl=64 time=0.169 ms
+    64 bytes from tomcat82.andy_network (172.18.0.3): icmp_seq=6 ttl=64 time=0.192 ms
+    64 bytes from tomcat82.andy_network (172.18.0.3): icmp_seq=7 ttl=64 time=0.298 ms
+    ```
+
+    2) tomcat82 ping tomcat81
+
+    ```tomcat82
+    PING tomcat81 (172.18.0.2) 56(84) bytes of data.
+    64 bytes from tomcat81.andy_network (172.18.0.2): icmp_seq=1 ttl=64 time=0.563 ms
+    64 bytes from tomcat81.andy_network (172.18.0.2): icmp_seq=2 ttl=64 time=0.285 ms
+    64 bytes from tomcat81.andy_network (172.18.0.2): icmp_seq=3 ttl=64 time=0.335 ms
+    64 bytes from tomcat81.andy_network (172.18.0.2): icmp_seq=4 ttl=64 time=0.198 ms
+    64 bytes from tomcat81.andy_network (172.18.0.2): icmp_seq=5 ttl=64 time=0.214 ms
+    64 bytes from tomcat81.andy_network (172.18.0.2): icmp_seq=6 ttl=64 time=0.219 ms
+    64 bytes from tomcat81.andy_network (172.18.0.2): icmp_seq=7 ttl=64 time=0.137 ms
+    ```
