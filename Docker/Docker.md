@@ -2224,8 +2224,8 @@ S: 5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386
 ```
 可以看到，集群已经变为三主三从了。
 
-
-### Dockerfile 配置命令
+### Dockerfile
+#### Dockerfile 配置命令
 配置命令参考：https://docs.docker.com/engine/reference/builder/  
 配置样例参考 https://github.com/docker-library/tomcat
 - **FROM**：指明当前新镜像是基于哪个镜像的，第一条必须是 FROM。  
@@ -2278,7 +2278,7 @@ S: 5f4f8ffb65fe4879b5f293787d500896d009b6bc 10.211.55.5:6386
     | Docker命令 | `docker run nginx:test`   | `docker run nginx:test -c /etc/nginx/new.conf` |
     | 衍生出的实际命令 | `nginx -c /etc/nginx/nginx.conf` | `nginx -c /etc/nginx/new.conf` |
     
-### Dockerfile 实际案例
+#### Dockerfile 实际案例
 精简版 centOS + vim + ifconfig + jdk8
 JDK 镜像下载地址：https://mirrors.yangxingzhen.com/jdk/  
 官网下载地址：https://www.oracle.com/java/technologies/downloads/#java8
@@ -2975,3 +2975,4 @@ tomcat82
     64 bytes from tomcat81.andy_network (172.18.0.2): icmp_seq=6 ttl=64 time=0.219 ms
     64 bytes from tomcat81.andy_network (172.18.0.2): icmp_seq=7 ttl=64 time=0.137 ms
     ```
+   
