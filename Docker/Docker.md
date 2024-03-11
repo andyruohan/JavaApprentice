@@ -2976,8 +2976,8 @@ tomcat82
     64 bytes from tomcat81.andy_network (172.18.0.2): icmp_seq=7 ttl=64 time=0.137 ms
     ```
    
-### Docker-Compose
-#### 能做什么？  
+## Docker-Compose
+### 能做什么？  
 Docker-Compose 解决了容器与容器之间如何管理编排的问题。
 
 ```java
@@ -3002,3 +3002,49 @@ docker run nginx
 # 然后统一关闭
 docker stop
 ```
+
+### 如何下载？
+compose-file 介绍，参考官网：https://docs.docker.com/compose/compose-file/compose-file-v3/
+
+compose 安装，参照官网：https://docs.docker.com/compose/install/standalone/
+1) 下载 compose-compose
+```
+curl -SL https://github.com/docker/compose/releases/download/v2.24.7/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+```
+
+2) 给文件夹添加权限
+```
+sudo chmod +x /usr/local/bin/docker-compose
+```
+
+3) 检查 compose 版本
+```
+sudo docker-compose --version
+```
+
+遇到的问题：
+无论是官方，还是尚硅谷的地址，都访问不通：
+```
+[parallels@fedora ~]$ sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:--  0:01:15 --:--:--     0
+curl: (7) Failed to connect to github.com port 443 after 75069 ms: Connection refused
+[parallels@fedora ~]$ curl -SL https://github.com/docker/compose/releases/download/v2.24.7/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:--  0:01:15 --:--:--     0
+curl: (7) Failed to connect to github.com port 443 after 75065 ms: Connection refused
+```
+
+### compose 核心概念
+- 一文件：docker-compose.yml  
+- 两要素：
+  - 服务：一个个应用容器实例，比如订单微服务、库存微服务、mysql 容器、nginx 容器或 redis 容器
+  - 工程：由一组关联的应用容器组成的一个完整业务单元，在docker-compose.yml 文件中定义。
+
+### compose 使用步骤
+三个步骤：
+  - 编写 Dockerfile 定义各个微服务应用并构建出对应的镜像文件
+  - 使用 docker-compose.yml，定义一个完整业务单元，安排好整体应用中的各个容器服务
+  - 最后，执行docker-compose up命令来启动并运行整个应用程序，完成一键部署上线
