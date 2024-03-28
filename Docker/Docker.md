@@ -3048,3 +3048,139 @@ curl: (7) Failed to connect to github.com port 443 after 75065 ms: Connection re
   - 编写 Dockerfile 定义各个微服务应用并构建出对应的镜像文件
   - 使用 docker-compose.yml，定义一个完整业务单元，安排好整体应用中的各个容器服务
   - 最后，执行docker-compose up命令来启动并运行整个应用程序，完成一键部署上线
+
+### 是否使用 compose 对比
+#### 未使用 compose
+以 mysql + redis + springboot 为基础的订单系统为例，未使用 compose 会遇到以下问题：
+1) 先后顺序要求固定，先 mysql + redis 才能微服务访问成功。
+2) 需要手动执行多个run命令，如：
+```
+# 启动mysql
+docker run -p 3306:3306 --name mysgl57 --privileged=true -v /zzyyuse/mysql/conf:/etc/mysql/conf.d -v /zzyyuse/mysql/logs:/logs -v /zzyyuse/mysql/data:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=123456 -d mysql:5.7
+
+# 启动redis
+docker run -p 6379:6379 --name redis608 --privileged=true -v /app/redis/redis.conf:/etc/redis/redis.conf -v /app/redis/data:/data -d redis:6.0.8 redis-server /etc/redis/redis.conf
+
+# 启动springboot
+docker run -d -p 6001:6001 custom_springboot:1.6
+```
+3) 容器间的后停或宕机，有可能导致 IP 地址对应的容器实例变化、映射出错。
+```properties
+server.port=6001
+#alibaba.druid相关配置
+spring.datasource.type=com.alibaba.druid.pool.DruidDatasource
+spring.datasource.driver-class-name=com.mysql.jdbc.Driver
+spring.datasource.ur1=jdbc:mysql://192.168.111.169:3306/db2021?useUnicode=true&characterEncoding=utf-8&useSSL=false
+spring.datasource.username=root
+spring.datasource.password=123456
+spring.datasource.druid.test-while-idle=false
+#redis相关配置
+spring.redis.database=0
+spring.redis.host=192.168.111.169
+spring.redis.port=6379
+spring.redis.password=
+spring.redis.lettuce.pool.max-active=8 spring.redis.lettuce.pool.max-wait=-1ms
+spring.redis.lettuce.pool.max-idle=8
+spring.redis.lettuce.pool.min-idle=0
+#mybatis相关配置
+mybatis.mapper-locations=classpath:mapper/*.xml
+mybatis.type-aliases-package=com.atguigu.docker.entities
+#swagger配置
+spring.swagger2.enabled=true
+```
+> 实际生产要么 IP 写死（可以但是不推荐），要么通过应用服务名去调用。
+
+#### 使用 compose
+可以直接通过以下脚本来控制，不必再逐个以命令行去敲：
+```yaml
+version: "3"
+  services:
+    microService:
+      image: zzyy_docker:1.6
+      container_name: ms01 
+      ports:
+        - "6001:6001" 
+      volumes:
+        - /app/microService:/data 
+      networks:
+        - atguigu_net
+      #控制启动顺序
+      depends_on: 
+        - redis
+        - mysql
+        
+    redis:
+      image: redis:6.0.8 
+      ports:
+        - "6379:6379" 
+      volumes:
+        - /app/redis/redis.conf:/etc/redis/redis.conf
+        - /app/redis/data:/data 
+      networks:
+        - atguigu_net
+      command: redis-server /etc/redis/redis.conf
+      
+    mysql:
+      image: mysql:5.7 
+      environment:
+        MYSQL_ROOT_PASSWORD: '123456'
+        MYSQL_ALLOW_EMPTY_PASSWORD: 'no'
+        MYSQL_DATABASE: 'db2021'
+        MYSQL_USER: 'zzyy'
+        MYSQL_PASSWORD: 'zzyy123'
+      ports:
+        - "3306:3306"
+      volumes:
+        - /app/mysql/db:/var/lib/mysql
+        - /app/mysql/conf/my.cnf:/etc/my.cnf
+        - /app/mysql/init:/docker-entrypoint-initdb.d
+      networks:
+        - atguigu_net
+      #解决外部无法访问
+      command: --default-authentication-plugin=mysql_native_password 
+  networks:
+    atguigu_net:
+```
+同时，springboot 启动 yaml 文件，也可以通过服务名去代替 IP，即
+```properties
+server.port=6001
+#alibaba.druid相关配置
+spring.datasource.type=com.alibaba.druid.pool.DruidDatasource
+spring.datasource.driver-class-name=com.mysql.jdbc.Driver
+#spring.datasource.ur1=jdbc:mysql://192.168.111.169:3306/db2021?useUnicode=true&characterEncoding=utf-8&useSSL=false
+spring.datasource.ur1=jdbc:mysql://mysql:3306/db2021?useUnicode=true&characterEncoding=utf-8&useSSL=false
+spring.datasource.username=root
+spring.datasource.password=123456
+spring.datasource.druid.test-while-idle=false
+#redis相关配置
+spring.redis.database=0
+#spring.redis.host=192.168.111.169
+spring.redis.host=redis
+spring.redis.port=6379
+spring.redis.password=
+spring.redis.lettuce.pool.max-active=8 spring.redis.lettuce.pool.max-wait=-1ms
+spring.redis.lettuce.pool.max-idle=8
+spring.redis.lettuce.pool.min-idle=0
+#mybatis相关配置
+mybatis.mapper-locations=classpath:mapper/*.xml
+mybatis.type-aliases-package=com.atguigu.docker.entities
+#swagger配置
+spring.swagger2.enabled=true
+```
+
+### compose常用命令
+| 命令                                                        | 用途                                                                 |
+|-----------------------------------------------------------|--------------------------------------------------------------------|
+| docker-compose -h                                         | 查看帮助                                                               |
+| docker-compose up                                         | 启动所有docker-compose服务                                               |
+| docker-compose up -d                                      | 启动所有docker-compose服务并后台运行                                          |
+| <font color = 'red'>docker-compose down</font>            | 停止并删除容器、网络、卷、镜像                                                    |
+| <font color = 'red'>docker-compose exec yml里面的服务id</font> | 进入容器实例内部 docker-compose exec docker-compose.yml文件中写的服务id /bin/bash |
+| docker-compose ps                                         | 展示当前docker-compose编排过的运行的所有容器                                      |
+| docker-compose top                                        | 展示当前docker-compose编排过的容器进程                                         |
+| docker-compose logs yml里面的服务id                            | 查看容器输出日志                                                           |
+| docker-compose config                                     | 检查配置                                                               |
+| <font color = 'red'>docker-compose config -q</font>       | 检查配置，有问题才有输出                                                       |
+| docker-compose restart                                    | 重启服务                                                               |
+| docker-compose start                                      | 启动服务                                                               |
+| docker-compose stop                                       | 停止服务                                                               |
