@@ -3184,3 +3184,75 @@ spring.swagger2.enabled=true
 | docker-compose restart                                    | 重启服务                                                               |
 | docker-compose start                                      | 启动服务                                                               |
 | docker-compose stop                                       | 停止服务                                                               |
+
+
+### Docker 可视化工具 portainer
+官网：https://www.portainer.io  
+官方文档：https://docs.portainer.io/start/install-ce/server/docker/linux
+
+#### Docker 上安装 portainer
+按照官方文档步骤，即可安装 portainer。
+```
+1) 创建容器卷 docker volume create portainer_data
+2) 创建容器 docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
+3) 访问 https://localhost:9443
+```
+
+实际命令如下：
+```
+[parallels@fedora ~]$ sudo docker volume create portainer_data
+[sudo] password for parallels: 
+portainer_data
+[parallels@fedora ~]$ sudo docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
+Unable to find image 'portainer/portainer-ce:latest' locally
+latest: Pulling from portainer/portainer-ce
+0ea73420e2bb: Pull complete 
+c367f59be2e1: Pull complete 
+b805c48f1c34: Pull complete 
+Digest: sha256:4f126c5114b63e9d1bceb4b368944d14323329a9a0d4e7bb7eb53c9b7435d498
+Status: Downloaded newer image for portainer/portainer-ce:latest
+9ab6ee0eb5721ab2e546a46adfff1b62b59f8583fc534bd60573dbbe3c030b99
+[parallels@fedora ~]$ sudo docker ps
+CONTAINER ID   IMAGE                           COMMAND                  CREATED          STATUS          PORTS                                                                                            NAMES
+9ab6ee0eb572   portainer/portainer-ce:latest   "/portainer"             51 seconds ago   Up 50 seconds   0.0.0.0:8000->8000/tcp, :::8000->8000/tcp, 0.0.0.0:9443->9443/tcp, :::9443->9443/tcp, 9000/tcp   portainer
+```
+
+创建 portainer 容器后，访问 https://localhost:9443 的结果为：
+![](portainer访问页面.png)
+
+#### 利用 portainer 安装 nginx
+1) 在 container -> Add container 下，做如下配置并点击 Deploy the container。
+![](配置nginx镜像.png)
+
+2) 查看运行结果（列举了以下两种方式）
+   1) 访问 http://10.211.55.5:80/
+   ![](以host80访问nginx首页.png)
+   2) 在 container -> mynginx -> Exec Console下，执行 curl 127.0.0.1:80
+   ![](以console访问nginx首页.png)
+    ```
+    root@db221f334245:/# curl 127.0.0.1:80
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <title>Welcome to nginx!</title>
+    <style>
+    html { color-scheme: light dark; }
+    body { width: 35em; margin: 0 auto;
+    font-family: Tahoma, Verdana, Arial, sans-serif; }
+    </style>
+    </head>
+    <body>
+    <h1>Welcome to nginx!</h1>
+    <p>If you see this page, the nginx web server is successfully installed and
+    working. Further configuration is required.</p>
+    
+    <p>For online documentation and support please refer to
+    <a href="http://nginx.org/">nginx.org</a>.<br/>
+    Commercial support is available at
+    <a href="http://nginx.com/">nginx.com</a>.</p>
+    
+    <p><em>Thank you for using nginx.</em></p>
+    </body>
+    </html>
+    root@db221f334245:/#
+    ```
