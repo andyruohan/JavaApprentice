@@ -3186,7 +3186,7 @@ spring.swagger2.enabled=true
 | docker-compose stop                                       | 停止服务                                                               |
 
 
-### Docker 可视化工具 portainer
+### Docker 轻量级可视化工具 portainer
 官网：https://www.portainer.io  
 官方文档：https://docs.portainer.io/start/install-ce/server/docker/linux
 
@@ -3256,3 +3256,29 @@ CONTAINER ID   IMAGE                           COMMAND                  CREATED 
     </html>
     root@db221f334245:/#
     ```
+   
+### Docker 重量级监控工具 CIG
+#### 为什么需要 CIG
+通过 docker stats 命令可以很方便的看到当前宿主机上所有容器的CPU，内存以及网络流量等数据。但 docker stats 统计结果数据是实时的，没有地方存储、没有健康指标过线预警等功能。
+
+#### CIG 是什么
+C：CAdvisor 监控收集 + I：InfluxDB 存储数据 + G：Granfana 展示图表
+![](CIG工作图示.png)
+
+##### CAdvisor
+CAdvisor 是一个容器资源监控工具，包括容器的内存、CPU、网络 IO、磁盘 IO 等监控，同时提供了一个 WEB 页面用于查看容器的实时运行状态。CAdvisor 默认存储 2 分钟的数据，而且只是针对单物理机。不过，CAdvisor 提供了很多数据集成接口，支持 InfluxDB，Redis，Kafka，Elasticsearch等集成，可以加上对应配置将监控数据发往这些数据库存储起来。
+CAdvisor 功能主要有两点：
+- 展示 Host 和容器两个层次的监控数据。
+- 展示历史变化数据。
+
+##### InfluxDB
+InfluxDB 是用 Go 语言编写的一个开源分布式时序、事件和指标数据库，无需外部依赖。  
+CAdvisor 默认只在本机保存最近 2 分钟的数据，为了持久化存储数据和统一收集展示监控数据，需要将数据存储到 InfluxDB 中。InfluxDB 是一个时序数据库，专门用于存储时序相关数据，很适合存储 CAdvisor 的数据。而且，CAdvisor 本身已经提供了 InfluxDB 的集成方法，未启动容器时指定配置即可。
+InfluxDB 主要功能：
+- 基于时间序列，支持与时间有关的相关函数（如最大、最小、求和等）；
+- 可度量性：可以实时对大量数据进行计算；
+- 基于事件：它支持任意的事件数据；
+
+#### 如何使用
+```yaml
+```
