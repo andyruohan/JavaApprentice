@@ -41,7 +41,7 @@ idea markdown插件显示导航栏：Alt + 7
 
 #添加图片
 ######本地图片
-![avatar](Docker/images/K8s/deployment_sample.jpeg)
+![avatar](docker/images/K8s/deployment_sample.jpeg)
 ######网络图片
 ![avatar](https://pics4.baidu.com/feed/728da9773912b31b7b15c4b0415e0d70dbb4e1fb.jpeg?token=35056621c2470dccec18e940b026c234)
 ######base64方式，尚不知为何显示不出来
