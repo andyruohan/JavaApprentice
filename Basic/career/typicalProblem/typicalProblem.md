@@ -44,3 +44,6 @@ RandomAccessFile 类可以帮助我们合并文件分片，示例代码如下：
 2. 一事通任务的派发
 3. 异步事件表的运行
 
+#### Spring AOP 切面问题
+在Service类中，我有methodA和methodB两个方法，methodA中嵌套着methodB，我把切换数据源的切面@DataSoure加在methodA上可以生效，但加在methodB上不生效，如何解决这个问题呢？
+
