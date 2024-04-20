@@ -3334,3 +3334,20 @@ services:
       - INFLUXDB_PASS=root
 
 ```
+
+# 后记
+条件不具备、未实操成功的 cases：
+1) **mysql 主从复制**  
+   出现问题：主从机网络不通。考虑可能为运行在苹果 parallel desktop 软件上的虚拟机系统 fedora 上的 mysql Docker容器实例，虚拟运行过深的影响。
+2) **Dockerfile运行：精简版 centOS + vim + ifconfig + jdk8**  
+   出现问题：安装centOS 时报：No URLs in mirrorlist。单以 fedora + jdk8 以 Dockerfile 打包运行是可以的。
+    ```
+     > [3/7] RUN yum -y install vim:
+    #0 7.813 CentOS Linux 8 - AppStream                      5.2  B/s |  38  B     00:07    
+    #0 7.821 Error: Failed to download metadata for repo 'appstream': Cannot prepare internal mirrorlist: No URLs in mirrorlist
+    ------
+    ```
+3) **容器与容器之间编排运行**  
+   出现问题：docker-compose 未下载成功。
+4) **重量级监控工具 CIG**  
+   暂无此类监控需求，未实践。
