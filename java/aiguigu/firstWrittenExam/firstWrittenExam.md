@@ -63,8 +63,8 @@ mysql> EXPLAIN SELECT * FROM emp where age = 33 and deptId = '2027' and name = '
 - **Extra**: 这列提供了关于查询执行过程的额外信息。一些常见的值包括 "Using index"（表示查询使用了覆盖索引）、"Using where"（表示查询使用了 WHERE 子句中的条件）、"Using temporary"（表示查询需要使用临时表）、"Using filesort"（表示查询需要对结果进行排序）等。
 
 
-## 案例实测
-### 无过滤不索引
+### 案例实测
+#### 无过滤不索引
 1) 查看索引
 ```
 mysql> SHOW INDEX FROM emp;
@@ -103,3 +103,24 @@ mysql> EXPLAIN SELECT * FROM emp where age > 1000 ORDER BY age,deptid;
 1 row in set, 1 warning (0.01 sec)
 ```
 Extra 栏使用了 `index condition`。
+
+
+## JVM 内存模型中，为什么要区分新生代和年老代，对于新生代为什么又要区分 eden 区、survivor 区?
+### 为什么要区分新生代和年老代核心要点
+- 不同年龄代收集算法不同
+- 对内存连续空间的处理不同（亦即垃圾碎片的处理）
+
+### 新生代为什么又要区分 eden 区、survivor 区核心要点
+- 为了更有效的区分哪些对象应该被复制到老年代
+
+### 知识延伸
+#### 新生代的流转过程
+![image-20230312072639148](img/image-20230312072639148.png)
+1) 新对象会被保存到 eden 区（开始是空的所以内存连续），eden 区满了会把有效对象复制到 s0（s0 也是空的所以也是连续空间） 
+2) 清空 eden 区（再次写入时又是连续空间） 
+3) s0 和 s1 在命名上互换，原来的 s1 等待写入（空的） 
+4) eden区再次满了，重复上面步骤
+
+#### 不同年代的代表算法
+1) 新生代：复制算法，如半空间复制算法。
+2) 老年代：标记-整理-清除算法，如 CMS（没有整理环节，有可能产生垃圾碎片）、G1 算法。
