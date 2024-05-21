@@ -124,3 +124,12 @@ Extra 栏使用了 `index condition`。
 #### 不同年代的代表算法
 1) 新生代：复制算法，如半空间复制算法。
 2) 老年代：标记-整理-清除算法，如 CMS（没有整理环节，有可能产生垃圾碎片）、G1 算法。
+
+## 远程调用 RPC(Remote Procedure Call) 有哪几种
+远程调用RPC有几种常见的实现方式，包括：
+1) 基于HTTP协议的RESTful API：使用HTTP请求和响应进行通信，常见于Web服务和RESTful API。
+2) 基于TCP/IP的Socket编程：直接通过套接字进行数据传输，可以实现自定义的远程调用协议。
+3) 基于SOAP（Simple Object Access Protocol）的Web服务：使用XML作为消息格式，在Web服务中较为常见，但已逐渐被RESTful API替代。
+4) 基于消息队列（Message Queue）的RPC：通过消息队列实现异步通信，例如使用AMQP（Advanced Message Queuing Protocol）或者其他消息队列系统。
+5) 基于Dubbo：Dubbo是阿里巴巴开源的基于Java的RPC框架，提供高性能、透明化的远程方法调用，支持多种协议、集群容错、负载均衡等特性，广泛用于企业级分布式应用开发。
+6) 基于WebFlux和Spring Data Reactive：利用WebFlux构建响应式的Web服务，同时结合Spring Data Reactive处理数据存取，实现异步响应式的RPC调用。
