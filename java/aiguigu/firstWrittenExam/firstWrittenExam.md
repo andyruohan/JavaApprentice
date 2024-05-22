@@ -127,9 +127,25 @@ Extra 栏使用了 `index condition`。
 
 ## 远程调用 RPC(Remote Procedure Call) 有哪几种
 远程调用RPC有几种常见的实现方式，包括：
-1) 基于HTTP协议的RESTful API：使用HTTP请求和响应进行通信，常见于Web服务和RESTful API。
-2) 基于TCP/IP的Socket编程：直接通过套接字进行数据传输，可以实现自定义的远程调用协议。
-3) 基于SOAP（Simple Object Access Protocol）的Web服务：使用XML作为消息格式，在Web服务中较为常见，但已逐渐被RESTful API替代。
-4) 基于消息队列（Message Queue）的RPC：通过消息队列实现异步通信，例如使用AMQP（Advanced Message Queuing Protocol）或者其他消息队列系统。
-5) 基于Dubbo：Dubbo是阿里巴巴开源的基于Java的RPC框架，提供高性能、透明化的远程方法调用，支持多种协议、集群容错、负载均衡等特性，广泛用于企业级分布式应用开发。
-6) 基于WebFlux和Spring Data Reactive：利用WebFlux构建响应式的Web服务，同时结合Spring Data Reactive处理数据存取，实现异步响应式的RPC调用。
+1) **基于HTTP协议的RESTful API**：使用HTTP请求和响应进行通信，常见于Web服务和RESTful API。
+2) **基于TCP/IP的Socket编程**：直接通过套接字进行数据传输，可以实现自定义的远程调用协议。
+3) **基于SOAP（Simple Object Access Protocol）的Web服务**：使用XML作为消息格式，在Web服务中较为常见，但已逐渐被RESTful API替代。
+4) **基于消息队列（Message Queue）的RPC**：通过消息队列实现异步通信，例如使用AMQP（Advanced Message Queuing Protocol）或者其他消息队列系统。
+5) **基于Dubbo**：Dubbo是阿里巴巴开源的基于Java的RPC框架，提供高性能、透明化的远程方法调用，支持多种协议、集群容错、负载均衡等特性，广泛用于企业级分布式应用开发。
+6) **基于WebFlux和Spring Data Reactive**：利用WebFlux构建响应式的Web服务，同时结合Spring Data Reactive处理数据存取，实现异步响应式的RPC调用。
+
+## 远程调用需要注意哪些问题？
+需要注意以下问题：
+1. **接口文档**: 编写清晰的接口文档以便于维护和团队协作。
+2. **统一化的报文结构**: 确保输入和输出的数据格式统一，便于处理和解析。
+3. **标准化的服务状态码**: 使用统一的状态码标识请求结果，方便客户端处理。
+4. **统一化请求日志记录及异常记录**: 记录请求日志和异常信息以便追踪和排查问题。
+5. **全局异常处理**: 捕获并处理服务异常，保证系统稳定运行。
+6. **快速失败**: 当请求延迟过高时，及时返回失败结果，避免长时间等待。
+7. **重试机制**: 在请求失败时进行重试，提高请求成功率。
+8. **服务列表和重试次数控制**: 在请求失败时切换服务列表并控制重试次数，避免无限重试。
+9. **事务处理**: 在需要保证数据一致性的场景下使用事务，确保操作要么全部成功，要么全部失败。
+10. **分布式事务处理**: 在分布式系统中，确保跨服务的事务操作要么全部成功，要么全部失败。
+    >如TCC(Try-Confirm-Cancel)
+11. **分布式锁**: 处理并发修改数据时使用分布式锁保证数据一致性。
+12. **数据一致性**: 在并发修改数据时，使用合适的策略保证数据的一致性，例如分布式锁或乐观锁。
