@@ -149,3 +149,145 @@ Extra 栏使用了 `index condition`。
     >如TCC(Try-Confirm-Cancel)
 11. **分布式锁**: 处理并发修改数据时使用分布式锁保证数据一致性。
 12. **数据一致性**: 在并发修改数据时，使用合适的策略保证数据的一致性，例如分布式锁或乐观锁。
+
+## @Transactional
+### @Transactional放在类上
+当`methodB`中发生异常时，确保整个事务被回滚，包括`methodA`中的其他操作。下面是一个更新后的示例：
+
+```java
+@Service
+@Transactional
+public class UserService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    public void methodA() {
+        try {
+            userRepository.save(new User("Alice"));
+            methodB();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void methodB() {
+        userRepository.save(new User("John"));
+    }
+}
+```
+
+在这个示例中，如果`methodB`中的操作抛出异常，则会捕获异常并进行处理。整个事务将被回滚，包括`methodA`中的其他操作，比如userRepository.save(new User("Alice"));。
+
+### @Transactional放在方法上
+如果想在`methodA`和`methodB`中使用不同的事务，可以将`@Transactional`注解放在方法级别而不是类级别，并使用适当的事务传播行为。在Spring中，可以通过`propagation`属性来指定事务的传播行为。
+```java
+@Service
+public class UserService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Transactional
+    public void methodA() {
+        try {
+            userRepository.save(new User("Alice"));
+            // 在新的事务中调用methodB
+            methodB();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void methodB() {
+        userRepository.save(new User("John"));
+    }
+}
+```
+
+在这个示例中，`methodA`和`methodB`都被注解为`@Transactional`，但是`methodB`的事务传播行为被设置为`REQUIRES_NEW`，这意味着它会在一个新的事务中执行，而不受调用者的事务影响。
+
+
+### 异常传播
+`methodB`默认传播机制是`Propagation.REQUIRED`，这意味着如果调用者有事务，`methodB`将加入调用者的事务；如果调用者没有事务，它将开启一个新的事务。
+```java
+import org.springframework.transaction.annotation.Transactional;
+
+public class ExampleService {
+
+    @Transactional
+    public void methodA() {
+        try {
+            methodB();
+        } catch (Exception e) {
+            // 异常处理
+        }
+    }
+
+    @Transactional
+    public void methodB() {
+        // 执行一些操作，可能会抛出异常
+        throw new RuntimeException("Exception in methodB");
+    }
+}
+```
+上例中，当`methodB`中抛出异常时，它将导致`methodA`所在的事务回滚。
+
+### 防止异常传播（在被调用的方法捕获异常）
+如果在`methodB`中捕获了异常，而不是在`methodA`中捕获，那么事务的回滚行为将取决于异常是否被重新抛出。
+```java
+import org.springframework.transaction.annotation.Transactional;
+
+public class ExampleService {
+
+    @Transactional
+    public void methodA() {
+        try {
+            methodB();
+        } catch (Exception e) {
+            // 异常处理
+        }
+    }
+
+    @Transactional
+    public void methodB() {
+        try {
+            // 执行一些操作，可能会抛出异常
+            throw new RuntimeException("Exception in methodB");
+        } catch (Exception e) {
+            // 在methodB中捕获了异常但没有重新抛出
+            // 可以做一些处理
+        }
+    }
+}
+```
+上例中，`methodB`中捕获了异常，但没有重新抛出，`methodA`的事务仍然会继续进行，不会回滚。
+
+### 防止异常传播（被调用的方法抛出异常，调用方手动完成事务）
+如果`methodB`抛出了异常，而`methodA`捕获了这个异常，并且希望避免`methodA`的事务回滚，可以手动将事务标记为已完成，或者使用Spring的`TransactionAspectSupport`类来手动提交事务。
+```java
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
+
+public class ExampleService {
+
+    @Transactional
+    public void methodA() {
+        try {
+            methodB();
+        } catch (Exception e) {
+            // 异常处理
+            // 手动标记事务为已完成
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+        }
+    }
+
+    @Transactional
+    public void methodB() {
+        // 执行一些操作，可能会抛出异常
+        throw new RuntimeException("Exception in methodB");
+    }
+}
+```
+在这个示例中，使用`TransactionAspectSupport`类手动将事务标记为已完成，这样就阻止了事务回滚。
