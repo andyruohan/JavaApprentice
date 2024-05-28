@@ -291,3 +291,80 @@ public class ExampleService {
 }
 ```
 在这个示例中，使用`TransactionAspectSupport`类手动将事务标记为已完成，这样就阻止了事务回滚。
+
+
+## SpringBoot如何实现自动装配
+在Spring Boot中，自动装配（Auto-Configuration）是一种强大的功能，它使得开发人员能够快速构建Spring应用而无需手动配置大量的Bean。以下是实现Spring Boot自动装配的几个关键步骤和概念：
+
+1. 启用自动装配
+   Spring Boot项目通常包含一个主类，该类使用@SpringBootApplication注解来启动应用程序。这个注解实际上是一个组合注解，包括@Configuration、@EnableAutoConfiguration和@ComponentScan。
+    ```java
+    @SpringBootApplication
+    public class Application {
+        public static void main(String[] args) {
+            SpringApplication.run(Application.class, args);
+        }
+    }
+    ```
+   
+
+2. 自动装配注解  
+    **@EnableAutoConfiguration**  
+    `@EnableAutoConfiguration`注解告诉Spring Boot根据应用程序的依赖自动配置Spring应用程序上下文。例如，如果类路径下有HSQLDB数据库的依赖，Spring Boot会自动配置一个内存数据库连接。  
+    >Spring Boot在启动时会扫描类路径下的所有 META-INF/spring.factories 文件，并从中读取自动配置类的信息。每个 spring.factories 文件都包含一个 org.springframework.boot.autoconfigure.EnableAutoConfiguration 属性，该属性列出了所有应该由Spring Boot自动配置的类。spring.factories 文件的加载过程： 
+    >- 启动阶段：当Spring Boot应用启动时，@EnableAutoConfiguration 注解会触发 SpringFactoriesLoader 来加载所有在 META-INF/spring.factories 文件中列出的配置类。
+    >- 类路径扫描：SpringFactoriesLoader 会扫描类路径中的所有 META-INF/spring.factories 文件。
+    >- 自动配置加载：根据 spring.factories 文件中的配置，Spring Boot会加载并应用相应的自动配置类。
+
+    **@ComponentScan**  
+    `@ComponentScan`注解扫描`@Component`、`@Service`、`@Repository`和`@Controller`等注解的类，并注册为Spring Bean。  
+   
+
+3. 条件装配（Conditional Configuration）  
+   **@Conditional**
+   `@Conditional`注解允许在特定条件下进行Bean的创建。Spring Boot使用了许多`@Conditional`注解来实现自动装配。例如： 
+   - `@ConditionalOnClass`：当类路径下存在某个类时进行装配。
+   - `@ConditionalOnMissingBean`：当Spring上下文中没有定义某个特定Bean时进行装配。
+   - `@ConditionalOnProperty`：当某个配置属性存在且满足特定条件时进行装配。
+ 
+
+4. 创建自动配置类  
+   创建一个自动配置类需要遵循以下步骤：  
+   (1) 创建一个配置类，并使用@Configuration注解。  
+   (2) 使用@Conditional注解来指定条件。  
+   (3) 在类路径下创建一个文件META-INF/spring.factories，并在其中配置自动配置类。  
+   例如，创建一个自定义的自动配置类：
+    ```java
+    @Configuration
+    @ConditionalOnClass(MyService.class)
+    public class MyServiceAutoConfiguration {
+        @Bean
+        @ConditionalOnMissingBean
+        public MyService myService() {
+            return new MyService();
+        }
+    }
+    ```
+
+5. 使用注解装配Bean
+   Spring Boot提供了多种注解来简化Bean的装配：
+   - @Autowired：用于自动注入依赖。
+   - @Value：用于注入外部配置属性。
+   - @Component、@Service、@Repository、@Controller：用于声明Spring管理的Bean。
+
+6. 外部配置和属性注入
+   Spring Boot允许通过application.properties或application.yml文件来进行外部配置。可以使用@Value注解注入这些属性。   
+   例如，在application.properties文件中：
+    ```yaml
+    myapp.message=Hello, World!
+    ```
+   在Spring Bean中注入这个属性：
+    ```java
+    @Component
+    public class MyBean {
+        @Value("${myapp.message}")
+        private String message;
+    
+        // getters and setters
+    }
+    ```
