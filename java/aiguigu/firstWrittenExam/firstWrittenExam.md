@@ -297,6 +297,18 @@ public class ExampleService {
 ```
 在这个示例中，使用`TransactionAspectSupport`类手动将事务标记为已完成，这样就阻止了事务回滚。
 
+## SpringBoot管理版本依赖
+以SpringBoot基于Maven管理版本依赖为例，下面是基本工作原理：
+
+1. **父级`pom.xml`文件**：Spring Boot项目通常会继承自Spring Boot提供的父级`pom.xml`文件。这个父级`pom.xml`文件定义了大多数常用库的版本号，比如Spring Framework、Spring Boot Starter等。通过继承这个父级`pom.xml`，你的项目可以继承父级中定义的依赖版本。
+
+2. **Starter依赖项**：Spring Boot提供了一系列的"Starter"依赖项，这些依赖项通常以`spring-boot-starter-`为前缀，比如`spring-boot-starter-web`、`spring-boot-starter-data-jpa`等。当你在项目的`pom.xml`文件中添加这些Starter依赖项时，实际上是引入了一组预定义的依赖关系，这些依赖关系已经定义了特定功能的依赖库以及它们的版本号。
+
+3. **依赖传递**：当添加了一个Starter依赖项时，它会自动引入一系列的传递性依赖，这些依赖通常是你项目所需的库和框架。这些传递性依赖也都是由Spring Boot的父级`pom.xml`文件中定义的版本管理的。
+
+4. **版本冲突解决**：如果在项目中添加了一个依赖项，并且这个依赖项与Spring Boot的父级`pom.xml`中已定义的依赖版本发生冲突，Maven会自动解决这些冲突。通常情况下，它会选择与父级`pom.xml`中定义的版本兼容的最新版本，以确保整个项目的稳定性和兼容性。
+
+总之，Spring Boot通过Maven的依赖管理机制，通过父级`pom.xml`文件中定义的版本号以及Starter依赖项，简化了依赖管理的过程，同时确保了项目中的库和框架的版本兼容性。
 
 ## SpringBoot如何实现自动装配
 在Spring Boot中，自动装配（Auto-Configuration）是一种强大的功能，它使得开发人员能够快速构建Spring应用而无需手动配置大量的Bean。以下是实现Spring Boot自动装配的几个关键步骤和概念：
