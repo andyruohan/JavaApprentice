@@ -398,6 +398,43 @@ public class ExampleService {
     ```
 
 # Other
+## Integer和int 的区别
+### 关键点
+1. **堆栈存储基础数据类型与对象**：
+    - `int` 是基本数据类型，直接存储数值在栈上。
+    - `Integer` 是 `int` 的包装类，存储在堆中，通过引用指向实际对象。
+
+2. **值比对的时候注意java的自动拆箱**：
+    - 自动拆箱是指Java自动将 `Integer` 对象转换为 `int` 基本类型。
+    - 在进行值比较时，如果涉及 `Integer` 和 `int` 的混合比较，Java会自动进行拆箱操作，从而可能会影响结果。
+    ```java
+    Integer a = new Integer(5);
+    int b = 5;
+    if (a == b) {
+        // 这里的 a 会被自动拆箱为 int 类型，然后进行值比较
+        System.out.println("a 和 b 相等");
+    }
+    ```
+
+3. **Integer 值大小在 -128 到 127 之内使用 IntegerCache**：
+    - 为了优化性能，Java引入了 `IntegerCache`。对于范围在 -128 到 127 之间的整数，`Integer` 使用缓存来重用对象。
+    - 当 `Integer` 值在这个范围内时，不会创建新的对象，而是从缓存中返回现有的对象。
+    ```java
+    Integer a = 127;
+    Integer b = 127;
+    if (a == b) {
+        // a 和 b 指向同一个缓存对象
+        System.out.println("a 和 b 引用相等");
+    }
+    
+    Integer c = 128;
+    Integer d = 128;
+    if (c != d) {
+        // c 和 d 指向不同的对象，因为 128 不在缓存范围内
+        System.out.println("c 和 d 引用不相等");
+    }
+    ```
+
 ## 远程调用 RPC(Remote Procedure Call) 有哪几种
 远程调用RPC有几种常见的实现方式，包括：
 1) **基于HTTP协议的RESTful API**：使用HTTP请求和响应进行通信，常见于Web服务和RESTful API。
