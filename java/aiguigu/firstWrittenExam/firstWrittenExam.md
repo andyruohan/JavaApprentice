@@ -545,6 +545,86 @@ public class ExampleService {
         // getters and setters
     }
     ```
+   
+## Spring 的依赖注入
+Spring 的依赖注入（Dependency Injection）通过配置而非代码来注入对象的依赖，从而提高代码的可维护性、可测试性和灵活性。在 Spring 中，依赖注入是通过 Inversion of Control（IoC）容器来实现的。IoC 容器管理对象的创建、配置和生命周期，自动将所需的依赖注入到对象中。
+### 依赖注入的方法
+
+Spring 提供了几种常用的方法来实现依赖注入：
+
+1. **构造器注入（Constructor Injection）**
+2. **Setter方法注入（Setter Injection）**
+3. **字段注入（Field Injection）**
+
+#### 1. 构造器注入（Constructor Injection）
+
+构造器注入是通过类的构造器来注入依赖对象。这种方式可以确保依赖在对象创建时就已经设置好，且能很好地支持不可变对象。
+
+**示例**:
+
+  ```java
+  @Component
+  public class MyService {
+      private final MyRepository repository;
+
+      @Autowired
+      public MyService(MyRepository repository) {
+          this.repository = repository;
+      }
+
+      // 业务逻辑
+  }
+  ```
+>在使用构造器注入时，@Autowired注解是可以省略的，前提是你只有一个构造器。这是因为从 Spring Framework 4.3 开始，如果一个类只有一个构造器，Spring 会自动使用这个构造器进行依赖注入，而不需要显式地使用 @Autowired 注解。
+
+#### 2. Setter方法注入（Setter Injection）
+
+Setter 方法注入是通过公共的 Setter 方法来注入依赖。这种方式适合依赖可以在对象创建后设置或更改的情况。
+
+**示例**:
+
+  ```java
+  @Component
+  public class MyService {
+      private MyRepository repository;
+
+      @Autowired
+      public void setRepository(MyRepository repository) {
+          this.repository = repository;
+      }
+
+      // 业务逻辑
+  }
+  ```
+
+#### 3. 字段注入（Field Injection）
+
+字段注入是直接在类的字段上使用注解来注入依赖。这种方式简单直接，但不利于单元测试，因为无法通过构造器或 Setter 方法来注入模拟对象。
+
+**示例**：
+
+  ```java
+  @Component
+  public class MyService {
+      @Autowired
+      private MyRepository repository;
+
+      // 业务逻辑
+  }
+  ```
+
+
+### 总结
+
+- **构造器注入**：推荐用于强制性依赖，保证对象的不可变性和依赖明确。
+- **Setter 方法注入**：适用于可选依赖或需要在对象创建后修改依赖的情况。
+- **字段注入**：适用于快速原型开发或简单场景，但不利于单元测试。
+
+>最推荐**构造器注入**。关键原因如下：
+  >1. **不可变性**：依赖在对象创建时初始化，保持对象不可变。
+  >2. **依赖明确**：构造器参数清晰地展示依赖关系。
+  >3. **空指针安全**：避免未初始化依赖导致的空指针异常。
+  >4. **易于测试**：便于注入模拟对象（Mock）进行单元测试。
 
 # Other
 ## Integer和int 的区别
