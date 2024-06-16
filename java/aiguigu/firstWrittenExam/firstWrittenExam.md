@@ -689,6 +689,159 @@ Setter 方法注入是通过公共的 Setter 方法来注入依赖。这种方�
   >3. **空指针安全**：避免未初始化依赖导致的空指针异常。
   >4. **易于测试**：便于注入模拟对象（Mock）进行单元测试。
 
+# Concurrent
+## ReentrantLock的设计
+`ReentrantLock` 是 Java 提供的一种可重入互斥锁，其内部实现依赖于 `AbstractQueuedSynchronizer`（AQS）和 CAS（Compare-And-Swap）操作。以下是 `ReentrantLock` 的设计关键点，包括 AQS 和 CAS 的介绍及其在 `ReentrantLock` 中的应用。
+
+### 1. `ReentrantLock` 简介
+
+`ReentrantLock` 是 `java.util.concurrent.locks` 包中的一个实现类，提供了比 `synchronized` 关键字更灵活的锁定操作。它支持公平锁和非公平锁两种模式。
+
+### 2. AQS（AbstractQueuedSynchronizer）
+
+`AbstractQueuedSynchronizer` 是一个框架，用于实现基于先进先出（FIFO）等待队列的阻塞锁和相关同步器（如信号量、事件等）。AQS 通过维护一个同步状态和一个等待队列来管理线程的访问。
+
+#### AQS 的核心概念：
+
+- **同步状态（state）**：一个整数表示锁的状态。值为 0 表示锁未被占用，大于 0 表示锁被占用。
+- **FIFO 等待队列**：用来存放被阻塞的线程。
+- **独占模式和共享模式**：AQS 可以支持独占锁（如 `ReentrantLock`）和共享锁（如 `CountDownLatch`）。
+
+### 3. CAS（Compare-And-Swap）
+
+CAS 是一种无锁的原子操作，通过比较并交换的方式实现变量的原子更新。CAS 操作会检查某个变量的当前值是否等于预期值，如果相等则更新为新值，否则什么都不做。
+
+#### CAS 的核心步骤：
+
+1. 读取变量的当前值。
+2. 比较当前值与预期值。
+3. 如果相等，则将当前值更新为新值。
+
+### 4. `ReentrantLock` 的设计和实现
+
+#### 4.1 锁的获取和释放
+
+`ReentrantLock` 通过 AQS 来管理锁的获取和释放操作。
+
+- **独占锁模式**：`ReentrantLock` 采用独占模式。只有一个线程可以占有锁，其他线程会被阻塞，进入 AQS 的等待队列。
+
+- **重入**：同一个线程可以多次获取已经持有的锁，每次获取锁时都会增加锁的计数，释放锁时会减少计数，直到计数为 0 时真正释放锁。
+
+#### 4.2 公平锁和非公平锁
+
+`ReentrantLock` 提供了公平锁和非公平锁两种模式：
+
+- **公平锁**：线程按照请求锁的顺序依次获得锁。
+- **非公平锁**：线程可能会插队获得锁，有利于提高吞吐量。
+
+通过传递 `boolean fair` 参数来选择锁的模式：
+
+```java
+public ReentrantLock() {
+    sync = new NonfairSync();
+}
+
+public ReentrantLock(boolean fair) {
+    sync = fair ? new FairSync() : new NonfairSync();
+}
+```
+
+#### 4.3 `ReentrantLock` 的内部类 `Sync`
+
+`ReentrantLock` 通过一个内部类 `Sync` 继承 AQS，并实现锁的获取和释放逻辑：
+
+```java
+abstract static class Sync extends AbstractQueuedSynchronizer {
+    abstract void lock();
+
+    final boolean nonfairTryAcquire(int acquires) {
+        final Thread current = Thread.currentThread();
+        int c = getState();
+        if (c == 0) {
+            if (compareAndSetState(0, acquires)) {
+                setExclusiveOwnerThread(current);
+                return true;
+            }
+        } else if (current == getExclusiveOwnerThread()) {
+            int nextc = c + acquires;
+            if (nextc < 0) // overflow
+                throw new Error("Maximum lock count exceeded");
+            setState(nextc);
+            return true;
+        }
+        return false;
+    }
+
+    protected final boolean tryRelease(int releases) {
+        int c = getState() - releases;
+        if (Thread.currentThread() != getExclusiveOwnerThread())
+            throw new IllegalMonitorStateException();
+        boolean free = false;
+        if (c == 0) {
+            free = true;
+            setExclusiveOwnerThread(null);
+        }
+        setState(c);
+        return free;
+    }
+
+    protected final boolean isHeldExclusively() {
+        // While we must in general read state before owner,
+        // we don't need to do so to check if current thread is owner
+        return getExclusiveOwnerThread() == Thread.currentThread();
+    }
+
+    final ConditionObject newCondition() {
+        return new ConditionObject();
+    }
+}
+
+static final class NonfairSync extends Sync {
+    final void lock() {
+        if (compareAndSetState(0, 1))
+            setExclusiveOwnerThread(Thread.currentThread());
+        else
+            acquire(1);
+    }
+
+    protected final boolean tryAcquire(int acquires) {
+        return nonfairTryAcquire(acquires);
+    }
+}
+
+static final class FairSync extends Sync {
+    final void lock() {
+        acquire(1);
+    }
+
+    protected final boolean tryAcquire(int acquires) {
+        final Thread current = Thread.currentThread();
+        int c = getState();
+        if (c == 0) {
+            if (!hasQueuedPredecessors() &&
+                compareAndSetState(0, acquires)) {
+                setExclusiveOwnerThread(current);
+                return true;
+            }
+        } else if (current == getExclusiveOwnerThread()) {
+            int nextc = c + acquires;
+            if (nextc < 0) // overflow
+                throw new Error("Maximum lock count exceeded");
+            setState(nextc);
+            return true;
+        }
+        return false;
+    }
+}
+```
+
+### 5. 小结
+
+- **AQS**：`ReentrantLock` 通过继承 AQS 实现了锁的机制，利用 AQS 提供的同步状态管理和等待队列功能，实现线程的排队和调度。
+- **CAS**：通过 CAS 操作实现对同步状态的原子更新，确保线程安全。
+
+`ReentrantLock` 提供了灵活且高效的锁机制，在实际开发中可以根据需求选择公平锁或非公平锁，以满足不同场景的性能要求。
+
 # Other
 ## Integer和int 的区别
 ### 关键点
