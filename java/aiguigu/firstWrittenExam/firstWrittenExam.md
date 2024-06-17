@@ -366,7 +366,12 @@ WHERE 订单ID = 1;
 3. **类初始化（Initialization）**：
     - **图中表示**：由执行引擎（Execution Engine）执行类的初始化代码，包括静态变量赋值和静态代码块执行。
     - **结果**：类准备就绪，可以被实例化和使用。
-    
+
+### 类加载器与双亲委派机制
+双亲委派机制主要作用在上图中的 **类加载器子系统(Class loader)** 部分。**双亲委派机制的作用**：
+- 当一个类加载器（例如，应用类加载器）尝试加载一个类时，它首先会将加载请求委派给其父类加载器（例如，扩展类加载器）。如果父类加载器不能加载该类，再由当前类加载器进行加载。这一过程一直向上委派，直到到达顶层的启动类加载器。
+- 这种机制保证了核心类库（如 `java.lang.Object`）始终由启动类加载器加载，从而确保了 Java 核心类库的安全性和唯一性。
+ 
 ### JVM 运行时如何处理类
 
 1. **方法区管理类信息**：类加载器将类信息加载到方法区，执行引擎使用这些信息执行字节码。
@@ -841,6 +846,149 @@ static final class FairSync extends Sync {
 - **CAS**：通过 CAS 操作实现对同步状态的原子更新，确保线程安全。
 
 `ReentrantLock` 提供了灵活且高效的锁机制，在实际开发中可以根据需求选择公平锁或非公平锁，以满足不同场景的性能要求。
+
+
+## lock 和 tryLock
+`ReentrantLock` 是 Java 提供的一种可重入锁，其主要方法包括 `lock` 和 `tryLock`。这两个方法都用于获取锁，但它们的行为有所不同，适用于不同的使用场景。
+
+### `lock` 方法
+
+`lock` 方法用于获取锁，如果锁不可用，则当前线程将被阻塞，直到锁变为可用。
+
+```java
+public void lock() {
+    sync.lock();
+}
+```
+
+#### 实现细节
+
+1. **非公平锁**：
+   `NonfairSync` 是 `ReentrantLock` 的非公平锁实现。在 `NonfairSync` 中，`lock` 方法首先尝试使用 CAS 操作直接获取锁，如果失败则调用 `acquire` 方法进入等待队列。
+
+   ```java
+   static final class NonfairSync extends Sync {
+       final void lock() {
+           if (compareAndSetState(0, 1))
+               setExclusiveOwnerThread(Thread.currentThread());
+           else
+               acquire(1);
+       }
+
+       protected final boolean tryAcquire(int acquires) {
+           return nonfairTryAcquire(acquires);
+       }
+   }
+   ```
+
+2. **公平锁**：
+   `FairSync` 是 `ReentrantLock` 的公平锁实现。在 `FairSync` 中，`lock` 方法直接调用 `acquire` 方法，确保线程按照请求的顺序获取锁。
+
+   ```java
+   static final class FairSync extends Sync {
+       final void lock() {
+           acquire(1);
+       }
+
+       protected final boolean tryAcquire(int acquires) {
+           final Thread current = Thread.currentThread();
+           int c = getState();
+           if (c == 0) {
+               if (!hasQueuedPredecessors() &&
+                   compareAndSetState(0, acquires)) {
+                   setExclusiveOwnerThread(current);
+                   return true;
+               }
+           } else if (current == getExclusiveOwnerThread()) {
+               int nextc = c + acquires;
+               if (nextc < 0) // overflow
+                   throw new Error("Maximum lock count exceeded");
+               setState(nextc);
+               return true;
+           }
+           return false;
+       }
+   }
+   ```
+
+### `tryLock` 方法
+
+`tryLock` 方法用于尝试获取锁，如果锁不可用则立即返回 `false`，不会阻塞当前线程。这对于需要非阻塞行为的场景非常有用。
+
+```java
+public boolean tryLock() {
+    return sync.tryAcquire(1);
+}
+```
+
+#### 实现细节
+
+1. **非公平锁**：
+   `NonfairSync` 和 `FairSync` 都会调用 `tryAcquire` 方法，该方法会尝试使用 CAS 操作获取锁，如果成功则返回 `true`，否则返回 `false`。
+
+   ```java
+   static final class NonfairSync extends Sync {
+       protected final boolean tryAcquire(int acquires) {
+           return nonfairTryAcquire(acquires);
+       }
+
+       final boolean nonfairTryAcquire(int acquires) {
+           final Thread current = Thread.currentThread();
+           int c = getState();
+           if (c == 0) {
+               if (compareAndSetState(0, acquires)) {
+                   setExclusiveOwnerThread(current);
+                   return true;
+               }
+           } else if (current == getExclusiveOwnerThread()) {
+               int nextc = c + acquires;
+               if (nextc < 0) // overflow
+                   throw new Error("Maximum lock count exceeded");
+               setState(nextc);
+               return true;
+           }
+           return false;
+       }
+   }
+
+   static final class FairSync extends Sync {
+       protected final boolean tryAcquire(int acquires) {
+           final Thread current = Thread.currentThread();
+           int c = getState();
+           if (c == 0) {
+               if (!hasQueuedPredecessors() &&
+                   compareAndSetState(0, acquires)) {
+                   setExclusiveOwnerThread(current);
+                   return true;
+               }
+           } else if (current == getExclusiveOwnerThread()) {
+               int nextc = c + acquires;
+               if (nextc < 0) // overflow
+                   throw new Error("Maximum lock count exceeded");
+               setState(nextc);
+               return true;
+           }
+           return false;
+       }
+   }
+   ```
+
+2. **带超时的 `tryLock`**：
+   另外，`ReentrantLock` 还提供了带超时时间的 `tryLock` 方法，允许线程在指定时间内尝试获取锁，如果超时则返回 `false`。
+
+   ```java
+   public boolean tryLock(long timeout, TimeUnit unit) throws InterruptedException {
+       return sync.tryAcquireNanos(1, unit.toNanos(timeout));
+   }
+   ```
+
+### 总结
+
+- **`lock` 方法**：阻塞当前线程，直到获取到锁。适用于需要确保获取锁的场景。
+- **`tryLock` 方法**：尝试获取锁，立即返回结果，不会阻塞。适用于需要非阻塞操作的场景。
+
+这两种方法各有优劣，可以根据具体需求选择合适的锁获取方式。
+
 
 # Other
 ## Integer和int 的区别
