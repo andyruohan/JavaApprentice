@@ -1018,6 +1018,42 @@ public boolean tryLock() {
        return sync.tryAcquireNanos(1, unit.toNanos(timeout));
    }
    ```
+   
+## 编写一个基于线程安全的懒加载单例模式
+原视频有误，只使用了双检锁，实际应双检锁配合volatile
+```java
+public class SingleInstance{
+
+    // 使用 volatile 禁止 new 对象时进行指令重排
+    // new 对象，有三条指令完成
+    // 1 JVM为对象分配一块内存M在堆区
+    // 2 在内存M上为对象进行初始化
+    // 3 将内存M的地址复制给instance变量
+    private volatile static SingleInstance instance;
+
+    private SingleInstance(){
+        if(instance != null){
+            throw new RuntimeException("single instance existed");
+        }
+    }
+
+    public SingaleInstance getInstance(){
+        // 减少锁竞争，避免过多的线程进入同步队列，进入 blocking 状态
+        if(instance == null){
+            // 此处 synchronized 可以保证原子性和可见性
+            // 而有序性，指的是保证线程串行进入 synchronized代码块内
+            // 所以，此有序性无法保证 synchronized 代码块内部的有序性
+            synchronized(SingleInstance.class){
+                // 避免重复创建对象
+                if(instance == null){
+                    instance = new SingleInstance();
+                }
+            }
+        }
+        return instance;
+    }    
+}
+```
 
 ### 总结
 
