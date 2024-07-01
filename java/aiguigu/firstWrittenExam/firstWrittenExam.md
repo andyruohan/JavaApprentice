@@ -319,6 +319,7 @@ MySQL 的 InnoDB 存储引擎提供了对事务的支持。InnoDB 是 MySQL 默�
 ### 3. MVCC（多版本并发控制）
 InnoDB 通过 MVCC 实现读写操作的并发控制，保证高并发情况下的性能和一致性。
 - **机制**：每个事务都有一个版本号，通过版本链来管理数据的多个版本。读取操作会读取符合事务版本号的数据版本，写入操作则创建新的数据版本并将旧版本保存在回滚日志中。
+> MVCC官网介绍：https://dev.mysql.com/doc/refman/5.7/en/innodb-multi-versioning.html
 
 ### 4. 锁机制
 InnoDB 使用多种锁来实现并发控制：
@@ -717,6 +718,86 @@ Setter 方法注入是通过公共的 Setter 方法来注入依赖。这种方�
       // 业务逻辑
   }
   ```
+
+## Spring的AOP的使用情景有哪些?简述其实现原理
+在 Spring 框架中，AOP（面向切面编程，Aspect-Oriented Programming）广泛应用于处理横切关注点。横切关注点是那些与业务逻辑无关的功能，但却在整个应用程序中多次出现，例如日志记录、事务管理、异常处理等。以下是一些常见的使用情景及其实现原理：
+
+### 使用情景
+
+1. **统一日志处理**
+    - **场景**：在方法调用前后记录日志，追踪方法的执行情况、输入参数和输出结果。
+    - **实现**：通过 AOP 在方法执行前（前置通知）、后（后置通知）和方法抛出异常时（异常通知）记录日志。
+
+2. **统一异常处理**
+    - **场景**：在应用程序中统一处理异常，捕获异常并记录错误日志，或者将异常转换为自定义的异常类型。
+    - **实现**：使用 AOP 的异常通知（AfterThrowing Advice）捕获方法中的异常，并进行处理。
+
+3. **访问限制（权限，限流等）**
+    - **场景**：在特定方法调用前进行权限检查或限流，确保只有满足特定条件的请求才能执行方法。
+    - **实现**：通过 AOP 的前置通知（Before Advice）在方法执行前进行权限检查或限流操作。
+
+4. **事务处理**
+    - **场景**：管理数据库事务，确保一组操作要么全部成功，要么全部失败。
+    - **实现**：使用 AOP 的环绕通知（Around Advice）在方法执行前开启事务，在方法执行后提交事务，如果方法抛出异常则回滚事务。
+
+5. **缓存管理**
+    - **场景**：在方法调用前检查缓存，如果缓存中有结果则直接返回，否则执行方法并将结果缓存起来。
+    - **实现**：通过 AOP 的前置通知和后置通知结合使用，在方法执行前检查缓存，在方法执行后更新缓存。
+
+### 实现原理
+
+AOP 的核心思想是通过代理模式为目标对象添加横切关注点。Spring AOP 主要有两种代理方式：JDK 动态代理和 CGLIB 代理。
+
+1. **JDK 动态代理**
+    - **适用范围**：<font color = 'red'>代理接口</font>。
+    - **实现方式**：JDK 动态代理基于接口创建代理类，在调用代理对象的方法时，会通过反射机制将调用委托给实际的目标对象。
+    - **优点**：无需第三方库，基于标准的 JDK 特性。
+    - **缺点**：只能代理实现了接口的类。
+
+2. **CGLIB 代理**
+    - **适用范围**：<font color = 'red'>代理类</font>。
+    - **实现方式**：CGLIB 代理基于继承创建代理类，生成目标类的子类，并在子类中拦截方法调用。
+    - **优点**：无需目标类实现接口，可以代理具体类。
+    - **缺点**：需要依赖第三方库，基于字节码操作，性能较低于 JDK 动态代理。
+
+### AOP 的核心概念
+
+1. **切面（Aspect）**：切面是模块化的关注点，通常是横切关注点，例如日志记录、事务管理等。切面由切入点和通知组成。
+2. **通知（Advice）**：通知是切面中的具体操作，定义了在连接点上要执行的动作。通知类型包括前置通知、后置通知、异常通知、最终通知和环绕通知。
+3. **切入点（Pointcut）**：切入点定义了通知应用的具体位置，例如某个方法或某些类上的方法。
+4. **连接点（Joinpoint）**：连接点是程序执行过程中能够插入切面操作的具体位置，例如方法调用或异常抛出。
+5. **织入（Weaving）**：织入是将切面应用到目标对象的过程，生成代理对象。织入可以在编译时、类加载时或运行时进行。
+
+### 代码示例
+
+```java
+@Aspect
+@Component
+public class LoggingAspect {
+
+    @Pointcut("execution(* com.example.service.*.*(..))")
+    public void serviceMethods() {}
+
+    @Before("serviceMethods()")
+    public void logBefore(JoinPoint joinPoint) {
+        System.out.println("Executing: " + joinPoint.getSignature().getName());
+    }
+
+    @AfterReturning(pointcut = "serviceMethods()", returning = "result")
+    public void logAfter(JoinPoint joinPoint, Object result) {
+        System.out.println("Executed: " + joinPoint.getSignature().getName() + " with result: " + result);
+    }
+
+    @AfterThrowing(pointcut = "serviceMethods()", throwing = "error")
+    public void logException(JoinPoint joinPoint, Throwable error) {
+        System.out.println("Exception in: " + joinPoint.getSignature().getName() + " with error: " + error);
+    }
+}
+```
+
+在这个例子中，`LoggingAspect` 切面定义了三个通知，分别在方法执行前、执行后和抛出异常时记录日志。`@Pointcut` 注解定义了切入点，匹配 `com.example.service` 包下的所有方法。
+
+通过这种方式，Spring AOP 允许开发人员将横切关注点从业务逻辑中分离出来，使代码更加清晰、模块化和可维护。
 
 
 ### 总结
