@@ -1143,6 +1143,115 @@ public class SingleInstance{
 
 这两种方法各有优劣，可以根据具体需求选择合适的锁获取方式。
 
+# Linux
+## 常用的 Linux 命令
+
+1. **文件和目录管理**：
+    - `find`：查找文件和目录。
+      ```sh
+      find /path/to/search -name filename
+      ```
+    - `rm`：删除文件。
+      ```sh
+      rm filename
+      rm -r directory  # 递归删除目录
+      ```
+    - `rmdir`：删除空目录。
+      ```sh
+      rmdir directory
+      ```
+    - `mv`：移动或重命名文件和目录。
+      ```sh
+      mv source destination
+      ```
+    - `cp`：复制文件和目录。
+      ```sh
+      cp source destination
+      cp -r source_directory destination_directory  # 递归复制目录
+      ```
+    - `cat`：显示文件内容。
+      ```sh
+      cat filename
+      ```
+    - `pwd`：显示当前工作目录。
+      ```sh
+      pwd
+      ```
+    - `chmod`：更改文件或目录的权限。
+      ```sh
+      chmod 755 filename
+      chmod -R 755 directory  # 递归更改目录权限
+      ```
+
+2. **进程管理**：
+    - `kill`：终止进程。
+      ```sh
+      kill PID
+      kill -9 PID  # 强制终止进程
+      ```
+    - `ps`：显示当前进程信息。
+      ```sh
+      ps aux
+      ```
+    - `top`：动态显示进程信息。
+      ```sh
+      top
+      ```
+
+3. **网络管理**：
+    - `ping`：测试网络连通性。
+      ```sh
+      ping hostname_or_ip
+      ```
+    - `ifconfig`：显示或配置网络接口。
+      ```sh
+      ifconfig
+      ```
+    - `netstat`：显示网络连接、路由表和接口统计信息。
+      ```sh
+      netstat -tuln
+      ```
+    - `ssh`：通过 SSH 连接到远程服务器。
+      ```sh
+      ssh user@hostname_or_ip
+      ```
+    - `scp`：通过 SSH 进行文件拷贝。
+      ```sh
+      scp source_file user@hostname_or_ip:/path/to/destination
+      ```
+
+4. **文本处理**：
+    - `grep`：在文件中搜索文本模式。
+      ```sh
+      grep 'pattern' filename
+      grep -r 'pattern' directory  # 递归搜索目录
+      ```
+    - `echo`：输出字符串。
+      ```sh
+      echo "Hello, World!"
+      ```
+    - `tail`：查看文件末尾内容。
+      ```sh
+      tail filename
+      tail -f filename  # 动态查看文件追加内容
+      ```
+
+5. **系统资源监控**：
+    - `mpstat`：显示各个 CPU 的统计信息。
+      ```sh
+      mpstat
+      ```
+    - `free`：显示内存使用情况。
+      ```sh
+      free -m
+      ```
+    - `df`：显示文件系统磁盘空间使用情况。
+      ```sh
+      df -h
+      ```
+
+这些命令涵盖了文件和目录管理、进程管理、网络管理、文本处理和系统资源监控等方面，是日常使用 Linux 系统时非常有用的工具。
+
 
 # Other
 ## Integer和int 的区别
