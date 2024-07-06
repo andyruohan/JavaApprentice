@@ -1155,6 +1155,58 @@ public class SingleInstance{
 }
 ```
 
+### 编写一个简单的会导致死锁的程序
+```java
+/**
+ * @author andy_ruohan
+ * @description 一个简单的导致死锁的程序
+ * @date 2024/7/6 17:39
+ */
+public class DeadLockDemo {
+	static Object lockA = new Object();
+	static Object lockB = new Object();
+	public static void main(String[] args) {
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				System.out.println(Thread.currentThread() + " 尝试获取锁A");
+				synchronized (lockA){
+					System.out.println(Thread.currentThread() + " 获取到了锁A");
+					try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
+						throw new RuntimeException(e);
+					}
+					System.out.println(Thread.currentThread() + " 尝试获取锁B");
+					synchronized (lockB){
+						System.out.println(Thread.currentThread() + " 获取到了锁B");
+					}
+				}
+			}
+		}).start();
+
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				System.out.println(Thread.currentThread() + " 尝试获取锁B");
+				synchronized (lockB){
+					System.out.println(Thread.currentThread() + " 获取到了锁B");
+					try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
+						throw new RuntimeException(e);
+					}
+					System.out.println(Thread.currentThread() + " 尝试获取锁A");
+					synchronized (lockA){
+						System.out.println(Thread.currentThread() + " 获取到了锁A");
+					}
+				}
+			}
+		}).start();
+	}
+}
+```
+
 ### 总结
 
 - **`lock` 方法**：阻塞当前线程，直到获取到锁。适用于需要确保获取锁的场景。
