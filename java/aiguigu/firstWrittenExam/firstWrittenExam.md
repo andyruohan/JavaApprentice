@@ -1465,6 +1465,62 @@ Keepalived 是一个用于提供高可用性和负载均衡的开源工具，通
 
 这些命令涵盖了文件和目录管理、进程管理、网络管理、文本处理和系统资源监控等方面，是日常使用 Linux 系统时非常有用的工具。
 
+# Program
+## 属性继承及打印
+```java
+/**
+ * @author andy_ruohan
+ * @description 属性继承及打印
+ * @date 2024/7/14 16:33
+ */
+public class ExtendsAndPrintField extends Father {
+	private String name = "test";
+	public static void main(String[] args) {
+		ExtendsAndPrintField test = new ExtendsAndPrintField();
+		System.out.println(test.getName());
+	}
+
+}
+
+class Father {
+	private String name = "father";
+	public String getName() {
+		return name;
+	}
+}
+```
+**结论**：在原始代码中，getName() 方法访问的是 Father 类中的 name 字段，因此输出为 "father"。通过重写 getName() 方法，可以使其访问 ExtendsAndPrintField 类中的 name 字段，从而输出 "test"。
+
+## 测试捕获异常
+```java
+/**
+ * @author andy_ruohan
+ * @description 测试捕获异常
+ * @date 2024/7/14 16:48
+ */
+public class CatchException {
+	public int div(int a, int b) {
+		try {
+			return a / b;
+		} catch (Exception e) {
+			System.out.println("Exception");
+		} catch (NullPointerException e) {
+			System.out.println("ArithmeticException");
+		} catch (ArithmeticException e) {
+			System.out.println("ArithmeticException");
+		} finally {
+			System.out.println("finally");
+		}
+		return 0;
+	}
+
+	public static void main(String[] args) {
+		CatchException demo = new CatchException();
+		System.out.println("商是:" + demo.div(9, 0));
+	}
+}
+```
+**结论**：因为 NullPointerException 和 ArithmeticException 捕获出现在 Exception 后，编译时即会出现失败。
 
 # Other
 ## Integer和int 的区别
