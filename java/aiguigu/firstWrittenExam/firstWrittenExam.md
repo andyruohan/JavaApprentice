@@ -1355,6 +1355,97 @@ Keepalived 是一个用于提供高可用性和负载均衡的开源工具，通
 > 高效：由于响应数据不需要通过 LVS 进行中转，减轻了 LVS 的负载，提高了整体系统的性能。  
 > 降低延迟：减少了数据传输的中间步骤，降低了响应时间。
 
+# Data Structure
+## ArrayList
+`ArrayList`是Java集合框架中一个常用的动态数组实现。当`ArrayList`的容量不足以容纳新元素时，它会自动进行扩容。下面是`ArrayList`的扩容规则和相关细节。
+
+### 扩容规则
+
+1. **初始容量**：
+    - 当创建一个`ArrayList`时，可以指定初始容量。如果没有指定，默认初始容量为10。
+
+   ```java
+   ArrayList<Integer> list = new ArrayList<>(); // 默认初始容量10
+   ArrayList<Integer> listWithCapacity = new ArrayList<>(20); // 指定初始容量20
+   ```
+
+2. **自动扩容**：
+    - 当添加元素时，如果`ArrayList`的容量不足以容纳新元素，`ArrayList`会进行扩容。
+    - 扩容时，新容量为旧容量的1.5倍（实际实现中为1.5倍，但会取整并最终由JVM决定），即新容量 = 旧容量 + 旧容量 >> 1。
+
+3. **扩容逻辑**：
+    - 具体的扩容逻辑实现如下：
+
+   ```java
+   // 伪代码
+   int oldCapacity = array.length;
+   int newCapacity = oldCapacity + (oldCapacity >> 1);
+   ```
+
+    - 假设当前容量为10，当需要扩容时，新容量为10 + (10 >> 1) = 10 + 5 = 15。
+
+4. **复制数据**：
+    - 扩容时，会创建一个新的更大容量的数组，并将旧数组中的所有元素复制到新数组中。
+
+### 扩容的详细实现
+
+`ArrayList`的扩容在源码中的实现如下：
+
+```java
+// ArrayList.java
+private void grow(int minCapacity) {
+    // overflow-conscious code
+    int oldCapacity = elementData.length;
+    int newCapacity = oldCapacity + (oldCapacity >> 1);
+    if (newCapacity - minCapacity < 0)
+        newCapacity = minCapacity;
+    if (newCapacity - MAX_ARRAY_SIZE > 0)
+        newCapacity = hugeCapacity(minCapacity);
+    // minCapacity is usually close to size, so this is a win:
+    elementData = Arrays.copyOf(elementData, newCapacity);
+}
+```
+
+### 注意事项
+
+1. **性能**：
+    - 扩容涉及数组复制操作，这会带来一定的性能开销。频繁扩容可能会导致性能问题，因此在预知元素数量时，尽量指定合适的初始容量。
+
+2. **内存使用**：
+    - 扩容会导致内存使用量增加，因为每次扩容都会创建一个新的数组，旧数组需要等待垃圾回收。
+
+3. **最大容量限制**：
+    - 数组的最大容量受限于虚拟机的最大数组大小（`Integer.MAX_VALUE - 8`），超出该限制会导致内存溢出。
+
+### 示例代码
+
+```java
+import java.util.ArrayList;
+
+public class ArrayListExample {
+    public static void main(String[] args) {
+        ArrayList<Integer> list = new ArrayList<>(10); // 初始容量为10
+        for (int i = 0; i < 15; i++) {
+            list.add(i);
+            System.out.println("Size: " + list.size() + ", Capacity: " + getCapacity(list));
+        }
+    }
+
+    // 通过反射获取ArrayList的容量
+    private static int getCapacity(ArrayList<?> list) {
+        try {
+            java.lang.reflect.Field field = ArrayList.class.getDeclaredField("elementData");
+            field.setAccessible(true);
+            return ((Object[]) field.get(list)).length;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
+}
+```
+
+在上述示例中，当`ArrayList`的元素数量超过初始容量时，扩容会发生，可以通过反射获取当前`ArrayList`的容量。
 
 # Linux
 ## 常用的 Linux 命令
