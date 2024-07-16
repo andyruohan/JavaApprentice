@@ -1613,6 +1613,26 @@ public class CatchException {
 ```
 **结论**：因为 NullPointerException 和 ArithmeticException 捕获出现在 Exception 后，编译时即会出现失败。
 
+## 空对象执行static方法
+```java
+/**
+ * @author andy_ruohan
+ * @description 空对象执行static方法
+ * @date 2024/7/16 22:22
+ */
+public class StaticMethodWithNullObject {
+	public static void haha() {
+		System.out.println("haha");
+	}
+
+	public static void main(String[] args) {
+		StaticMethodWithNullObject staticMethodWithNullObject = null;
+		staticMethodWithNullObject.haha();
+	}
+}
+```
+**结论**：static方法可以执行成功，非static方法不可执行成功。
+
 # Other
 ## Integer和int 的区别
 ### 关键点
