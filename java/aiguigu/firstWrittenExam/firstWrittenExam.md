@@ -1633,6 +1633,48 @@ public class StaticMethodWithNullObject {
 ```
 **结论**：static方法可以执行成功，非static方法不可执行成功。
 
+## 未加volatile变量线程不可见
+```java
+/**
+ * @author andy_ruohan
+ * @description 未加volatile变量线程不可见
+ * @date 2024/7/16 22:56
+ */
+public class ThreadSafeCache {
+	private int result;
+
+	public int getResult() {
+		return result;
+	}
+
+	public synchronized void setResult(int result) {
+		this.result = result;
+	}
+
+	public static void main(String[] args) {
+		ThreadSafeCache threadSafeCache = new ThreadSafeCache();
+		for (int i = 0; i < 8; i++) {
+			new Thread(() -> {
+				while (threadSafeCache.getResult() < 100) {
+				}
+				System.out.println("我执行了");
+			}).start();
+		}
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		threadSafeCache.setResult(200);
+	}
+}
+
+```
+**分析：**
+1. 共享变量在多线程读取的时候，会被拉到线程本地，while在执行时，一直使用的都是本地变量的值。所以，后续更改线程一直访问不到最新变量，程序会卡死。
+2. 给变量增加volatile关键字，保证多线程之间变量可见性。
+
 # Other
 ## Integer和int 的区别
 ### 关键点
