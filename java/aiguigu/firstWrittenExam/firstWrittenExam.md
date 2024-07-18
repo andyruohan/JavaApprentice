@@ -1164,6 +1164,191 @@ public boolean tryLock() {
 
 这两种方法各有优劣，可以根据具体需求选择合适的锁获取方式。
 
+## synchronized
+关键点：
+1. synchronized 普通方法，锁的是当前对象
+2. synchronized 静态方法，锁的是class
+3. synchronized 代码块，可以手动指定锁对象是啥（当前对象、当前类、任意其他对象）
+
+### 1. synchronized 锁方法
+
+`synchronized` 修饰普通方法时，锁定的是当前对象（实例）。
+
+```java
+class T {
+    public synchronized void doSomething() {
+        System.out.println(Thread.currentThread().getName() + " entered doSomething");
+        try {
+            Thread.sleep(2000); // 模拟长时间操作
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.println(Thread.currentThread().getName() + " exiting doSomething");
+    }
+}
+
+public class TestSynchronization {
+    public static void main(String[] args) {
+        T A = new T();
+        T B = new T();
+
+        Thread thread1 = new Thread(() -> A.doSomething(), "Thread 1");
+        Thread thread2 = new Thread(() -> B.doSomething(), "Thread 2");
+
+        thread1.start();
+        thread2.start();
+    }
+}
+```
+
+在这个例子中，`A` 和 `B` 是不同的实例，因此 `thread1` 和 `thread2` 可以同时进入各自的 `doSomething()` 方法。
+
+### 2. synchronized 锁静态方法
+
+`synchronized` 修饰静态方法时，锁定的是类对象（Class）。
+
+```java
+class T {
+    public static synchronized void staticMethod() {
+        System.out.println(Thread.currentThread().getName() + " entered staticMethod");
+        try {
+            Thread.sleep(2000); // 模拟长时间操作
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.println(Thread.currentThread().getName() + " exiting staticMethod");
+    }
+}
+
+public class TestSynchronization {
+    public static void main(String[] args) {
+        T A = new T();
+        T B = new T();
+
+        Thread thread1 = new Thread(() -> T.staticMethod(), "Thread 1");
+        Thread thread2 = new Thread(() -> T.staticMethod(), "Thread 2");
+
+        thread1.start();
+        thread2.start();
+    }
+}
+```
+
+在这个例子中，`staticMethod()` 是一个静态方法，锁定的是类 `T` 的 `Class` 对象，因此同一时间只有一个线程可以进入 `staticMethod()` 方法。
+
+### 3. synchronized 锁代码块
+
+`synchronized` 代码块可以锁定任意对象。
+
+#### 锁定当前对象（this）
+
+```java
+class T {
+    public void method() {
+        synchronized (this) {
+            System.out.println(Thread.currentThread().getName() + " entered method");
+            try {
+                Thread.sleep(2000); // 模拟长时间操作
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println(Thread.currentThread().getName() + " exiting method");
+        }
+    }
+}
+
+public class TestSynchronization {
+    public static void main(String[] args) {
+        T A = new T();
+        T B = new T();
+
+        Thread thread1 = new Thread(() -> A.method(), "Thread 1");
+        Thread thread2 = new Thread(() -> B.method(), "Thread 2");
+
+        thread1.start();
+        thread2.start();
+    }
+}
+```
+
+在这个例子中，`synchronized (this)` 锁定的是当前实例对象，因此 `A` 和 `B` 的锁是独立的，`thread1` 和 `thread2` 可以同时进入各自的 `method()` 方法。
+
+#### 锁定类对象（Class）
+
+```java
+class T {
+    public void method() {
+        synchronized (T.class) {
+            System.out.println(Thread.currentThread().getName() + " entered method");
+            try {
+                Thread.sleep(2000); // 模拟长时间操作
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println(Thread.currentThread().getName() + " exiting method");
+        }
+    }
+}
+
+public class TestSynchronization {
+    public static void main(String[] args) {
+        T A = new T();
+        T B = new T();
+
+        Thread thread1 = new Thread(() -> A.method(), "Thread 1");
+        Thread thread2 = new Thread(() -> B.method(), "Thread 2");
+
+        thread1.start();
+        thread2.start();
+    }
+}
+```
+
+在这个例子中，`synchronized (T.class)` 锁定的是类对象，因此同一时间只有一个线程可以进入 `method()` 方法，不论是通过 `A` 还是 `B` 调用。
+
+#### 锁定其他对象
+
+```java
+class T {
+    private final Object lock = new Object();
+
+    public void method() {
+        synchronized (lock) {
+            System.out.println(Thread.currentThread().getName() + " entered method");
+            try {
+                Thread.sleep(2000); // 模拟长时间操作
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println(Thread.currentThread().getName() + " exiting method");
+        }
+    }
+}
+
+public class TestSynchronization {
+    public static void main(String[] args) {
+        T A = new T();
+        T B = new T();
+
+        Thread thread1 = new Thread(() -> A.method(), "Thread 1");
+        Thread thread2 = new Thread(() -> B.method(), "Thread 2");
+
+        thread1.start();
+        thread2.start();
+    }
+}
+```
+
+在这个例子中，`synchronized (lock)` 锁定的是 `lock` 对象。由于 `A` 和 `B` 各自有独立的 `lock` 对象，因此 `thread1` 和 `thread2` 可以同时进入 `method()` 方法。
+
+### 总结
+
+- `synchronized` 普通方法锁定当前对象（实例），不同实例的锁是独立的。
+- `synchronized` 静态方法锁定类对象（Class），同一时间只有一个线程可以进入类的任何 `synchronized` 静态方法。
+- `synchronized` 代码块可以锁定任意对象，实现更灵活的同步机制：
+    - 锁定当前对象（`this`），保证同一时间只有一个线程可以进入该对象的 `synchronized` 方法或代码块。
+    - 锁定类对象（`Class`），保证同一时间只有一个线程可以进入该类的 `synchronized` 静态方法或代码块。
+    - 锁定其他对象，实现自定义的同步机制。
    
 ## 编写一个基于线程安全的懒加载单例模式
 原视频有误，只使用了双检锁，实际应双检锁配合volatile
