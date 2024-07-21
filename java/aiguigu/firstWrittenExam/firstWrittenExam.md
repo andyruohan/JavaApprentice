@@ -1956,6 +1956,35 @@ public class ThreadSafeCache {
 1. 共享变量在多线程读取的时候，会被拉到线程本地，while在执行时，一直使用的都是本地变量的值。所以，后续更改线程一直访问不到最新变量，程序会卡死。
 2. 给变量增加volatile关键字，保证多线程之间变量可见性。
 
+## 字符串比较
+```java
+public class StringCompare {
+	public static void main(String[] args) {
+		String str1 = "hello";
+		String str2 = "he" + "llo";
+		System.err.println(str1 == str2);
+	}
+}
+```
+输出结果为：
+```java
+true
+```
+
+```java
+public class StringCompare {
+	public static void main(String[] args) {
+		String str1 = "hello";
+		String str2 = "he" + new String("llo");
+		System.err.println(str1 == str2);
+	}
+}
+```
+输出结果为：
+```java
+false
+```
+
 # Other
 ## Integer和int 的区别
 ### 关键点
