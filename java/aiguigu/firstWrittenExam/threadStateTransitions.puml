@@ -1,0 +1,14 @@
+@startuml
+[*] -> New
+New -> Ready : start()
+Ready -> Runnable : scheduled by CPU
+Blocked <- Runnable: synchronized/lock
+Blocked --> Ready : lock released
+Runnable --> Waiting : wait()
+Waiting -> Ready : notify()/notifyAll()
+Waiting -> Terminated : interrupt()
+'Runnable --> TimedWaiting : sleep()/wait(long)
+'TimedWaiting -> Ready : time elapsed
+'TimedWaiting -> Terminated : interrupt()
+Runnable -> Terminated : run() completes
+@enduml

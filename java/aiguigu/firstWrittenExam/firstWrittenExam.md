@@ -1349,7 +1349,103 @@ public class TestSynchronization {
     - 锁定当前对象（`this`），保证同一时间只有一个线程可以进入该对象的 `synchronized` 方法或代码块。
     - 锁定类对象（`Class`），保证同一时间只有一个线程可以进入该类的 `synchronized` 静态方法或代码块。
     - 锁定其他对象，实现自定义的同步机制。
-   
+
+## Thread
+### Java 线程的七个状态
+
+1. **New**:
+    - **描述**: 线程已经被创建，但还没有调用`start()`方法。
+    - **特点**: 处于`New`状态的线程已经分配了内存空间，但还未与操作系统的线程资源关联。
+    - **示例代码**:
+      ```java
+      Thread t = new Thread();
+      ```
+
+2. **Ready**:
+    - **描述**: 线程已经被启动并准备好运行，但尚未获得CPU时间片。这是一个处于等待状态的线程，一旦CPU调度它，它就会进入`Runnable`状态。
+    - **特点**: 线程在`Ready`状态下排队等待CPU分配时间片。
+    - **示例代码**:
+      ```java
+      t.start(); // 线程进入Ready状态，等待CPU调度
+      ```
+
+3. **Runnable**:
+    - **描述**: 线程已经准备好运行，并且正在运行或等待CPU时间片。这一状态包括正在运行和就绪状态。
+    - **特点**: 线程在`Runnable`状态下要么正在执行代码，要么等待CPU分配时间片。
+    - **示例代码**:
+      ```java
+      // 线程正在运行
+      ```
+
+4. **Blocked**:
+    - **描述**: 线程在等待监视器锁时进入此状态。这通常发生在线程试图进入同步代码块或方法，但锁被其他线程持有。
+    - **特点**: 线程被阻塞，直到获取到所需的锁。
+    - **示例代码**:
+      ```java
+      synchronized(lock) {
+          // 线程在获取锁之前会进入Blocked状态
+      }
+      ```
+
+5. **Waiting**:
+    - **描述**: 线程无限期地等待另一个线程显式地唤醒它。进入`Waiting`状态的线程要么调用了`Object.wait()`方法，要么调用了`Thread.join()`方法而未指定超时时间。
+    - **特点**: 线程在等待另一个线程的通知或中断。
+    - **示例代码**:
+      ```java
+      synchronized(lock) {
+          lock.wait();
+      }
+      ```
+
+6. **Timed Waiting**:
+    - **描述**: 线程在等待一定的时间后自动唤醒。进入`Timed Waiting`状态的线程调用了带有超时参数的方法，如`Thread.sleep(long millis)`、`Object.wait(long timeout)`、`Thread.join(long millis)`。
+    - **特点**: 线程在超时之前进入等待状态，超时后自动唤醒。
+    - **示例代码**:
+      ```java
+      Thread.sleep(1000); // 线程在timed waiting状态1秒钟
+      ```
+
+7. **Terminated**:
+    - **描述**: 线程已经完成了执行或由于异常而结束。
+    - **特点**: 线程退出了`run()`方法，生命周期已经结束。
+    - **示例代码**:
+      ```java
+      public void run() {
+          // 线程执行逻辑
+      }
+      // run()方法完成后，线程进入terminated状态
+      ```
+
+### PlantUML 图示
+
+以下是包含所有七个线程状态的PlantUML代码：
+
+```plantuml
+@startuml
+[*] -> New
+New -> Ready : start()
+Ready -> Runnable : scheduled by CPU
+Blocked <- Runnable: synchronized/lock
+Blocked --> Ready : lock released
+Runnable --> Waiting : wait()
+Waiting -> Ready : notify()/notifyAll()
+Waiting -> Terminated : interrupt()
+'Runnable --> TimedWaiting : sleep()/wait(long)
+'TimedWaiting -> Ready : time elapsed
+'TimedWaiting -> Terminated : interrupt()
+Runnable -> Terminated : run() completes
+@enduml
+```
+![](threadStateTransitions.png)
+上图展示了Java线程在不同状态之间的所有可能转换路径，帮助理解线程生命周期中的各个阶段。
+
+> 因 TimedWaiting 与 Waiting 状态类似，故上图仅展示了 Waiting 状态。将上述代码中有关于 TimedWaiting 部分解注释，即可得到关于 TimedWaiting 的状态流转。
+>```puml
+>'Runnable --> TimedWaiting : sleep()/wait(long)
+>'TimedWaiting -> Ready : time elapsed
+>'TimedWaiting -> Terminated : interrupt()
+>```
+
 ## 编写一个基于线程安全的懒加载单例模式
 原视频有误，只使用了双检锁，实际应双检锁配合volatile
 ```java
