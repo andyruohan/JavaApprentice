@@ -1,0 +1,11 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+客户端 --> 业务系统: 查询附件
+业务系统 --> 业务系统: 附件加密
+业务系统 --> 客户端: 返回加密EcsKey
+客户端 --> 附件系统: 下载附件
+
+@enduml
