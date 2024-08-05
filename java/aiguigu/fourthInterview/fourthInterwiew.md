@@ -22,7 +22,6 @@ public class ArraysBugDemo
 ```
 上述代码运行结果为：
 ```
-/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/bin/java -javaagent:/Applications/IntelliJ IDEA.app/Contents/lib/idea_rt.jar=59790:/Applications/IntelliJ IDEA.app/Contents/bin -Dfile.encoding=UTF-8 -classpath /Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/charsets.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/deploy.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/ext/cldrdata.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/ext/dnsns.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/ext/jaccess.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/ext/jfxrt.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/ext/localedata.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/ext/nashorn.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/ext/sunec.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/ext/sunjce_provider.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/ext/sunpkcs11.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/ext/zipfs.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/javaws.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/jce.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/jfr.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/jfxswt.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/jsse.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/management-agent.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/plugin.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/resources.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home/jre/lib/rt.jar:/Users/lijunxin/IdeaProjects/JavaStudy/target/classes:/Users/lijunxin/.m2/repository/org/springframework/boot/spring-boot-starter/2.3.7.RELEASE/spring-boot-starter-2.3.7.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/boot/spring-boot/2.3.7.RELEASE/spring-boot-2.3.7.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/spring-context/5.2.12.RELEASE/spring-context-5.2.12.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/2.3.7.RELEASE/spring-boot-autoconfigure-2.3.7.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/boot/spring-boot-starter-logging/2.3.7.RELEASE/spring-boot-starter-logging-2.3.7.RELEASE.jar:/Users/lijunxin/.m2/repository/ch/qos/logback/logback-classic/1.2.3/logback-classic-1.2.3.jar:/Users/lijunxin/.m2/repository/ch/qos/logback/logback-core/1.2.3/logback-core-1.2.3.jar:/Users/lijunxin/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.13.3/log4j-to-slf4j-2.13.3.jar:/Users/lijunxin/.m2/repository/org/apache/logging/log4j/log4j-api/2.13.3/log4j-api-2.13.3.jar:/Users/lijunxin/.m2/repository/org/slf4j/jul-to-slf4j/1.7.30/jul-to-slf4j-1.7.30.jar:/Users/lijunxin/.m2/repository/jakarta/annotation/jakarta.annotation-api/1.3.5/jakarta.annotation-api-1.3.5.jar:/Users/lijunxin/.m2/repository/org/springframework/spring-core/5.2.12.RELEASE/spring-core-5.2.12.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/spring-jcl/5.2.12.RELEASE/spring-jcl-5.2.12.RELEASE.jar:/Users/lijunxin/.m2/repository/org/yaml/snakeyaml/1.26/snakeyaml-1.26.jar:/Users/lijunxin/.m2/repository/cglib/cglib/3.3.0/cglib-3.3.0.jar:/Users/lijunxin/.m2/repository/org/ow2/asm/asm/7.1/asm-7.1.jar:/Users/lijunxin/.m2/repository/junit/junit/4.13.2/junit-4.13.2.jar:/Users/lijunxin/.m2/repository/org/hamcrest/hamcrest-core/2.2/hamcrest-core-2.2.jar:/Users/lijunxin/.m2/repository/org/springframework/boot/spring-boot-starter-web/2.3.7.RELEASE/spring-boot-starter-web-2.3.7.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/boot/spring-boot-starter-json/2.3.7.RELEASE/spring-boot-starter-json-2.3.7.RELEASE.jar:/Users/lijunxin/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.11.3/jackson-datatype-jdk8-2.11.3.jar:/Users/lijunxin/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.11.3/jackson-datatype-jsr310-2.11.3.jar:/Users/lijunxin/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.11.3/jackson-module-parameter-names-2.11.3.jar:/Users/lijunxin/.m2/repository/org/springframework/boot/spring-boot-starter-tomcat/2.3.7.RELEASE/spring-boot-starter-tomcat-2.3.7.RELEASE.jar:/Users/lijunxin/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/9.0.41/tomcat-embed-core-9.0.41.jar:/Users/lijunxin/.m2/repository/org/glassfish/jakarta.el/3.0.3/jakarta.el-3.0.3.jar:/Users/lijunxin/.m2/repository/org/apache/tomcat/embed/tomcat-embed-websocket/9.0.41/tomcat-embed-websocket-9.0.41.jar:/Users/lijunxin/.m2/repository/org/springframework/spring-web/5.2.12.RELEASE/spring-web-5.2.12.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/spring-beans/5.2.12.RELEASE/spring-beans-5.2.12.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/spring-webmvc/5.2.12.RELEASE/spring-webmvc-5.2.12.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/spring-expression/5.2.12.RELEASE/spring-expression-5.2.12.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/boot/spring-boot-starter-actuator/2.3.7.RELEASE/spring-boot-starter-actuator-2.3.7.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/boot/spring-boot-actuator-autoconfigure/2.3.7.RELEASE/spring-boot-actuator-autoconfigure-2.3.7.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/boot/spring-boot-actuator/2.3.7.RELEASE/spring-boot-actuator-2.3.7.RELEASE.jar:/Users/lijunxin/.m2/repository/io/micrometer/micrometer-core/1.5.9/micrometer-core-1.5.9.jar:/Users/lijunxin/.m2/repository/org/hdrhistogram/HdrHistogram/2.1.12/HdrHistogram-2.1.12.jar:/Users/lijunxin/.m2/repository/org/latencyutils/LatencyUtils/2.0.3/LatencyUtils-2.0.3.jar:/Users/lijunxin/.m2/repository/org/springframework/boot/spring-boot-starter-data-redis/2.3.7.RELEASE/spring-boot-starter-data-redis-2.3.7.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/data/spring-data-redis/2.3.6.RELEASE/spring-data-redis-2.3.6.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/data/spring-data-keyvalue/2.3.6.RELEASE/spring-data-keyvalue-2.3.6.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/data/spring-data-commons/2.3.6.RELEASE/spring-data-commons-2.3.6.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/spring-tx/5.2.12.RELEASE/spring-tx-5.2.12.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/spring-oxm/5.2.12.RELEASE/spring-oxm-5.2.12.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/spring-context-support/5.2.12.RELEASE/spring-context-support-5.2.12.RELEASE.jar:/Users/lijunxin/.m2/repository/io/lettuce/lettuce-core/5.3.5.RELEASE/lettuce-core-5.3.5.RELEASE.jar:/Users/lijunxin/.m2/repository/org/apache/commons/commons-pool2/2.8.1/commons-pool2-2.8.1.jar:/Users/lijunxin/.m2/repository/redis/clients/jedis/3.1.0/jedis-3.1.0.jar:/Users/lijunxin/.m2/repository/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar:/Users/lijunxin/.m2/repository/org/springframework/boot/spring-boot-starter-aop/2.3.7.RELEASE/spring-boot-starter-aop-2.3.7.RELEASE.jar:/Users/lijunxin/.m2/repository/org/springframework/spring-aop/5.2.12.RELEASE/spring-aop-5.2.12.RELEASE.jar:/Users/lijunxin/.m2/repository/org/aspectj/aspectjweaver/1.9.6/aspectjweaver-1.9.6.jar:/Users/lijunxin/.m2/repository/org/springframework/boot/spring-boot-devtools/2.3.7.RELEASE/spring-boot-devtools-2.3.7.RELEASE.jar:/Users/lijunxin/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/Users/lijunxin/.m2/repository/org/redisson/redisson/3.16.0/redisson-3.16.0.jar:/Users/lijunxin/.m2/repository/io/netty/netty-common/4.1.55.Final/netty-common-4.1.55.Final.jar:/Users/lijunxin/.m2/repository/io/netty/netty-codec/4.1.55.Final/netty-codec-4.1.55.Final.jar:/Users/lijunxin/.m2/repository/io/netty/netty-buffer/4.1.55.Final/netty-buffer-4.1.55.Final.jar:/Users/lijunxin/.m2/repository/io/netty/netty-transport/4.1.55.Final/netty-transport-4.1.55.Final.jar:/Users/lijunxin/.m2/repository/io/netty/netty-resolver/4.1.55.Final/netty-resolver-4.1.55.Final.jar:/Users/lijunxin/.m2/repository/io/netty/netty-resolver-dns/4.1.55.Final/netty-resolver-dns-4.1.55.Final.jar:/Users/lijunxin/.m2/repository/io/netty/netty-codec-dns/4.1.55.Final/netty-codec-dns-4.1.55.Final.jar:/Users/lijunxin/.m2/repository/io/netty/netty-handler/4.1.55.Final/netty-handler-4.1.55.Final.jar:/Users/lijunxin/.m2/repository/javax/cache/cache-api/1.1.1/cache-api-1.1.1.jar:/Users/lijunxin/.m2/repository/io/projectreactor/reactor-core/3.3.12.RELEASE/reactor-core-3.3.12.RELEASE.jar:/Users/lijunxin/.m2/repository/org/reactivestreams/reactive-streams/1.0.3/reactive-streams-1.0.3.jar:/Users/lijunxin/.m2/repository/io/reactivex/rxjava3/rxjava/3.0.12/rxjava-3.0.12.jar:/Users/lijunxin/.m2/repository/org/jboss/marshalling/jboss-marshalling-river/2.0.11.Final/jboss-marshalling-river-2.0.11.Final.jar:/Users/lijunxin/.m2/repository/org/jboss/marshalling/jboss-marshalling/2.0.11.Final/jboss-marshalling-2.0.11.Final.jar:/Users/lijunxin/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.11.3/jackson-dataformat-yaml-2.11.3.jar:/Users/lijunxin/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.11.3/jackson-core-2.11.3.jar:/Users/lijunxin/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.11.3/jackson-databind-2.11.3.jar:/Users/lijunxin/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.11.3/jackson-annotations-2.11.3.jar:/Users/lijunxin/.m2/repository/net/bytebuddy/byte-buddy/1.10.18/byte-buddy-1.10.18.jar:/Users/lijunxin/.m2/repository/org/jodd/jodd-bean/5.1.6/jodd-bean-5.1.6.jar:/Users/lijunxin/.m2/repository/org/jodd/jodd-core/5.1.6/jodd-core-5.1.6.jar test.Arrays_BugDemo
 Exception in thread "main" java.lang.UnsupportedOperationException
 	at java.util.AbstractList.add(AbstractList.java:148)
 	at java.util.AbstractList.add(AbstractList.java:108)
@@ -38,3 +37,73 @@ Exception in thread "main" java.lang.UnsupportedOperationException
 List<Integer> list = new ArrayList<>(Arrays.asList(1,2));
 ```
 
+### 遍历集合时禁止使用集合的remove方法
+#### 问题现象
+```java
+/**
+ * @author andy_ruohan
+ * @description 遍历集合时禁止使用list.remove
+ * @date 2024/8/3 16:26
+ */
+public class IteratorRemoveDemo {
+	public static void main(String[] args) {
+		List<Integer> list = new ArrayList<>();
+		list.add(11);
+		list.add(12);
+		list.add(13);
+		list.add(14);
+		list.add(15);
+
+		Iterator<Integer> iterator = list.iterator();
+		while(iterator.hasNext()) {
+			Integer value = iterator.next();
+			if(value == 12) {
+				list.remove(value);
+			}
+		}
+
+		list.forEach(System.out::println);
+	}
+}
+```
+上述代码运行结果为：
+```
+Exception in thread "main" java.util.ConcurrentModificationException
+	at java.util.ArrayList$Itr.checkForComodification(ArrayList.java:911)
+	at java.util.ArrayList$Itr.next(ArrayList.java:861)
+	at test.IteratorRemoveDemo.main(IteratorRemoveDemo.java:25)
+```
+
+#### 问题根因
+1) 第一次遇到 value == 12 时，通过 list.remove(value) 直接修改了集合。这导致集合的 modCount 被改变，而迭代器的 expectedModCount 没有相应更新。
+2) 在下一次循环中，当 iterator.next() 被调用时，迭代器会检查当前的 modCount 是否与 expectedModCount 一致。此时会检测到二者不一致，并抛出 ConcurrentModificationException。
+```java 
+        public E next() {
+            checkForComodification();
+            int i = cursor;
+            if (i >= size)
+                throw new NoSuchElementException();
+            Object[] elementData = ArrayList.this.elementData;
+            if (i >= elementData.length)
+                throw new ConcurrentModificationException();
+            cursor = i + 1;
+            return (E) elementData[lastRet = i];
+        }
+```
+
+```java
+        final void checkForComodification() {
+            if (modCount != expectedModCount)
+                throw new ConcurrentModificationException();
+        }
+```
+
+
+#### 解决方法
+不使用 list.remove(value) ，使用迭代器的 iterator.remove()。
+```java
+       if (value.equals(12)) {
+	        // 使用 Iterator 的 remove 方法
+	        iterator.remove();
+       }
+```
