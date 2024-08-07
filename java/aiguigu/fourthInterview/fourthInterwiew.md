@@ -107,3 +107,146 @@ Exception in thread "main" java.util.ConcurrentModificationException
 	        iterator.remove();
        }
 ```
+
+### Hash 冲突
+#### 写一下 Hash 冲突的代码案例
+```java
+/**
+ * @author andy_ruohan
+ * @description Hash冲突两种模拟case
+ * @date 2024/8/7 22:22
+ */
+public class HashConflictDemo {
+	public static void main(String[] args) {
+		hashConflictCase1();
+		hashConflictCase2();
+	}
+
+	private static void hashConflictCase1() {
+        // 不会产生hash冲突
+		System.out.println("AA".hashCode());
+		System.out.println("BB".hashCode());
+		System.out.println();
+
+		// 以下是一些典型的hash冲突案例
+		System.out.println("Aa".hashCode());
+		System.out.println("BB".hashCode());
+		System.out.println();
+		System.out.println("柳柴".hashCode());
+		System.out.println("柴柕".hashCode());
+	}
+
+	private static void hashConflictCase2() {
+		// 以下是通过重复new产生hash冲突案例
+		HashSet<Integer> hashSet = new HashSet<>();
+		for (int i = 1; i <= 15 * 10000; i++) {
+			int bookHashCode = new Object().hashCode();
+			if (!hashSet.contains(bookHashCode)) {
+				hashSet.add(bookHashCode);
+			} else {
+				System.out.println("发生了hash冲突，在第:" + i + "次，值是：" + bookHashCode);
+			}
+		}
+		System.out.println(hashSet.size());
+	}
+}
+```
+
+case1 输出结果：
+```
+2080
+2112
+
+2112
+2112
+
+851553
+851553
+```
+
+case2 输出结果：
+```java
+发生了hash冲突，在第:105673次，值是：2134400190
+发生了hash冲突，在第:111120次，值是：651156501
+发生了hash冲突，在第:121781次，值是：1867750575
+发生了hash冲突，在第:145304次，值是：2038112324
+发生了hash冲突，在第:146237次，值是：1164664992
+149995
+```
+
+
+#### 为什么会产生 Hash 冲突
+在 `HashSet<String>` 中，如果元素值为 `"Aa"` 和 `"BB"`，它们的哈希码确实相同。Java 的 `String` 类 `hashCode()` 方法的实现导致这两个字符串具有相同的哈希值。这是因为 `String` 的 `hashCode()` 方法的实现是基于字符串中字符的序列和位置计算的，具体公式如下：
+
+```
+hashCode = s[0]*31^(n-1) + s[1]*31^(n-2) + ... + s[n-1]
+```
+
+对于字符串 `"Aa"` 和 `"BB"`，计算结果如下：
+
+- `"Aa"` 的哈希码为：
+  ```
+  'A' * 31^1 + 'a' * 31^0
+  = 65 * 31 + 97
+  = 2015 + 97
+  = 2112
+  ```
+
+- `"BB"` 的哈希码为：
+  ```
+  'B' * 31^1 + 'B' * 31^0
+  = 66 * 31 + 66
+  = 2046 + 66
+  = 2112
+  ```
+
+可以看到，它们的哈希码都为 `2112`，因此它们在 `HashSet` 中会发生哈希冲突。
+
+#### 哈希冲突处理过程
+在 `HashSet<String>` 集合中存储的对象出现哈希冲突时，Java 会通过链地址法（即分离链接法）来处理这些冲突。下面详细解释在 `HashSet<String>` 中哈希冲突的处理过程：
+
+1. **计算哈希码**：
+   当你向 `HashSet` 中添加一个字符串（如 `Aa`）时，`HashSet` 会调用该字符串的 `hashCode()` 方法计算哈希码。
+
+2. **定位桶（bucket）**：
+   通过哈希码确定该整数应放置的桶的位置。如果两个整数的哈希码相同，它们将被放置到同一个桶中。
+
+3. **处理冲突**：
+    - **链地址法**：`HashSet` 使用链地址法处理冲突。如果两个或多个整数的哈希码相同，它们将被放在同一个桶中，但以链表或树的形式存储。
+        - 当桶中的元素数量较少时，使用链表存储冲突的对象。
+        - 当桶中的元素数量超过一定阈值时（默认为8），链表会转换为红黑树，以提高查找性能。
+
+4. **检查相等性**：
+   即使两个整数的哈希码相同，`HashSet` 仍会使用 `equals()` 方法来检查它们是否真正相等。如果 `equals()` 方法返回 `true`，`HashSet` 会认为这两个整数是重复的，不会再次添加。如果 `equals()` 方法返回 `false`，则认为它们是不同的对象，添加到同一个桶的链表或树中。
+
+以下是示例代码，展示在 `HashSet<String>` 中处理这种哈希冲突的过程：
+```java
+import java.util.HashSet;
+import java.util.Set;
+
+public class HashSetExample {
+    public static void main(String[] args) {
+        Set<String> set = new HashSet<>();
+
+        // 添加字符串 "Aa" 和 "BB"
+        set.add("Aa");
+        set.add("BB");
+
+        // 打印集合，查看两个字符串是否都被添加
+        System.out.println(set);
+
+        // 添加重复的字符串 "Aa"
+        set.add("Aa");
+
+        // 打印集合，查看是否有重复元素
+        System.out.println(set);
+    }
+}
+```
+输出结果：
+
+```
+[Aa, BB]
+[Aa, BB]
+```
+
