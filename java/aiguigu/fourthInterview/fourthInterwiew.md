@@ -250,3 +250,54 @@ public class HashSetExample {
 [Aa, BB]
 ```
 
+### 整型包装类型 Integer
+#### Integer的构造方法在java9后过时
+```java
+    // 构造方法在 java9 以后不推荐
+    Integer i1 = new Integer(1200);
+    Integer i2 = Integer.valueOf(1200);
+```
+![](Integer的构造方法在java9后过时.png)
+
+#### 使用 Integer 对象比较的一些坑
+```java
+/**
+ * @author andy_ruohan
+ * @description Integer 对象比较的一些坑
+ * @date 2024/8/8 23:31
+ */
+public class IntegerBugDemo {
+	public static void main(String[] args) {
+		// Integer 对象比较
+		Integer a = Integer.valueOf(600);
+		Integer b = Integer.valueOf(600);
+		int c = 600;
+		System.out.println(a == b);
+		System.out.println(a.equals(b));
+		System.out.println(a == c);
+
+		System.out.println("===================");
+
+		Integer x = Integer.valueOf(99);
+		Integer y = Integer.valueOf(99);
+		System.out.println(x == y);
+		System.out.println(x.equals(y));
+	}
+}
+```
+以上代码输出结果为：
+```java
+false
+true
+true
+===================
+true
+true
+```
+原因可参考源码，或下面的《阿里巴巴开发手册》摘录的内容：
+```java
+【强制】所有整型包装类对象之间值的比较，全部使用 equals 方法比较。
+说明：对于 Integer var = ? 在-128 至 127 之间的赋值，Integer 对象是在 IntegerCache.cache 产生，
+会复用已有对象，这个区间内的 Integer 值可以直接使用==进行判断，但是这个区间之外的所有数据，都
+会在堆上产生，并不会复用已有对象，这是一个大坑，推荐使用 equals 方法进行判断。
+```
