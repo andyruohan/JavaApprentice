@@ -301,3 +301,106 @@ true
 会复用已有对象，这个区间内的 Integer 值可以直接使用==进行判断，但是这个区间之外的所有数据，都
 会在堆上产生，并不会复用已有对象，这是一个大坑，推荐使用 equals 方法进行判断。
 ```
+
+## BigDecimal 的一些坑
+### 1. 使用 BigDecimal(double) 存在精度损失风险
+当使用float/double这些浮点数据时，会丢失精度String/int则不会，BigDecimal(double) 存在精度损失风险
+```java
+【强制】禁止使用构造方法 BigDecimal(double)的方式把 double 值转化为 BigDecimal 对象。
+说明：BigDecimal(double)存在精度损失风险，在精确计算或值比较的场景中可能会导致业务逻辑异常。
+如：BigDecimal g = new BigDecimal(0.1f); 实际的存储值为：0.10000000149
+正例：优先推荐入参为 String 的构造方法，或使用 BigDecimal 的 valueOf 方法，此方法内部其实执行了
+Double 的 toString，而 Double 的 toString 按 double 的实际能表达的精度对尾数进行了截断。
+ BigDecimal recommend1 = new BigDecimal("0.1");
+ BigDecimal recommend2 = BigDecimal.valueOf(0.1);
+```
+
+### 2. BigDemcial 的等值比较应使用 compareTo()
+equals() 方法会比较值和精度，(1.0) 与 (1.00) 返回结果为 false，而 compareTo() 则会忽略精度。
+```java
+【强制】浮点数之间的等值判断，基本数据类型不能用==来比较，包装数据类型不能用 equals 来判断。
+说明：浮点数采用“尾数+阶码”的编码方式，类似于科学计数法的“有效数字+指数”的表示方式。二进制无法精确表示大部分的十进制小数，具体原理参考《码出高效》。
+反例：
+float a = 1.0f - 0.9f;
+float b = 0.9f - 0.8f;
+if (a == b) {
+ // 预期进入此代码快，执行其它业务逻辑
+ // 但事实上 a==b 的结果为 false
+}
+Float x = Float.valueOf(a);
+Float y = Float.valueOf(b);
+if (x.equals(y)) {
+ // 预期进入此代码快，执行其它业务逻辑
+ // 但事实上 equals 的结果为 false
+}
+正例：
+(1) 指定一个误差范围，两个浮点数的差值在此范围之内，则认为是相等的。
+float a = 1.0f - 0.9f;
+float b = 0.9f - 0.8f;
+float diff = 1e-6f;
+if (Math.abs(a - b) < diff) {
+ System.out.println("true");
+}
+(2) 使用 BigDecimal 来定义值，再进行浮点数的运算操作。
+BigDecimal a = new BigDecimal("1.0");
+BigDecimal b = new BigDecimal("0.9");
+BigDecimal c = new BigDecimal("0.8");
+BigDecimal x = a.subtract(b);
+BigDecimal y = b.subtract(c);
+if (x.equals(y)) {
+ System.out.println("true");
+}
+```
+
+### 3. 除法商的结果需要指定精度
+```java
+    private static void m3() {
+	    BigDecimal amount1 = new BigDecimal("2.0");
+	    BigDecimal amount2 = new BigDecimal("3.0");
+	    System.out.println(amount1.divide(amount2)); //Non-terminating decimal expansion; no exact representable decimal result.
+    }
+```
+直接除，会报下面的错误：
+```
+Exception in thread "main" java.lang.ArithmeticException: Non-terminating decimal expansion; no exact representable decimal result.
+	at java.math.BigDecimal.divide(BigDecimal.java:1707)
+	at test.BigDecimalBugDemo.m3(BigDecimalBugDemo.java:67)
+	at test.BigDecimalBugDemo.main(BigDecimalBugDemo.java:25)
+```
+应加上精度处理，如下模式也就是我们常说的我们的“四舍五入”：
+```java
+        System.out.println(amount1.divide(amount2, 2, RoundingMode.HALF_UP)); 
+```
+
+
+### 4. 科学计数法的使用问题
+```java
+	private static void m4() {
+		BigDecimal amount1 = BigDecimal.valueOf(1234567890123456789.3141592631415926);
+		//输出结果使用了科学计数法: 1.23456789012345677E+18
+		System.out.println(amount1);
+		//输出结果使用了科学计数法: 1.23456789012345677E+18
+		System.out.println(amount1.toString());
+		//输出结果未使用科学计数法
+		System.out.println(amount1.toPlainString());
+		
+		System.out.println();
+		BigDecimal amount2 = new BigDecimal("1234567890123456789.3141592631415926");
+	    //输出结果未使用科学计数法
+		System.out.println(amount2);
+	    //输出结果未使用科学计数法
+		System.out.println(amount2.toString());
+	    //输出结果未使用科学计数法
+		System.out.println(amount2.toPlainString());
+	}
+```
+上例的输出结果为：
+```
+1.23456789012345677E+18
+1.23456789012345677E+18
+1234567890123456770
+
+1234567890123456789.3141592631415926
+1234567890123456789.3141592631415926
+1234567890123456789.3141592631415926
+```
