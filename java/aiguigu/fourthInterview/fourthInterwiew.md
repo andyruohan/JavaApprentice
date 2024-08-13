@@ -404,3 +404,109 @@ Exception in thread "main" java.lang.ArithmeticException: Non-terminating decima
 1234567890123456789.3141592631415926
 1234567890123456789.3141592631415926
 ```
+
+## List 去重的几种方法
+以下是你提供的代码中去除List重复元素的几种方法，并对其优化空间进行分析：
+
+### 1. for循环遍历判断是否含有，没有就新增到`newList`里
+```java
+private static void m1() {
+    // 原始列表
+    List<Integer> initList = Arrays.asList(70,70,-1,5,3,3,4,4,4,4,99);
+    List<Integer> srcList = new ArrayList<>(initList);
+    List<Integer> newList = new ArrayList<>();
+
+    for (int i = 0; i < srcList.size(); i++) {
+        if(!newList.contains(srcList.get(i))) {
+            newList.add(srcList.get(i));
+        }
+    }
+    System.out.println(newList);
+    System.out.println();
+}
+```
+**优化空间：**
+- **时间复杂度：** 该方法时间复杂度为O(n²)，因为每次调用`contains`方法都需要遍历`newList`。
+- **优化建议：** 可以使用一个`HashSet`来保存已经遇到的元素，并检查`srcList`的元素是否在`HashSet`中。如果不在则添加到`newList`和`HashSet`中，这样可以将时间复杂度降低到O(n)。
+
+### 2. 结合`HashSet`或`LinkedHashSet`去重
+```java
+private static void m2() {
+    List<Integer> srcList = Arrays.asList(70,70,-1,5,3,3,4,4,4,4,99);
+    List<Integer> newList = new ArrayList<>(new HashSet<>(srcList));
+    newList.forEach((s) -> System.out.print(s+" "));
+    System.out.println();
+    System.out.println();
+
+    newList = new ArrayList<>(new LinkedHashSet<>(srcList));
+    newList.forEach((s) -> System.out.print(s+" "));
+    System.out.println();
+    System.out.println();
+}
+```
+**优化空间：**
+- **时间复杂度：** 使用`HashSet`和`LinkedHashSet`的时间复杂度是O(n)，已经是最优的解决方案之一。
+- **优化建议：** `HashSet`会丢失原列表的顺序，而`LinkedHashSet`保留顺序。代码已经考虑到两者的差异，除非特别需要控制内存占用或者提高特定场景的性能，否则不需要进一步优化。
+
+### 3. 结合 Stream 流式计算
+```java
+private static void m3() {
+    List<Integer> initList = Arrays.asList(70,70,-1,5,3,3,4,4,4,4,99);
+    List<Integer> srcList = new ArrayList<>(initList);
+    List<Integer> newList = null;
+
+    newList = srcList.stream().distinct().collect(Collectors.toList());
+
+    newList.forEach((s) -> System.out.print(s+", "));
+}
+```
+**优化空间：**
+- **时间复杂度：** 该方法在内部使用了`LinkedHashSet`，时间复杂度为O(n)。
+- **优化建议：** 这个方法非常简洁，且在多核处理器上可能具有更好的性能（由于Stream的并行特性）。如果需要优化性能，可以尝试使用`parallelStream()`，但在小规模数据集上并行处理可能得不偿失。
+
+### 4. 循环坐标去除重复
+```java
+private static void m4() {
+    List<Integer> initList = Arrays.asList(70,70,-1,5,3,3,4,4,4,4,99);
+    List<Integer> srcList = new ArrayList<>(initList);
+    List<Integer> newList = new ArrayList<>(initList);
+
+    for (Integer element : srcList) {
+        if(newList.indexOf(element) != newList.lastIndexOf(element)) {
+            newList.remove(newList.lastIndexOf(element));
+        }
+    }
+    newList.forEach((s) -> System.out.print(s+", "));
+    System.out.println();
+    System.out.println();
+}
+```
+**优化空间：**
+- **时间复杂度：** 该方法的时间复杂度接近O(n²)，因为`indexOf`和`lastIndexOf`都是O(n)操作。
+- **优化建议：** 可以优化为通过`HashSet`记录已经遇到的元素，并在遍历过程中检查重复项，而不是使用`indexOf`和`lastIndexOf`。
+
+### 5. 双 for 循环对比
+```java
+private static void m5() {
+    List<Integer> initList = Arrays.asList(70,70,-1,5,3,3,4,4,4,4,99);
+    List<Integer> srcList = new ArrayList<>(initList);
+    List<Integer> newList = new ArrayList<>(initList);
+
+    for (int i = 0; i < newList.size()-1; i++) {
+        for (int j = newList.size()-1; j > i ; j--) {
+            if(newList.get(j).equals(newList.get(i))){
+                newList.remove(j);
+            }
+        }
+    }
+    newList.forEach((s) -> System.out.print(s+" "));
+    System.out.println();
+    System.out.println();
+}
+```
+**优化空间：**
+- **时间复杂度：** 该方法的时间复杂度为O(n²)。
+- **优化建议：** 可以使用类似于`m1`方法中的`HashSet`来记录已经遇到的元素，避免使用双重循环，减少时间复杂度。
+
+### 总结
+总体来说，`m2`（使用`HashSet`或`LinkedHashSet`）和`m3`（Stream流式计算）是最优的解决方案。对于其他方法，可以通过使用`HashSet`来降低时间复杂度。
