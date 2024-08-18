@@ -510,3 +510,70 @@ private static void m5() {
 
 ### 总结
 总体来说，`m2`（使用`HashSet`或`LinkedHashSet`）和`m3`（Stream流式计算）是最优的解决方案。对于其他方法，可以通过使用`HashSet`来降低时间复杂度。
+
+## == 和 equals
+### 代码示例
+```java
+/**
+ * @author andy_ruohan
+ * @description
+ * @date 2024/8/18 13:57
+ *   == 和 equals
+ *  1 比较范围
+ *    1.1 == 既可以比较基本类型也可以比较引用类型
+ *    1.2 equals只能比较引用类型，equals(Object obj)
+ *  2 比较规则
+ *    equals比较规则，看是否被重写过
+ *    2.1 没有被重写，出厂默认就是==
+ *    2.2 如果被重写，具体看实现方法
+ */
+public class EqualsDemo {
+	public static void main(String[] args) {
+		String s1 = new String("abc");
+		String s2 = new String("abc");
+		System.out.println(s1 == s2);
+		System.out.println(s1.equals(s2));
+		Set<String> set01 = new HashSet<>();
+		set01.add(s1);
+		set01.add(s2);
+		System.out.println(set01.size());
+		System.out.println(s1.hashCode() + "\t" + s2.hashCode());
+		System.out.println("================================");
+
+		Person p1 = new Person("abc");
+		Person p2 = new Person("abc");
+		System.out.println(p1 == p2);
+		System.out.println(p1.equals(p2));
+		Set<Person> set02 = new HashSet<>();
+		set02.add(p1);
+		set02.add(p2);
+		System.out.println(set02.size());
+		System.out.println(p1.hashCode() + "\t" + p2.hashCode());
+		System.out.println("================================");
+		System.out.println();
+	}
+
+	@AllArgsConstructor
+	static class Person {
+		private String name;
+	}
+}
+```
+上述代码运行结果为：
+```
+false
+true
+1
+96354	96354
+================================
+false
+false
+2
+758529971	2104457164
+================================
+```
+
+### 原因分析
+1. 当你不重写equals和hashCode方法时，Java会使用Object类的默认实现，导致比较的是对象的引用，而不是内容。
+2. 对于String类，它重写了equals和hashCode方法，使得它可以正确地比较字符串的内容，并且在集合中不会出现重复元素（如果内容相同）。
+3. 自定义类（如Person）如果想要在集合中正确判断相等性，通常需要重写equals和hashCode方法。
