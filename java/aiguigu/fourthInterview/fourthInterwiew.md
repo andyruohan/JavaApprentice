@@ -590,8 +590,14 @@ false
 点击左下角的 flat mode 即可得到下图：
 ![](stream断点flat模式.png)
 
-### reset frame
+### Reset frame
 悔棋
 
-### forceReturnAndStop
+### Force Return
 运行到当前这一步强制返回，不往后再执行
+
+### Breakpoint 的四种类别
+- Line Breakpoint，断点到某行上
+- Method Breakpoint，断点打到接口方法上，凡是该方法的实现都会被断点
+- Field Breakpoint，断点打到属性上，凡事该属性值发生改变都会被断点
+- Exception Breakpoint，断点到异常那行，监测异常前那一刻的状态
