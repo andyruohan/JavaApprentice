@@ -610,3 +610,7 @@ false
 - R：Repeatable（可重复）  
 
 【强制】单元测试应该是全自动执行的，并且非交互式的。测试用例通常是被定期执行的，执行过程必须完全自动化才有意义。输出结果需要人工检查的测试不是一个好的单元测试。单元测试中不准使用 System.out 来进行人肉验证，必须使用 assert 来验证。
+
+# JUC
+## ThreadLocal 的 api
+![](ThreadLocal常用api.png)
