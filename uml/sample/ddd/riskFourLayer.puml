@@ -1,0 +1,64 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+class RiskController {
+- riskService: RiskService
++ queryRiskInfo(x1: QueryRiskInfoX1): QueryRiskInfoZ1
+}
+
+class RiskService {
+- registerService: EventRegisterService
+- creditApplyInfoRepository: CreditApplyInfoRepository
++ riskReceiveOrAdmit(x1: QueryRiskInfoX1): QueryRiskInfoZ1
+
+}
+
+class EventRegisterService {
++ registerOperateRiskEvent(recordIndex: String): void
+}
+
+class OperateRiskHandler {
+- riskApi : RiskApi
+- creditApplyInfoRepository: CreditApplyInfoRepository
++ handleEvent(asyncEventEntity: AsyncEventEntity): HandlerResult
+}
+
+interface CreditApplyInfoRepository {
+- creditApplyInfoRepositoryImpl: CreditApplyInfoRepositoryImpl
++ getBasicInfoById(id: String): CreditBasicInfo
+}
+
+class CreditApplyInfoRepositoryImpl {
++ getBasicInfoById(id: String): CreditBasicInfo
+
+}
+
+
+interface RiskApi {
++ receiveCustomInfo(customInfoDto: ReceiveCustomInfoDTO): RiskRevCltData
++ admitVerify(admitVerifyDto: AdmitVerifyDTO): RiskAdmitData
+}
+
+class RiskApiImpl {
+- feignRiskInvoker: FeignRiskInvoker
++ receiveCustomInfo(customInfoDto: ReceiveCustomInfoDTO): RiskRevCltData
++ admitVerify(admitVerifyDto: AdmitVerifyDTO): RiskAdmitData
+
+}
+
+interface FeignRiskInvoker {
++ receiveCustInfo(headerMap: Map<String, Object>, body: String): Response<RiskRevCltResponse>
++ admit(headerMap: Map<String, Object>, body: String): Response<RiskAdmitResponse>
+}
+
+RiskController *-- RiskService
+RiskService o-- EventRegisterService
+RiskService o-- CreditApplyInfoRepository
+'EventRegisterService .. OperateRiskHandler
+OperateRiskHandler o-- CreditApplyInfoRepository
+CreditApplyInfoRepository <|.. CreditApplyInfoRepositoryImpl
+OperateRiskHandler o-- RiskApi
+RiskApi <|.. RiskApiImpl
+RiskApiImpl *-- FeignRiskInvoker
+
+@enduml
