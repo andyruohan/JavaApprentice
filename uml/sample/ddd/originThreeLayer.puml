@@ -1,0 +1,25 @@
+@startuml
+class PortalCreditService {
+}
+
+class NormalCreditService {
+}
+
+class OnbIlcMstDao {
+}
+
+class BranchService {
+}
+
+class CurrencyService {
+}
+
+PortalCreditService o-- OnbIlcMstDao
+NormalCreditService o-- OnbIlcMstDao
+PortalCreditService o-- BranchService
+NormalCreditService o-- BranchService
+PortalCreditService o-- CurrencyService
+NormalCreditService o-- CurrencyService
+
+
+@enduml

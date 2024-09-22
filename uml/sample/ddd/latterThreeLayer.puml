@@ -1,0 +1,54 @@
+@startuml
+
+class PreTrailCreditService {
+}
+
+class NoFillCreditService {
+}
+
+class FlashOpenCreditService {}
+
+class FlashFinanceCreditService {}
+
+class PortalCreditService {
+}
+
+class NormalCreditService {
+}
+
+class DirectCreditService {
+}
+
+class OnbIlcMstDao {
+}
+
+class BranchService {
+}
+
+class CurrencyService {
+}
+
+PortalCreditService o-- OnbIlcMstDao
+PreTrailCreditService o-- OnbIlcMstDao
+NormalCreditService o-- OnbIlcMstDao
+NoFillCreditService o-- OnbIlcMstDao
+FlashOpenCreditService o-- OnbIlcMstDao
+FlashFinanceCreditService o-- OnbIlcMstDao
+DirectCreditService o-- OnbIlcMstDao
+PortalCreditService o-- BranchService
+PreTrailCreditService o-- BranchService
+NormalCreditService o-- BranchService
+NoFillCreditService o-- BranchService
+FlashOpenCreditService o-- BranchService
+FlashFinanceCreditService o-- BranchService
+DirectCreditService o-- BranchService
+PortalCreditService o-- CurrencyService
+PreTrailCreditService o-- CurrencyService
+NormalCreditService o-- CurrencyService
+NoFillCreditService o-- CurrencyService
+FlashOpenCreditService o-- CurrencyService
+FlashFinanceCreditService o-- CurrencyService
+DirectCreditService o-- CurrencyService
+
+
+@enduml

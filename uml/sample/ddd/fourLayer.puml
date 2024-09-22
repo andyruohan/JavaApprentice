@@ -1,0 +1,43 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+class PreTrailCreditService {
+}
+
+class NoFillCreditService {
+}
+
+class FlashOpenCreditService {}
+
+class FlashFinanceCreditService {}
+
+class PortalCreditService {
+}
+
+class NormalCreditService {
+}
+
+class DirectCreditService {
+}
+
+class CreditApplyInfoEntity {
+}
+
+class BranchInfo {
+}
+
+class CurrencyInfo {
+}
+
+DirectCreditService o-- CreditApplyInfoEntity
+PortalCreditService o-- CreditApplyInfoEntity
+PreTrailCreditService o-- CreditApplyInfoEntity
+NormalCreditService o-- CreditApplyInfoEntity
+NoFillCreditService o-- CreditApplyInfoEntity
+FlashOpenCreditService o-- CreditApplyInfoEntity
+FlashFinanceCreditService o-- CreditApplyInfoEntity
+
+CreditApplyInfoEntity *-- CurrencyInfo
+CreditApplyInfoEntity *-- BranchInfo
+
+@enduml
