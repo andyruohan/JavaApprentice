@@ -614,3 +614,74 @@ false
 # JUC
 ## ThreadLocal 的 api
 ![](ThreadLocal常用api.png)
+
+## ThreadLocal 与线程池
+![](ThreadLocal与线程池配合使用.png)
+```java
+public class ThreadLocalDemo2 {
+	public static void main(String[] args) {
+		MyData myData = new MyData();
+		//模拟一个银行有3个办理业务的受理窗口
+		ExecutorService threadPool = Executors.newFixedThreadPool(3);
+
+		try {
+			//10个顾客(请求线程),池子里面有3个受理线程，负责处理业务
+			for (int i = 1; i <= 10; i++) {
+				int finalI = i;
+				threadPool.submit(() -> {
+					try {
+						Integer beforeInt = myData.threadLocalField.get();
+						myData.add();
+						Integer afterInt = myData.threadLocalField.get();
+						System.out.println(Thread.currentThread().getName() + "\t" + "工作窗口\t " +
+							"受理第： " + finalI + "个顾客业务" +
+							"\t beforeInt: " + beforeInt + "\t afterInt： " + afterInt);
+					} finally {
+						//myData.threadLocalField.remove();
+					}
+				});
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			threadPool.shutdown();
+		}
+	}
+}
+
+//资源类
+class MyData {
+	ThreadLocal<Integer> threadLocalField = ThreadLocal.withInitial(() -> 0);
+	public void add() {
+		threadLocalField.set(1 + threadLocalField.get());
+	}
+}
+```
+
+未注释 finally 里的`myData.threadLocalField.remove();`运行结果为：
+```
+pool-1-thread-3	工作窗口	 受理第： 3个顾客业务	 beforeInt: 0	 afterInt： 1
+pool-1-thread-1	工作窗口	 受理第： 1个顾客业务	 beforeInt: 0	 afterInt： 1
+pool-1-thread-3	工作窗口	 受理第： 4个顾客业务	 beforeInt: 0	 afterInt： 1
+pool-1-thread-3	工作窗口	 受理第： 6个顾客业务	 beforeInt: 0	 afterInt： 1
+pool-1-thread-2	工作窗口	 受理第： 2个顾客业务	 beforeInt: 0	 afterInt： 1
+pool-1-thread-1	工作窗口	 受理第： 5个顾客业务	 beforeInt: 0	 afterInt： 1
+pool-1-thread-2	工作窗口	 受理第： 8个顾客业务	 beforeInt: 0	 afterInt： 1
+pool-1-thread-2	工作窗口	 受理第： 10个顾客业务	 beforeInt: 0	 afterInt： 1
+pool-1-thread-3	工作窗口	 受理第： 7个顾客业务	 beforeInt: 0	 afterInt： 1
+pool-1-thread-1	工作窗口	 受理第： 9个顾客业务	 beforeInt: 0	 afterInt： 1
+```
+
+注释 finally 里的`myData.threadLocalField.remove();`运行结果为：
+```
+pool-1-thread-1	工作窗口	 受理第： 1个顾客业务	 beforeInt: 0	 afterInt： 1
+pool-1-thread-2	工作窗口	 受理第： 2个顾客业务	 beforeInt: 0	 afterInt： 1
+pool-1-thread-3	工作窗口	 受理第： 4个顾客业务	 beforeInt: 1	 afterInt： 2
+pool-1-thread-3	工作窗口	 受理第： 5个顾客业务	 beforeInt: 2	 afterInt： 3
+pool-1-thread-3	工作窗口	 受理第： 6个顾客业务	 beforeInt: 3	 afterInt： 4
+pool-1-thread-3	工作窗口	 受理第： 7个顾客业务	 beforeInt: 4	 afterInt： 5
+pool-1-thread-2	工作窗口	 受理第： 8个顾客业务	 beforeInt: 1	 afterInt： 2
+pool-1-thread-3	工作窗口	 受理第： 9个顾客业务	 beforeInt: 5	 afterInt： 6
+pool-1-thread-2	工作窗口	 受理第： 10个顾客业务	 beforeInt: 2	 afterInt： 3
+```
+<font color = 'red'>同一线程工作窗口的业务会相互影响。</font>
