@@ -685,3 +685,152 @@ pool-1-thread-3	工作窗口	 受理第： 9个顾客业务	 beforeInt: 5	 after
 pool-1-thread-2	工作窗口	 受理第： 10个顾客业务	 beforeInt: 2	 afterInt： 3
 ```
 <font color = 'red'>同一线程工作窗口的业务会相互影响。</font>
+
+## ThreadLocal 在父子线程中的使用
+```java
+/**
+ * @author andy_ruohan
+ * @description Demonstrating ThreadLocal, InheritableThreadLocal, and TransmittableThreadLocal
+ * @date 2024/9/25 21:57
+ */
+@Slf4j
+public class ThreadLocalDemoV3 {
+	public static void main(String[] args) {
+		//demonstrateThreadLocalUsage();
+		//demonstrateThreadLocalIsolation();
+		//demonstrateInheritableThreadLocalPropagation();
+		//demonstrateInheritableThreadLocalWithThreadPool();
+		//demonstrateTransmittableThreadLocalWithThreadPool();
+	}
+
+	private static void demonstrateThreadLocalUsage() {
+		ThreadLocal<String> threadLocal = ThreadLocal.withInitial(() -> null);
+		threadLocal.set(Thread.currentThread().getName() + "-Java");
+		log.info("Main thread sets value to: {}", threadLocal.get());
+
+		new Thread(() -> {
+			log.info("Thread1 retrieves before setting: {}", threadLocal.get());
+			threadLocal.set(Thread.currentThread().getName() + "-Vue");
+			log.info("Thread1 retrieves after setting: {}", threadLocal.get());
+		}, "Thread1").start();
+
+		sleepSeconds(1);
+
+		new Thread(() -> {
+			log.info("Thread2 retrieves before setting: {}", threadLocal.get());
+			threadLocal.set(Thread.currentThread().getName() + "-Flink");
+			log.info("Thread2 retrieves after setting: {}", threadLocal.get());
+		}, "Thread2").start();
+
+		CompletableFuture.supplyAsync(() -> {
+			log.info("CompletableFuture thread retrieves before setting: {}", threadLocal.get());
+			threadLocal.set(Thread.currentThread().getName() + "-MySQL");
+			log.info("CompletableFuture thread retrieves after setting: {}", threadLocal.get());
+			return null;
+		});
+
+		sleepMilliseconds(500);
+	}
+
+	private static void demonstrateThreadLocalIsolation() {
+		ThreadLocal<String> threadLocal = ThreadLocal.withInitial(() -> null);
+		threadLocal.set(Thread.currentThread().getName() + "-Java");
+		log.info("Main thread sets value to: {}", threadLocal.get());
+
+		new Thread(() -> log.info("Thread1 attempts to retrieve: {}", threadLocal.get()), "Thread1").start();
+	}
+
+	private static void demonstrateInheritableThreadLocalPropagation() {
+		InheritableThreadLocal<String> inheritableThreadLocal = new InheritableThreadLocal<>();
+		inheritableThreadLocal.set(Thread.currentThread().getName() + "-Java");
+		log.info("Main thread sets value to: {}", inheritableThreadLocal.get());
+
+		new Thread(() -> log.info("Thread1 retrieves: {}", inheritableThreadLocal.get()), "Thread1").start();
+		new Thread(() -> log.info("Thread2 retrieves: {}", inheritableThreadLocal.get()), "Thread2").start();
+		new Thread(() -> log.info("Thread3 retrieves: {}", inheritableThreadLocal.get()), "Thread3").start();
+	}
+
+	private static void demonstrateInheritableThreadLocalWithThreadPool() {
+		InheritableThreadLocal<String> inheritableThreadLocal = new InheritableThreadLocal<>();
+		inheritableThreadLocal.set(Thread.currentThread().getName() + "-Java");
+		log.info("Main thread sets value to: {}", inheritableThreadLocal.get());
+
+		ExecutorService threadPool = Executors.newFixedThreadPool(1);
+		threadPool.execute(() -> {
+			log.info("Thread pool first retrieval: {}", inheritableThreadLocal.get());
+		});
+
+		sleepSeconds(1);
+
+		inheritableThreadLocal.set(Thread.currentThread().getName() + "-Vue");
+		log.info("Main thread modifies value to: {}", inheritableThreadLocal.get());
+
+		threadPool.execute(() -> {
+			log.info("Thread pool second retrieval after modification: {}", inheritableThreadLocal.get());
+		});
+
+		sleepSeconds(1);
+		threadPool.shutdown();
+	}
+
+	private static void demonstrateTransmittableThreadLocalWithThreadPool() {
+		TransmittableThreadLocal<String> transmittableThreadLocal = new TransmittableThreadLocal<>();
+		ExecutorService threadPool = Executors.newSingleThreadExecutor();
+		threadPool = TtlExecutors.getTtlExecutorService(threadPool);
+
+		transmittableThreadLocal.set(Thread.currentThread().getName() + "-Java");
+		log.info("Main thread sets value to: {}", transmittableThreadLocal.get());
+
+		threadPool.execute(() -> {
+			log.info("Thread pool first retrieval: {}", transmittableThreadLocal.get());
+		});
+
+		sleepSeconds(1);
+
+		transmittableThreadLocal.set(Thread.currentThread().getName() + "-Vue");
+		log.info("Main thread modifies value to: {}", transmittableThreadLocal.get());
+
+		threadPool.execute(() -> {
+			log.info("Thread pool second retrieval after modification: {}", transmittableThreadLocal.get());
+		});
+
+		sleepSeconds(1);
+		threadPool.shutdown();
+	}
+
+	private static void sleepSeconds(int seconds) {
+		try {
+			TimeUnit.SECONDS.sleep(seconds);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private static void sleepMilliseconds(int milliseconds) {
+		try {
+			TimeUnit.MILLISECONDS.sleep(milliseconds);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+}
+```
+
+这几个方法展示了 `ThreadLocal` 的逐步功能，逐层解决不同场景中的问题：
+
+1. **`demonstrateThreadLocalUsage()`**:
+    - 演示 `ThreadLocal` 的基本用法，线程数据相互独立。
+
+2. **`demonstrateThreadLocalIsolation()`**:
+    - 强调 `ThreadLocal` 的隔离性，不同线程无法共享数据。
+
+3. **`demonstrateInheritableThreadLocalPropagation()`**:
+    - 演示 `InheritableThreadLocal`，让子线程继承父线程的数据。
+
+4. **`demonstrateInheritableThreadLocalWithThreadPool()`**:
+    - 展示 `InheritableThreadLocal` 在线程池中失效的问题，线程复用导致数据传递失败。
+
+5. **`demonstrateTransmittableThreadLocalWithThreadPool()`**:
+    - 解决线程池问题，使用 `TransmittableThreadLocal` 实现跨线程池的数据传递。
+
+每个方法逐步提升，最终解决了在线程池中共享和传递数据的问题。
