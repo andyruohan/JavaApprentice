@@ -612,10 +612,11 @@ false
 【强制】单元测试应该是全自动执行的，并且非交互式的。测试用例通常是被定期执行的，执行过程必须完全自动化才有意义。输出结果需要人工检查的测试不是一个好的单元测试。单元测试中不准使用 System.out 来进行人肉验证，必须使用 assert 来验证。
 
 # JUC
-## ThreadLocal 的 api
+## ThreadLocal
+### ThreadLocal 的 api
 ![](ThreadLocal常用api.png)
 
-## ThreadLocal 与线程池
+### ThreadLocal 与线程池
 ![](ThreadLocal与线程池配合使用.png)
 ```java
 public class ThreadLocalDemo2 {
@@ -686,7 +687,7 @@ pool-1-thread-2	工作窗口	 受理第： 10个顾客业务	 beforeInt: 2	 afte
 ```
 <font color = 'red'>同一线程工作窗口的业务会相互影响。</font>
 
-## ThreadLocal 在父子线程中的使用
+### ThreadLocal 在父子线程中的使用
 ```java
 /**
  * @author andy_ruohan
@@ -834,3 +835,30 @@ public class ThreadLocalDemoV3 {
     - 解决线程池问题，使用 `TransmittableThreadLocal` 实现跨线程池的数据传递。
 
 每个方法逐步提升，最终解决了在线程池中共享和传递数据的问题。
+
+## 线程池关闭
+参考文档：  
+Java8：https://docs.oracle.com/javase/8/docs/api/  
+Java17：https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/ExecutorService.html
+
+The following method shuts down an ExecutorService in two phases, first by calling shutdown to reject incoming tasks, and then calling shutdownNow, if necessary, to cancel any lingering tasks:
+
+```java
+ void shutdownAndAwaitTermination(ExecutorService pool) {
+   pool.shutdown(); // Disable new tasks from being submitted
+   try {
+     // Wait a while for existing tasks to terminate
+     if (!pool.awaitTermination(60, TimeUnit.SECONDS)) {
+       pool.shutdownNow(); // Cancel currently executing tasks
+       // Wait a while for tasks to respond to being cancelled
+       if (!pool.awaitTermination(60, TimeUnit.SECONDS))
+           System.err.println("Pool did not terminate");
+     }
+   } catch (InterruptedException ie) {
+     // (Re-)Cancel if current thread also interrupted
+     pool.shutdownNow();
+     // Preserve interrupt status
+     Thread.currentThread().interrupt();
+   }
+ }
+```
