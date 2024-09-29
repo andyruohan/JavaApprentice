@@ -862,3 +862,8 @@ The following method shuts down an ExecutorService in two phases, first by calli
    }
  }
 ```
+## shutdown and shutdownNow
+![](shutdownAndShutdownNow.png)
+
+### shutdown
+![](shutdowm.png)
