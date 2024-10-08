@@ -862,8 +862,183 @@ The following method shuts down an ExecutorService in two phases, first by calli
    }
  }
 ```
-## shutdown and shutdownNow
+### shutdown and shutdownNow
 ![](shutdownAndShutdownNow.png)
 
 ### shutdown
 ![](shutdowm.png)
+
+## 线程池异常处理
+### 代码演示
+```java
+package juc.threadpool;
+
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.*;
+
+/**
+ * @author andy_ruohan
+ * @description 线程池抛异常处理
+ * @date 2024/10/8 22:37
+ */
+@Slf4j
+public class ThreadPoolExceptionDemo {
+    public static void main(String[] args) {
+        // defaultSubmit();
+        // defaultSubmitAndGet();
+        // defaultExecute();
+        // handleException();
+    }
+
+    /**
+     * 1. 默认调用, submit会吞掉异常
+     */
+    private static void defaultSubmit() {
+        ExecutorService threadPool = Executors.newFixedThreadPool(2);
+        try {
+            threadPool.submit(() -> {
+                // submit会吞掉异常
+                System.out.println(Thread.currentThread().getName() + "\t" + "进入池中submit方法");
+                for (int i = 1; i <= 4; i++) {
+                    if (i == 3) {
+                        int age = 10 / 0;
+                    }
+                    System.out.println("---come in execute: " + i);
+                }
+                System.out.println(Thread.currentThread().getName() + "\t" + "进入池中submit方法---end");
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            threadPool.shutdown();
+        }
+    }
+
+    /**
+     * 2. submit执行后，如果get方法调用想要获得返回值，会抛出异常
+     */
+    private static void defaultSubmitAndGet() {
+        ExecutorService threadPool = Executors.newFixedThreadPool(2);
+        try {
+            Future<?> result = threadPool.submit(() -> {
+                System.out.println(Thread.currentThread().getName() + "\t" + "进入池中submit方法");
+                int age = 20 / 0;
+                System.out.println(Thread.currentThread().getName() + "\t" + "进入池中submit方法---end");
+            });
+            result.get(); // 如果没有这一行，异常被吞
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            threadPool.shutdown();
+        }
+    }
+
+    /**
+     * 3. 默认调用, execute会抛出异常
+     */
+    private static void defaultExecute() {
+        ExecutorService threadPool = Executors.newFixedThreadPool(2);
+        try {
+            threadPool.execute(() -> {
+                System.out.println(Thread.currentThread().getName() + "\t" + "进入池中execute方法");
+                for (int i = 1; i <= 4; i++) {
+                    if (i == 3) {
+                        int age = 10 / 0;
+                    }
+                    System.out.println("---come in execute: " + i);
+                }
+                System.out.println(Thread.currentThread().getName() + "\t" + "进入池中execute方法---end");
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            finalOK_shutdownAndAwaitTermination(threadPool);
+        }
+    }
+
+    /**
+     * 覆写afterExecute方法，线程池中抛异常时捕获
+     */
+    private static void handleException() {
+        ExecutorService threadPool = new ThreadPoolExecutor(
+            Runtime.getRuntime().availableProcessors(),
+            Runtime.getRuntime().availableProcessors() * 2,
+            1L,
+            TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(100)) {
+            @Override
+            protected void afterExecute(Runnable runnable, Throwable throwable) {
+                // handle exceptions in execute
+                if (throwable != null) {
+                    log.error(throwable.getMessage(), throwable);
+                }
+                // handle exceptions in submit
+                if (throwable == null && runnable instanceof Future<?>) {
+                    try {
+                        Future<?> future = (Future<?>) runnable;
+                        if (future.isDone()) {
+                            future.get();
+                        }
+                    } catch (CancellationException | ExecutionException | InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        };
+
+        threadPool.submit(() -> {
+            System.out.println(Thread.currentThread().getName() + "\t" + "进入池中submit方法");
+            int age = 20 / 0;
+            System.out.println(Thread.currentThread().getName() + "\t" + "进入池中submit方法---end");
+        });
+
+        try {
+            TimeUnit.MILLISECONDS.sleep(10);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        threadPool.execute(() -> {
+            System.out.println(Thread.currentThread().getName() + "\t" + "进入池中execute方法");
+            for (int i = 1; i <= 4; i++) {
+                if (i == 3) {
+                    int age = 10 / 0;
+                }
+                System.out.println("---come in execute: " + i);
+            }
+            System.out.println(Thread.currentThread().getName() + "\t" + "进入池中execute方法---end");
+        });
+
+        finalOK_shutdownAndAwaitTermination(threadPool);
+    }
+
+    /**
+     * 优雅关闭线程池
+     *
+     * @param threadPool the thread pool
+     */
+    public static void finalOK_shutdownAndAwaitTermination(ExecutorService threadPool) {
+        if (threadPool != null && !threadPool.isShutdown()) {
+            threadPool.shutdown();
+            try {
+                if (!threadPool.awaitTermination(120, TimeUnit.SECONDS)) {
+                    threadPool.shutdownNow();
+                    if (!threadPool.awaitTermination(120, TimeUnit.SECONDS)) {
+                        System.out.println("Pool did not terminate");
+                    }
+                }
+            } catch (InterruptedException ie) {
+                threadPool.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+}
+```
+
+### 总结
+- defaultSubmit()：简单，但会吞掉异常，适合不需要异常处理的任务。
+- defaultSubmitAndGet()：通过 Future.get() 获取返回值和捕获异常，适合需要返回结果并希望捕获异常的任务。
+- defaultExecute()：简单直接，适合不需要返回值的任务，但异常会直接抛出。
+- handleException()：通过自定义线程池来统一处理 submit() 和 execute() 的异常，适合需要全局统一异常处理的场景，具有很好的扩展性。
