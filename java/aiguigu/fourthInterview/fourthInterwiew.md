@@ -837,7 +837,11 @@ public class ThreadLocalDemoV3 {
 每个方法逐步提升，最终解决了在线程池中共享和传递数据的问题。
 
 ## 线程池关闭
-参考文档：  
+### 前置知识
+![](线程池原理图.png)
+*线程池七大参数及1～4执行过程
+
+### 参考文档
 Java8：https://docs.oracle.com/javase/8/docs/api/  
 Java17：https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/ExecutorService.html
 
