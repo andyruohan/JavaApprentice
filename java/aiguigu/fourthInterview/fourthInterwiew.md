@@ -867,10 +867,13 @@ The following method shuts down an ExecutorService in two phases, first by calli
  }
 ```
 ### shutdown and shutdownNow
-![](shutdownAndShutdownNow.png)
+![](pictures/shutdownAndShutdownNow.png)
 
 ### shutdown
-![](shutdowm.png)
+![](pictures/shutdowm.png)
+
+### shutdownNow
+![](pictures/shutdownNow.png)
 
 ## 线程池异常处理
 ### 代码演示
