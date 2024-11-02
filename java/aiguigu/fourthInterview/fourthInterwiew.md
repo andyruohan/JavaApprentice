@@ -875,6 +875,56 @@ The following method shuts down an ExecutorService in two phases, first by calli
 ### shutdownNow
 ![](pictures/shutdownNow.png)
 
+```java
+public interface ExecutorService extends Executor {
+
+   /**
+    * Initiates an orderly shutdown in which previously submitted
+    * tasks are executed, but no new tasks will be accepted.
+    * Invocation has no additional effect if already shut down.
+    *
+    * <p>This method does not wait for previously submitted tasks to
+    * complete execution.  Use {@link #awaitTermination awaitTermination}
+    * to do that.
+    *
+    * @throws SecurityException if a security manager exists and
+    *         shutting down this ExecutorService may manipulate
+    *         threads that the caller is not permitted to modify
+    *         because it does not hold {@link
+    *         java.lang.RuntimePermission}{@code ("modifyThread")},
+    *         or the security manager's {@code checkAccess} method
+    *         denies access.
+    */
+   void shutdown();
+
+   /**
+    * Attempts to stop all actively executing tasks, halts the
+    * processing of waiting tasks, and returns a list of the tasks
+    * that were awaiting execution.
+    *
+    * <p>This method does not wait for actively executing tasks to
+    * terminate.  Use {@link #awaitTermination awaitTermination} to
+    * do that.
+    *
+    * <p>There are no guarantees beyond best-effort attempts to stop
+    * processing actively executing tasks.  For example, typical
+    * implementations will cancel via {@link Thread#interrupt}, so any
+    * task that fails to respond to interrupts may never terminate.
+    *
+    * @return list of tasks that never commenced execution
+    * @throws SecurityException if a security manager exists and
+    *         shutting down this ExecutorService may manipulate
+    *         threads that the caller is not permitted to modify
+    *         because it does not hold {@link
+    *         java.lang.RuntimePermission}{@code ("modifyThread")},
+    *         or the security manager's {@code checkAccess} method
+    *         denies access.
+    */
+   List<Runnable> shutdownNow();
+```
+shutdown() 和 shutdownNow() 两个方法,都不会等待任务执行完毕，如果需要等待，请使用`awaitTermination`。
+`awaitTermination`带有超时参数：如果超时后任务仍然未执行完毕，也不再等待。
+
 ## 线程池异常处理
 ### 代码演示
 ```java
