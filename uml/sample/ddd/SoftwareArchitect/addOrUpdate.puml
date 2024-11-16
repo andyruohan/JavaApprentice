@@ -1,0 +1,13 @@
+@startuml
+'https://plantuml.com/deployment-diagram
+
+rectangle @Transaction {
+    rectangle 写本地数据库
+    rectangle 回写企银中台
+    rectangle 回写中台状态至本地库
+}
+
+写本地数据库 -> 回写企银中台
+回写企银中台 -> 回写中台状态至本地库
+
+@enduml

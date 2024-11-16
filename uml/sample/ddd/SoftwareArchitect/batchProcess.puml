@@ -1,0 +1,14 @@
+@startuml
+actor "客户端请求" as Client
+rectangle "批量处理服务" as BatchService {
+    rectangle "数据分块" as Chunking
+    rectangle "批量提交" as BatchInsert
+}
+database "数据库" as DB
+
+Client -> BatchService : 提交大数据集合
+BatchService -> Chunking : 按批次划分数据
+Chunking --> BatchInsert : 每次处理一批
+BatchInsert -> DB : 执行批量插入
+BatchInsert --> Chunking : 下一批数据
+@enduml

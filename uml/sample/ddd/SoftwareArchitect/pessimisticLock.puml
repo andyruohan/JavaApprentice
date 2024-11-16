@@ -1,0 +1,12 @@
+@startuml
+actor "客户端请求" as Client
+rectangle "锁管理器" as LockManager {
+    rectangle "悲观锁" as PessimisticLock
+}
+database "数据库" as DB
+
+Client --> PessimisticLock : 1.请求锁
+PessimisticLock --> DB : <color:red>2.设置锁超时</color>
+PessimisticLock --> DB : 3.数据写操作
+PessimisticLock --> Client : 4.返回更新结果
+@enduml

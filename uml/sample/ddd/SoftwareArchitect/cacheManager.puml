@@ -1,0 +1,14 @@
+@startuml
+actor "客户端请求" as Client
+rectangle "缓存管理器" as CacheManager {
+    rectangle "缓存查询" as CacheLookup
+    rectangle "缓存更新" as CacheUpdate
+}
+database "数据库" as DB
+
+Client -> CacheManager : 查询数据
+CacheLookup -> DB : 缓存中未找到 (从数据库加载)
+DB --> CacheUpdate : 返回数据
+CacheUpdate --> CacheLookup : 更新缓存
+CacheLookup ->  Client: 返回查询结果
+@enduml

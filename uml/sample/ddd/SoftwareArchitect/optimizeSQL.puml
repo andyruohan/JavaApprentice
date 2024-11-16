@@ -1,0 +1,15 @@
+@startuml
+actor "客户端请求" as Client
+rectangle "SQL优化" as SQLOptimizer {
+    rectangle "索引选择" as IndexSelection
+    rectangle "分页处理" as Pagination
+    rectangle "字段过滤" as FieldFilter
+}
+database "数据库" as DB
+
+Client -> SQLOptimizer : 提交查询
+SQLOptimizer -> IndexSelection : 应用索引
+IndexSelection --> Pagination : 添加分页参数
+Pagination --> FieldFilter : 筛选字段
+FieldFilter -> DB : 执行优化后的查询
+@enduml

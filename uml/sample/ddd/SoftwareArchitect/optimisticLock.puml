@@ -1,0 +1,13 @@
+@startuml
+actor "客户端请求" as Client
+rectangle "锁管理器" as LockManager {
+    rectangle "乐观锁" as OptimisticLock
+}
+database "数据库" as DB
+
+Client --> OptimisticLock : 1.获取版本号
+OptimisticLock --> DB : 2.比较版本号
+OptimisticLock --> DB : 3.数据写操作
+OptimisticLock --> Client : 4.返回更新结果
+
+@enduml

@@ -1,0 +1,43 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+
+node "Java Application" {
+    rectangle "Transactional (Method-Level)" as T
+    rectangle "Batch Processing" as B
+    rectangle "Local Cache" as C
+    rectangle "Optimized Locks" as L
+    rectangle "SQL Optimization" as S
+    rectangle "Thread Pool" as TP
+}
+cloud "Database" as DB
+
+T --> DB : Reduced Transaction Overhead
+B --> DB : Batch Writes
+C --> DB : Reduced Read Load
+L --> DB : Shorter Lock Duration
+S --> DB : Faster Queries
+TP --> DB : Concurrent Task Handling
+
+@enduml
+
+@startuml
+skinparam backgroundColor #FFFFFF
+
+node "Java 应用程序" {
+    rectangle "事务控制（方法级别）" as T
+    rectangle "批量处理" as B
+    rectangle "本地缓存" as C
+    rectangle "优化锁机制" as L
+    rectangle "SQL 优化" as S
+    rectangle "线程池" as TP
+}
+database "数据库" as DB
+
+T --> DB : 减少事务开销
+B --> DB : 批量写入
+C --> DB : 减少读取压力
+L --> DB : 缩短锁定时间
+S --> DB : 加速查询
+TP --> DB : 并发任务处理
+
+@enduml
