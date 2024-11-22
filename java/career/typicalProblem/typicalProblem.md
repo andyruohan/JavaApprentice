@@ -47,3 +47,8 @@ RandomAccessFile 类可以帮助我们合并文件分片，示例代码如下：
 #### Spring AOP 切面问题
 在Service类中，我有methodA和methodB两个方法，methodA中嵌套着methodB，我把切换数据源的切面@DataSoure加在methodA上可以生效，但加在methodB上不生效，如何解决这个问题呢？
 
+### thymeleaf 版本问题，启动不报错，实际调用报错
+Caused by: java.lang.NoClassDefFoundError: Could not initialise class ognl.OgnlRuntime
+
+### RestTemplate 与 jackson-dataformat-xml
+项目中使用的RestTemplate进行调用，当引入jackson-dataformat-xml后，RestTemplate的messageConverter里面会增加MappingJackson2XmlHttpMessageConverter，并且优先级高于MappingJackson2HttpMessageConverter，由于没有指定accept，导致调用的时候accept传递为xml
