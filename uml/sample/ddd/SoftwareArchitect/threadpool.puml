@@ -1,0 +1,33 @@
+@startuml
+actor "客户端请求" as Client
+rectangle "线程池管理器" as ThreadPool {
+    rectangle "核心线程" as CoreThreads
+    rectangle "线程队列" as ThreadQueue
+    rectangle "最大线程" as MaxThreads
+}
+rectangle "任务执行模块" as TaskExecution
+database "数据库" as Database
+
+' 客户端与线程池交互
+Client -> ThreadPool : 提交任务
+
+' 线程池的工作流程
+ThreadPool -> CoreThreads : 分配核心线程
+CoreThreads --> ThreadQueue : 如果核心线程已满，则任务入队
+ThreadQueue -> MaxThreads : 超过核心线程并队列已满时创建新线程
+MaxThreads -> TaskExecution : 分配任务执行
+
+' 任务执行与数据库交互
+TaskExecution -> Database : 执行SQL查询/更新
+Database -> TaskExecution : 返回数据结果
+
+' 任务完成后的反馈
+'TaskExecution -> Client : 返回执行结果
+
+' 补充说明
+note top of ThreadPool
+  - 核心线程：优先执行任务
+  - 线程队列：存储待处理任务
+  - 最大线程：用于处理高峰任务
+end note
+@enduml
