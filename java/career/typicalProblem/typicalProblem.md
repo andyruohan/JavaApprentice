@@ -52,3 +52,9 @@ Caused by: java.lang.NoClassDefFoundError: Could not initialise class ognl.OgnlR
 
 ### RestTemplate 与 jackson-dataformat-xml
 项目中使用的RestTemplate进行调用，当引入jackson-dataformat-xml后，RestTemplate的messageConverter里面会增加MappingJackson2XmlHttpMessageConverter，并且优先级高于MappingJackson2HttpMessageConverter，由于没有指定accept，导致调用的时候accept传递为xml
+
+### 界面和后台二次校验
+如扣费账号此前无筛选条件，但后期迭代有了过滤条件，需考虑暂存回显的情况
+
+### Java程序DateTimeFormatter使用"YYYY"
+DateTimeFormatter使用"YYYY"，代表基于周的年份，如果日期跨年，则年份不正确。如2024年12月31日，使用YYYY-MM-dd格式化后的日期变为2025-12-31。
