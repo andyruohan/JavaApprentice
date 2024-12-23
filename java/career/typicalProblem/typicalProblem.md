@@ -58,3 +58,11 @@ Caused by: java.lang.NoClassDefFoundError: Could not initialise class ognl.OgnlR
 
 ### Java程序DateTimeFormatter使用"YYYY"
 DateTimeFormatter使用"YYYY"，代表基于周的年份，如果日期跨年，则年份不正确。如2024年12月31日，使用YYYY-MM-dd格式化后的日期变为2025-12-31。
+
+### 其他杂技
+记录API的请求方
+yml文件分环境
+发版时给出维护页面
+发送邮件没有串到一起
+投产日历没有维护
+NumberConstant
