@@ -1,0 +1,19 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+:OCR扫描客户单据;
+:自动比对单据信息与电文制作规则;
+if (客户填写字段有误) then (true)
+  :模糊搜索国际结算系统
+  该字段已生效的记录;
+  if (人工选择高匹配的命中记录?) then (true)
+  else (false)
+  stop
+  endif
+else (false)
+endif
+:满足电文各场次要求
+后台制作电文;
+stop
+@enduml

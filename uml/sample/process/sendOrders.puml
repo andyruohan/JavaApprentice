@@ -1,0 +1,11 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+:匹配柜员菜单码权限;
+:匹配分行代理关系;
+:匹配机构代理关系;
+:推送/显示柜员可操作的客户交单信息;
+stop
+
+@enduml
