@@ -59,10 +59,19 @@ Caused by: java.lang.NoClassDefFoundError: Could not initialise class ognl.OgnlR
 ### Java程序DateTimeFormatter使用"YYYY"
 DateTimeFormatter使用"YYYY"，代表基于周的年份，如果日期跨年，则年份不正确。如2024年12月31日，使用YYYY-MM-dd格式化后的日期变为2025-12-31。
 
-### 其他杂技
-记录API的请求方
-yml文件分环境
-发版时给出维护页面
-发送邮件没有串到一起
-投产日历没有维护
-NumberConstant
+### 其他杂记
+2024年做得不成熟的地方  
+技术工作：
+1. 记录API的请求方
+2. 对请求方进行身份验证 
+3. yml文件分环境
+4. 发版时给出维护页面
+
+日常工作：
+1. 发送邮件没有串到一起
+2. 先开发代码，后出设计文档
+3. 投产日历没有维护
+
+### 重要网址
+Jellyfin官网： https://jellyfin.org/docs/general/server/media/shows/
+
