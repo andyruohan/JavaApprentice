@@ -1163,3 +1163,15 @@ if (nums[slow] != nums[fast])
 #### **改进建议**
 
 如果需要高效处理大规模数据且确保性能最优，可以根据实际数据分布情况决定是否保留 `if` 判断条件。对于一般场景，如果不关心微小的性能差异，**去掉 `if` 判断条件通常更简单且性能相近**。
+
+## Mysql
+### 如何建立复合索引，一般你加在哪些字段？
+结论：选取区分度越高、重复率越低的字段效果较好，比如下述SQL结果=1的字段
+```sql
+SELECT COUNT(DISTINCT audit_status)/COUNT(*) AS audit_statusRate,
+       COUNT(DISTINCT product_id)/COUNT(*) AS product_itRate
+FROM   product_comment
+```
+
+参考《58同城30条军规》
+![](58同城30条军规节选.png)
