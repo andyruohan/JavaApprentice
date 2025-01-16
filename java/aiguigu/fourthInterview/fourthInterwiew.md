@@ -1185,6 +1185,48 @@ FROM   product_comment
 2. 情形2：更新条件where后的字段加了二级索引
 ![表字段加二级索引.png](%E8%A1%A8%E5%AD%97%E6%AE%B5%E5%8A%A0%E4%BA%8C%E7%BA%A7%E7%B4%A2%E5%BC%95.png)
 
+**总结：InnoDB的行锁，是通过锁住索引来实现的，如果加锁查询的时候没有使用到索引，会将整个聚簇索引都锁住，相当于锁表了。**
+
+**学习延伸**
 ![二级索引介绍.png](%E4%BA%8C%E7%BA%A7%E7%B4%A2%E5%BC%95%E4%BB%8B%E7%BB%8D.png)
 
-总结：InnoDB的行锁，是通过锁住索引来实现的，如果加锁查询的时候没有使用到索引，会将整个聚簇索引都锁住，相当于锁表了。
+
+### 什么是回表
+```sql
+CREATE TABLE `employee` (
+  `id` INT(11) NOT NULL,
+  `name` VARCHAR(255) DEFAULT NULL,
+  `age` INT(11) DEFAULT NULL,
+  `date` DATETIME DEFAULT NULL,
+  `sex` INT(1) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_age` (`age`) USING BTREE
+) ENGINE=INNODB DEFAULT CHARSET=utf8;
+ 
+INSERT INTO employee VALUES(100,'小伦',43,'2021-01-20','0');
+INSERT INTO employee VALUES(200,'俊杰',48,'2021-01-21','0');
+INSERT INTO employee VALUES(300,'紫琪',36,'2020-01-21','1');
+INSERT INTO employee VALUES(400,'立红',32,'2020-01-21','0');
+INSERT INTO employee VALUES(500,'易迅',37,'2020-01-21','1');
+INSERT INTO employee VALUES(600,'小军',49,'2021-01-21','0');
+INSERT INTO employee VALUES(700,'小燕',28,'2021-01-21','1');
+```
+对于以上建表语句，会产生主键索引id、二级索引idx_age：
+![主键索引idx_id.png](%E4%B8%BB%E9%94%AE%E7%B4%A2%E5%BC%95idx_id.png)
+![二级索引idx_age.png](%E4%BA%8C%E7%BA%A7%E7%B4%A2%E5%BC%95idx_age.png)
+
+当执行以下SQL语句时：
+```sql
+EXPLAIN SELECT * FROM employee WHERE age = 32;
+```
+执行过程：
+1. 搜索idx_age索引树，将磁盘块1加载到内存，由于32<37,搜索左路分支，加载到磁盘寻址磁盘块2。  
+2. 将磁盘块2加载到内存中，在内存继续遍历，找到age=32的记录，取得id = 400，拿到id=400后，回到id主键索引树。
+3. 搜索id主键索引树，将磁盘块1加载内存，在内存遍历找到了400，但是B+树索引非叶子节点是不保存数据的。索引会继续搜索400的右分支，到磁盘寻址磁盘块3。  
+4. 将磁盘块3加载内存再内存遍历，找到id=400的记录，拿到第4行(Row4)这一行的数据，查询成功。
+
+**总结：当通过非聚簇索引查询数据时，由于索引中不包含完整的行数据，因此需要根据索引中找到的主键值再去聚簇索引中查找完整的行数据，这个过程就是回表。**
+
+**学习延伸**
+![](image.png)
+B+树中，<font color = 'blue'>所有数据记录节点</font>都是按照键值大小顺序存放在<font color = 'blue'>同一层的叶子节点</font>上，而<font color = 'red'>非叶子节点上只存储key值信息</font>，这样可以大大加大每个节点存储的key值数量，降低B+树的高度
