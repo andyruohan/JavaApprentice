@@ -59,6 +59,47 @@ Caused by: java.lang.NoClassDefFoundError: Could not initialise class ognl.OgnlR
 ### Java程序DateTimeFormatter使用"YYYY"
 DateTimeFormatter使用"YYYY"，代表基于周的年份，如果日期跨年，则年份不正确。如2024年12月31日，使用YYYY-MM-dd格式化后的日期变为2025-12-31。
 
+### CloseableHttpClient 
+如果 `CloseableHttpClient` 是通过 Spring 管理的（即注册为 Spring 的 Bean），则不应手动关闭它，否则可能会导致应用程序中的其他组件无法正常使用该 `HttpClient` 实例。Spring 在应用程序上下文关闭时会自动管理和销毁 Bean。
+
+#### **解决方案**
+##### **1. 让 Spring 管理 `CloseableHttpClient`**
+在 Spring 配置类中定义 `CloseableHttpClient` Bean：
+```java
+@Bean
+public CloseableHttpClient httpClient() {
+    return HttpClients.createDefault();
+}
+```
+然后在代码中直接注入：
+```java
+@Autowired
+private CloseableHttpClient httpClient;
+```
+在这种情况下，**不要**手动调用 `close()`，Spring 会在应用程序关闭时自动管理它。
+
+---
+
+##### **2. 如果是自己创建的 `CloseableHttpClient`，则需要手动关闭**
+如果不是 Spring 管理的 Bean，而是在代码中自己创建的 `CloseableHttpClient`，就应该使用 `try-with-resources` 语法来确保它被正确关闭：
+```java
+try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+    HttpGet request = new HttpGet("https://example.com");
+    try (CloseableHttpResponse response = httpClient.execute(request)) {
+        // 处理响应
+    }
+} catch (IOException e) {
+    LOGGER.error("HTTP请求失败", e);
+}
+```
+这样可以确保 `CloseableHttpClient` 和 `CloseableHttpResponse` 在使用完毕后正确关闭，避免资源泄漏。
+
+---
+
+#### **结论**
+- **如果 `CloseableHttpClient` 是由 Spring 容器管理的，不要手动 `close()`**。
+- **如果是在代码中手动创建的 `CloseableHttpClient`，则应该手动 `close()` 或使用 `try-with-resources` 确保资源被正确释放**。
+
 ### 其他杂记
 2024年做得不成熟的地方  
 技术工作：
