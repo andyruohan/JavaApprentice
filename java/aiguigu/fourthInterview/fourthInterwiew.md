@@ -1376,4 +1376,10 @@ WHERE a.id > 4950000 ORDER BY a.id LIMIT 30;
 # 架构设计案例case
 ### 说说AOP的全部加在顺序，异常发生后环绕通知和后置通知还会执行吗
 AOP几个注解执行前后顺序：
-![](AOP注解加载顺序.png)
+![](AOP注解正常加载顺序.png)
+
+若业务逻辑抛出异常，AOP注解执行顺序如下：
+![](AOP注解异常加载顺序.png)
+相比正常加在流程，发生以下两点变更：
+1. @AfterReturning没有执行，而是执行的@AfterThrowing
+2. @Around环绕通知BBB没有执行
