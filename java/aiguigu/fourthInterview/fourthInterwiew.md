@@ -1374,12 +1374,146 @@ WHERE a.id > 4950000 ORDER BY a.id LIMIT 30;
 ![](阿里巴巴分页规范.png)
 
 # 架构设计案例case
-### 说说AOP的全部加在顺序，异常发生后环绕通知和后置通知还会执行吗
-AOP几个注解执行前后顺序：
+### 说说AOP的全部加在顺序，异常发生后环绕通知和后置通知还会执行吗  
+AOP几个注解执行前后顺序：  
 ![](AOP注解正常加载顺序.png)
 
-若业务逻辑抛出异常，AOP注解执行顺序如下：
+若业务逻辑抛出异常，AOP注解执行顺序如下：  
 ![](AOP注解异常加载顺序.png)
 相比正常加在流程，发生以下两点变更：
 1. @AfterReturning没有执行，而是执行的@AfterThrowing
 2. @Around环绕通知BBB没有执行
+
+### 如何利用注解进行API限流
+核心代码
+```java 注解
+	@GetMapping("/redis/limit/test")
+	@RedisLimitAnnotation(key = "redisLimit", permitsPerSecond = 3, expire = 10, msg = "当前访问人数较多，请稍后再试，自定义提示！")
+	public String redisLimit() {
+		return "正常业务返回，订单流水：" + IdUtil.fastUUID();
+	}
+```
+```java 环绕通知
+@Around("@annotation(spring.redislimit.annotations.RedisLimitAnnotation)")
+	public Object around(ProceedingJoinPoint joinPoint) {
+		System.out.println("---------环绕通知1111111");
+
+		MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+		Method method = signature.getMethod();
+
+		//拿到RedisLimitAnnotation注解，如果存在则说明需要限流，容器捞鱼思想
+		RedisLimitAnnotation redisLimitAnnotation = method.getAnnotation(RedisLimitAnnotation.class);
+
+		if (redisLimitAnnotation != null) {
+			//获取redis的key
+			String key = redisLimitAnnotation.key();
+			String className = method.getDeclaringClass().getName();
+			String methodName = method.getName();
+
+			String limitKey = key + "\t" + className + "\t" + methodName;
+			log.info(limitKey);
+
+			if (null == key) {
+				throw new RedisLimitException("it's danger,limitKey cannot be null");
+			}
+
+			long limit = redisLimitAnnotation.permitsPerSecond();
+			long expire = redisLimitAnnotation.expire();
+			List<String> keys = new ArrayList<>();
+			keys.add(key);
+
+			Long count = stringRedisTemplate.execute(
+				redisLuaScript,
+				keys,
+				String.valueOf(limit),
+				String.valueOf(expire));
+
+			System.out.println("Access try count is " + count + " \t key= " + key);
+			if (count != null && count == 0) {
+				System.out.println("启动限流功能key: " + key);
+				return redisLimitAnnotation.msg();
+			}
+		}
+
+
+		try {
+			result = joinPoint.proceed();//放行
+		} catch (Throwable e) {
+			throw new RuntimeException(e);
+		}
+
+		System.out.println("---------环绕通知2222222");
+		System.out.println();
+		System.out.println();
+
+		return result;
+	}
+```
+
+### 如何利用注解进行redis缓存
+核心代码
+```java mapper上添加注解
+    @Override
+    @MyRedisCache(keyPrefix = "user",matchValue = "#id")
+    public User getUserById(Integer id) {
+        return userMapper.selectByPrimaryKey(id);
+    }
+```
+```java 环绕通知
+@Around("cachePointCut()")
+    public Object doCache(ProceedingJoinPoint joinPoint) {
+        Object result = null;
+
+
+        try {
+            //1 获得重载后的方法名
+            MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+            Method method = signature.getMethod();
+
+            //2 确定方法名后获得该方法上面配置的注解标签MyRedisCache
+            MyRedisCache myRedisCacheAnnotation = method.getAnnotation(MyRedisCache.class);
+
+            //3 拿到了MyRedisCache这个注解标签，获得该注解上面配置的参数进行封装和调用
+            String keyPrefix = myRedisCacheAnnotation.keyPrefix();
+            String matchValueSpringEL = myRedisCacheAnnotation.matchValue();
+
+            //4 SpringEL 解析器
+            ExpressionParser parser = new SpelExpressionParser();
+            Expression expression = parser.parseExpression(matchValueSpringEL);//#id
+            EvaluationContext context = new StandardEvaluationContext();
+
+            //5 获得方法里面的形参个数
+            Object[] args = joinPoint.getArgs();
+            DefaultParameterNameDiscoverer discoverer = new DefaultParameterNameDiscoverer();
+            String[] parameterNames = discoverer.getParameterNames(method);
+            for (int i = 0; i < parameterNames.length; i++) {
+                System.out.println("获得方法里参数名和值: " + parameterNames[i] + "\t" + args[i].toString());
+                context.setVariable(parameterNames[i], args[i].toString());
+            }
+
+            //6 通过上述，拼接redis的最终key形式
+            String key = keyPrefix + ":" + expression.getValue(context).toString();
+            System.out.println("------拼接redis的最终key形式: " + key);
+
+            //7 先去redis里面查询看有没有
+            result = redisTemplate.opsForValue().get(key);
+            if (result != null) {
+                System.out.println("------redis里面有，我直接返回结果不再打扰mysql: " + result);
+                return result;
+            }
+
+            //8 redis里面没有，去找msyql查询或叫进行后续业务逻辑
+            result = joinPoint.proceed();//主业务逻辑查询mysql,放行放行放行
+
+            //9 mysql步骤结束，还需要把结果存入redis一次，缓存补偿
+            if (result != null) {
+                System.out.println("------redis里面无，还需要把结果存入redis一次，缓存补偿: " + result);
+                redisTemplate.opsForValue().set(key, result);
+            }
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+        }
+
+        return result;
+    }
+```
