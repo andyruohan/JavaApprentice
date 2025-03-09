@@ -1517,3 +1517,152 @@ AOP几个注解执行前后顺序：
         return result;
     }
 ```
+
+### 如何实现直播弹幕
+核心代码
+```java
+/**
+ * @author andy_ruohan
+ * @description 直播间适配器
+ * @date 2025/2/23 19:57
+ */
+@Slf4j
+@RestController
+public class LiveController {
+	@Resource
+	private RedisTemplate redisTemplate;
+	@Resource
+	private LiveService liveService;
+
+	/**
+	 * 某个用户(userId=12)第一次进入房间,返回最新的前5条弹幕
+	 * http://localhost:24618/goRoom?roomId=100&userId=12
+	 */
+	@GetMapping(value = "/goRoom")
+	public List<Content> goRoom(Integer roomId, Integer userId) {
+
+		List<Content> list = new ArrayList<>();
+
+		String key = LiveConstant.ROOM_KEY + roomId;
+		//进入房间,返回最新的前5条弹幕
+		//对应redis命令，ZREVRANGE room:100 0 4 WITHSCORES
+		Set<ZSetOperations.TypedTuple<Content>> rang = this.redisTemplate.opsForZSet().reverseRangeWithScores(key, 0, 4);
+		for (ZSetOperations.TypedTuple<Content> obj : rang) {
+			list.add(obj.getValue());
+			log.info("首次进房间取最新前5条弹幕content={},score={}", obj.getValue(), obj.getScore().longValue());
+		}
+
+		//user:room:time:12   12就是UserID观众ID
+		String userkey = LiveConstant.ROOM_USER_TIME_KEY + userId;
+		//把当前的时间T,保持到redis，供下次拉取用，看过的就不再推送
+		Long now = System.currentTimeMillis() / 1000;
+		this.redisTemplate.opsForValue().set(userkey, now);
+
+		return list;
+	}
+
+	/**
+	 * 登录房间后持续观看，定时任务或者xxl-job 客户端间隔5秒钟来拉取数据
+	 * http://localhost:24618/commentList?roomId=100&userId=12
+	 */
+	@GetMapping(value = "/commentList")
+	public List<Content> commentList(Integer roomId, Integer userId) {
+		List<Content> list = new ArrayList<>();
+
+		String key = LiveConstant.ROOM_KEY + roomId;
+		String userkey = LiveConstant.ROOM_USER_TIME_KEY + userId;
+
+		long now = System.currentTimeMillis() / 1000;
+		//拿取上次的读取时间
+		Long ago = Long.parseLong(this.redisTemplate.opsForValue().get(userkey).toString());
+		log.info("查找时间范围：{}  {}", ago, now);
+		//获取上次到现在的数据 ZREVRANGE room:100 0 4 WITHSCORES
+		Set<ZSetOperations.TypedTuple<Content>> rang = this.redisTemplate.opsForZSet().rangeByScoreWithScores(key, ago, now);
+		for (ZSetOperations.TypedTuple<Content> obj : rang) {
+			list.add(obj.getValue());
+			log.info("持续观看直播content={},score={}", obj.getValue(), obj.getScore().longValue());
+		}
+		//把当前的时间Time,保持到redis，供下次拉取用
+		now = System.currentTimeMillis() / 1000;
+		this.redisTemplate.opsForValue().set(userkey, now);
+
+		return list;
+	}
+}
+```
+
+```java
+/**
+ * @author andy_ruohan
+ * @description 直播间服务类
+ * @date 2025/2/23 20:38
+ */
+@Service
+@Slf4j
+public class LiveService {
+
+	@Resource
+	private RedisTemplate redisTemplate;
+
+	/**
+	 * 模拟直播间的数据
+	 */
+	@PostConstruct
+	public void init() {
+		log.info("启动初始化,淘宝直播弹幕case开始 ..........");
+
+		System.out.println();
+
+		//1 微服务启动一个线程，模拟直播间各个观众发言
+		new Thread(() ->
+		{
+			AtomicInteger atomicInteger = new AtomicInteger();
+
+			while (true) {
+				//2 模拟观众各种发言，5秒一批数据，自己模拟造一批发言数据到100后break
+				if (atomicInteger.get() == 100) {
+					break;
+				}
+				//3 模拟直播100房间号 的弹幕数据，拼接redis的Key   room:100
+				String key = LiveConstant.ROOM_KEY + 100;
+				Random rand = new Random();
+
+				for (int i = 1; i <= 5; i++) {
+					Content content = new Content();
+
+					int id = rand.nextInt(1000) + 1;
+					content.setUserId(id);
+
+					int temp = rand.nextInt(100) + 1;
+					content.setContent("发表言论: " + temp + "\t" + RandomUtil.randomString(temp));
+
+					long time = System.currentTimeMillis() / 1000;
+					//4 对应的redis命令 zadd room:100 time content
+					/**
+					 * 4.1 redis的原生命令
+					 *  ZADD key score1 member1 [score2 member2] [score3 member3]
+					 * 向有序集合添加一个或多个成员，或者更新已存在成员的分数
+					 *
+					 * 4.2 redisTemplate操作Zset的API
+					 * Boolean add(K key, V value, double score);
+					 */
+					this.redisTemplate.opsForZSet().add(key, content, time);
+
+					log.info("模拟直播间100房间号的发言弹幕数据={}", content);
+				}
+				//TODO 在分布式系统中，建议用xxl-job来实现定时,此处阳哥为了直播方便讲解，简单模拟
+				try {
+					TimeUnit.SECONDS.sleep(5);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+
+				//模拟观众各种发言，5秒一批数据,到100自动退出break
+				atomicInteger.getAndIncrement();
+
+				System.out.println("-------每间隔5秒钟，拉取一次最新聊天记录");
+			}
+		}, "init_Live_Data").start();
+	}
+}
+```
