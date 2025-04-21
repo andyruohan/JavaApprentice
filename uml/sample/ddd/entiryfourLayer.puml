@@ -29,15 +29,20 @@ class BranchInfo {
 class CurrencyInfo {
 }
 
-DirectCreditService o-- CreditApplyInfoEntity
-PortalCreditService o-- CreditApplyInfoEntity
-PreTrailCreditService o-- CreditApplyInfoEntity
-NormalCreditService o-- CreditApplyInfoEntity
-NoFillCreditService o-- CreditApplyInfoEntity
-FlashOpenCreditService o-- CreditApplyInfoEntity
-FlashFinanceCreditService o-- CreditApplyInfoEntity
+class CreditApplyInfoRepository {}
+
+DirectCreditService --> CreditApplyInfoEntity
+PortalCreditService --> CreditApplyInfoEntity
+PreTrailCreditService --> CreditApplyInfoEntity
+NormalCreditService --> CreditApplyInfoEntity
+NoFillCreditService --> CreditApplyInfoEntity
+FlashOpenCreditService --> CreditApplyInfoEntity
+FlashFinanceCreditService --> CreditApplyInfoEntity
+CreditApplyInfoEntity <-- CreditApplyInfoRepository
 
 CreditApplyInfoEntity *-- CurrencyInfo
 CreditApplyInfoEntity *-- BranchInfo
+
+
 
 @enduml

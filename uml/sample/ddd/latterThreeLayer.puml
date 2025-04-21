@@ -28,27 +28,27 @@ class BranchService {
 class CurrencyService {
 }
 
-PortalCreditService o-- OnbIlcMstDao
-PreTrailCreditService o-- OnbIlcMstDao
-NormalCreditService o-- OnbIlcMstDao
-NoFillCreditService o-- OnbIlcMstDao
-FlashOpenCreditService o-- OnbIlcMstDao
-FlashFinanceCreditService o-- OnbIlcMstDao
-DirectCreditService o-- OnbIlcMstDao
-PortalCreditService o-- BranchService
-PreTrailCreditService o-- BranchService
-NormalCreditService o-- BranchService
-NoFillCreditService o-- BranchService
-FlashOpenCreditService o-- BranchService
-FlashFinanceCreditService o-- BranchService
-DirectCreditService o-- BranchService
-PortalCreditService o-- CurrencyService
-PreTrailCreditService o-- CurrencyService
-NormalCreditService o-- CurrencyService
-NoFillCreditService o-- CurrencyService
-FlashOpenCreditService o-- CurrencyService
-FlashFinanceCreditService o-- CurrencyService
-DirectCreditService o-- CurrencyService
+PortalCreditService --> OnbIlcMstDao
+PreTrailCreditService --> OnbIlcMstDao
+NormalCreditService --> OnbIlcMstDao
+NoFillCreditService --> OnbIlcMstDao
+FlashOpenCreditService --> OnbIlcMstDao
+FlashFinanceCreditService --> OnbIlcMstDao
+DirectCreditService --> OnbIlcMstDao
+PortalCreditService --> BranchService
+PreTrailCreditService --> BranchService
+NormalCreditService --> BranchService
+NoFillCreditService --> BranchService
+FlashOpenCreditService --> BranchService
+FlashFinanceCreditService --> BranchService
+DirectCreditService --> BranchService
+PortalCreditService --> CurrencyService
+PreTrailCreditService --> CurrencyService
+NormalCreditService --> CurrencyService
+NoFillCreditService --> CurrencyService
+FlashOpenCreditService --> CurrencyService
+FlashFinanceCreditService --> CurrencyService
+DirectCreditService --> CurrencyService
 
 
 @enduml

@@ -14,12 +14,12 @@ class BranchService {
 class CurrencyService {
 }
 
-PortalCreditService o-- OnbIlcMstDao
-NormalCreditService o-- OnbIlcMstDao
-PortalCreditService o-- BranchService
-NormalCreditService o-- BranchService
-PortalCreditService o-- CurrencyService
-NormalCreditService o-- CurrencyService
+PortalCreditService --> OnbIlcMstDao
+NormalCreditService --> OnbIlcMstDao
+PortalCreditService --> BranchService
+NormalCreditService --> BranchService
+PortalCreditService --> CurrencyService
+NormalCreditService --> CurrencyService
 
 
 @enduml
