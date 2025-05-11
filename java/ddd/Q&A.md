@@ -153,7 +153,346 @@ ThreadPoolExecutor executor = new ThreadPoolExecutor(
 
 选择哪种拒绝策略取决于具体的应用场景和对任务丢失的容忍程度。
 
+### 如何处理模块间互调问题
+若出现module1的service调用module2的service，但一般情况ddd下module1是不允许调用module2。以下是系统性解决方案和最佳实践：
 
+---
+
+#### 一、问题诊断与应对策略
+##### 场景分析
+```mermaid
+flowchart LR
+    A[module1.ServiceA] -->|直接调用| B[module2.ServiceB]
+```
+**违反的原则**：
+1. 破坏模块自治性
+2. 产生双向依赖风险
+3. 导致分布式事务复杂度
+
+---
+
+#### 二、标准解决方案
+
+##### 方案1：通过领域事件解耦（最终一致性）
+```java
+// module1 发布事件（无需知道module2）
+public class OrderService {
+    public void confirmOrder(Order order) {
+        order.confirm();
+        eventPublisher.publish(new OrderConfirmedEvent(order.getId()));
+    }
+}
+
+// module2 订阅事件
+public class InventoryEventHandler {
+    @EventListener
+    public void handle(OrderConfirmedEvent event) {
+        inventoryService.adjustStock(event.getOrderId()); // 内部处理
+    }
+}
+```
+**优势**：
+- 完全解耦，module1无需感知module2
+- 天然支持分布式场景
+
+**适用场景**：订单-库存、支付-通知等异步流程
+
+##### 方案2：通过防腐层（ACL）隔离
+```java
+// module1 定义防腐接口（领域层）
+public interface InventoryService {
+    boolean reserveStock(OrderId orderId, List<Item> items);
+}
+
+// module1 基础设施层实现（调用module2的API）
+public class InventoryServiceHttpClient implements InventoryService {
+    private final InventoryApiClient client; // Feign/Retrofit
+
+    @Override
+    public boolean reserveStock(OrderId orderId, List<Item> items) {
+        ReserveRequest request = convertToRequest(orderId, items);
+        return client.reserve(request); // HTTP调用module2
+    }
+}
+```
+**优势**：
+- 业务逻辑不依赖具体实现
+- 可替换为其他实现（如Mock测试）
+
+**适用场景**：需要实时响应的强一致性操作
+
+##### 方案3：Saga模式（长事务管理）
+```java
+// 在module1启动Saga
+public class OrderSaga {
+    private final SagaCoordinator coordinator;
+
+    public void createOrder(Order order) {
+        coordinator.begin()
+            .step("reserve_stock", 
+                () -> inventoryProxy.reserve(order), 
+                () -> inventoryProxy.cancel(order))
+            .step("process_payment",
+                () -> paymentProxy.charge(order),
+                () -> paymentProxy.refund(order))
+            .end();
+    }
+}
+```
+**优势**：
+- 维护跨模块事务一致性
+- 显式定义补偿机制
+
+**适用场景**：跨多服务的订单履约、资金转账等
+
+---
+
+#### 三、架构验证规则
+使用ArchUnit禁止直接调用：
+```java
+@ArchTest
+public static final ArchRule no_cross_module_direct_call = 
+    noClasses()
+        .that().resideInAPackage("..module1..")
+        .should().dependOnClassesThat()
+        .resideInAPackage("..module2..");
+```
+
+当出现违规时，测试会报错：
+```
+Architecture Violation: Method <module1.OrderService.placeOrder()> 
+calls method <module2.InventoryService.reserve()> in (OrderService.java:25)
+```
+
+---
+
+#### 四、决策树：选择合适方案
+```mermaid
+graph TD
+    A[需要实时响应?] -->|是| B{强一致性要求?}
+    A -->|否| C[使用领域事件]
+    B -->|是| D[防腐层+分布式锁]
+    B -->|否| E[防腐层+重试机制]
+    D --> F[考虑Saga补偿]
+```
+
+---
+
+#### 五、错误处理规范
+##### 1. 同步调用（防腐层）的异常处理
+```java
+public class InventoryServiceHttpClient implements InventoryService {
+    @Override
+    public boolean reserveStock(OrderId orderId, List<Item> items) {
+        try {
+            return client.reserve(convertToRequest(orderId, items));
+        } catch (FeignException e) {
+            throw new InventoryUnavailableException(e); // 转换为领域异常
+        }
+    }
+}
+```
+
+##### 2. 异步事件（最终一致性）的补偿
+```java
+public class OrderConfirmedEventHandler {
+    @EventListener
+    @TransactionalEventListener(phase = AFTER_COMMIT)
+    public void handle(OrderConfirmedEvent event) {
+        try {
+            inventoryService.adjustStock(event.getOrderId());
+        } catch (Exception e) {
+            eventPublisher.publish(new StockAdjustmentFailedEvent(event)); // 触发补偿流程
+        }
+    }
+}
+```
+
+---
+
+#### 六、演进建议
+1. **初期**：使用防腐层快速实现
+2. **中期**：逐步替换为领域事件
+3. **复杂场景**：引入Saga模式
+4. **监控**：通过Metrics记录跨模块调用：
+   ```java
+   @Timed("module1.inventory.reserve")
+   public boolean reserveStock(OrderId orderId) {
+       // ...
+   }
+   ```
+
+---
+
+通过以上方法，可在保持DDD模块化设计的同时，安全地实现跨模块协作。关键点是：**永远不要让你的领域层直接依赖另一个限界上下文的实现细节**。
+
+### 自定义架构守护
+如何写一个单元测试规则，只允许module1和module2依赖common，不允许common依赖module1和module2，以及只允许module1下的service依赖executor，不允许executor依赖同包下的service。以下是基于 ArchUnit 的单元测试规则实现，可严格约束您描述的模块依赖关系：
+
+---
+
+#### 一、测试环境准备（Maven 配置）
+```xml
+<!-- pom.xml -->
+<dependency>
+    <groupId>com.tngtech.archunit</groupId>
+    <artifactId>archunit</artifactId>
+    <version>1.0.1</version>
+    <scope>test</scope>
+</dependency>
+```
+
+---
+
+#### 二、完整的测试类实现
+```java
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.lang.ArchRule;
+import org.junit.Test;
+
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.*;
+
+public class ModuleDependencyTest {
+
+    private final JavaClasses classes = new ClassFileImporter()
+            .importPackages("com.yourcompany");
+
+    // 规则1：仅允许module1/module2依赖common，禁止反向依赖
+    @Test
+    public void common_module_dependency_rule() {
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("..common..")
+                .should().dependOnClassesThat()
+                .resideInAnyPackage(
+                    "..module1..", 
+                    "..module2.."
+                );
+
+        rule.check(classes);
+    }
+
+    // 规则2：module1内仅允许service依赖executor，禁止反向依赖
+    @Test
+    public void module1_internal_dependency_rule() {
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("..module1..executor..")
+                .should().dependOnClassesThat()
+                .resideInAPackage("..module1..service..");
+
+        rule.check(classes);
+    }
+
+    // 增强规则：禁止common包被外部非指定模块依赖
+    @Test
+    public void common_access_control_rule() {
+        ArchRule rule = noClasses()
+                .that().resideOutsideOfPackages(
+                    "..module1..", 
+                    "..module2..",
+                    "..common.."
+                )
+                .should().dependOnClassesThat()
+                .resideInAPackage("..common..");
+
+        rule.check(classes);
+    }
+}
+```
+
+---
+
+#### 三、规则详解
+
+##### 1. **Common包依赖约束**
+```java
+noClasses()
+    .that().resideInAPackage("..common..")  // common包下的类
+    .should().dependOnClassesThat()         // 不能依赖
+    .resideInAnyPackage("..module1..", "..module2..");  // module1/module2的类
+```
+**效果**：  
+✅ 允许：
+- `module1` → `common`
+- `module2` → `common`
+
+❌ 禁止：
+- `common` → `module1`
+- `common` → `module2`
+- 其他模块（如`module3`）→ `common`
+
+##### 2. **Module1内部Service-Executor约束**
+```java
+noClasses()
+    .that().resideInAPackage("..module1..executor..")  // executor包下的类
+    .should().dependOnClassesThat()                    // 不能依赖
+    .resideInAPackage("..module1..service..");         // service包的类
+```
+**效果**：  
+✅ 允许：
+- `module1.service` → `module1.executor`
+
+❌ 禁止：
+- `module1.executor` → `module1.service`
+- `module1.executor` → `module1.repository`（可通过额外规则约束）
+
+---
+
+#### 四、执行效果验证
+
+##### 当出现违规时，测试会报错：
+```
+java.lang.AssertionError: Architecture Violation [Priority: MEDIUM]...
+Rule 'no classes that reside in a package '..common..' should depend on classes that reside in any package ['..module1..', '..module2..']' was violated:
+Method <com.yourcompany.common.CommonUtil.doSomething()> calls method <com.yourcompany.module1.Service.process()> in (CommonUtil.java:10)
+```
+
+---
+
+#### 五、进阶增强方案
+
+##### 1. 使用分层架构检测（更严格）
+```java
+@ArchTest
+public static final ArchRule layer_dependencies = layeredArchitecture()
+    .layer("Common").definedBy("..common..")
+    .layer("Module1").definedBy("..module1..")
+    .layer("Module2").definedBy("..module2..")
+
+    .whereLayer("Common").mayOnlyBeAccessedByLayers("Module1", "Module2")
+    .whereLayer("Module1").mayNotBeAccessedByAnyLayer()
+    .whereLayer("Module2").mayNotBeAccessedByAnyLayer();
+```
+
+##### 2. 禁止Executor包外泄（可选）
+```java
+@ArchTest
+public static final ArchRule executor_visibility = classes()
+    .that().resideInAPackage("..executor..")
+    .should().onlyBeAccessed().byClassesThat()
+    .resideInAPackage("..service..");
+```
+
+---
+
+#### 六、CI集成建议
+
+在`pom.xml`中配置构建失败：
+```xml
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-surefire-plugin</artifactId>
+    <configuration>
+        <includes>
+            <include>**/*ArchTest*</include>
+        </includes>
+    </configuration>
+</plugin>
+```
+
+---
+
+通过以上规则，您的架构约束将得到自动化保障，每次代码提交都会触发依赖关系校验，有效防止架构退化。
 
 ## 微服务部署
 ### 微服务是什么？
