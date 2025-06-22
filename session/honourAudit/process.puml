@@ -1,0 +1,86 @@
+@startuml
+!theme plain
+title 进口来单电文审核跑批系统 - 异步事件驱动架构
+
+box "线程池A - 主任务调度"
+participant 主任务处理器 as MainProcessor
+participant 事件处理器 as EventHandler
+end box
+
+box "线程池B - 影像处理"
+participant 批处理协调器 as BatchCoordinator
+end box
+
+box "任务状态管理"
+participant 任务跟踪器 as TaskTracker
+end box
+
+box "事件总线"
+participant 事件总线 as EventBus
+end box
+
+MainProcessor -> TaskTracker: 1. 注册新任务(taskId, imageCount)
+activate TaskTracker
+TaskTracker --> MainProcessor: 确认注册
+deactivate TaskTracker
+
+MainProcessor -> BatchCoordinator: 2. 提交任务影像(taskId, images)
+activate BatchCoordinator
+
+loop 每张影像
+    BatchCoordinator -> BatchCoordinator: 2.1 提交到线程池B处理
+    activate BatchCoordinator #FFBBBB
+    BatchCoordinator --> BatchCoordinator: 处理单张影像
+    deactivate BatchCoordinator
+end
+
+BatchCoordinator -> BatchCoordinator: 2.2 等待所有影像完成
+activate BatchCoordinator #FFBBBB
+
+BatchCoordinator -> TaskTracker: 3. 批量提交结果(taskId, allResults)
+activate TaskTracker
+
+TaskTracker -> TaskTracker: 3.1 验证所有影像完成
+TaskTracker -> EventBus: 4. 发布图像识别完成事件\n(ImageRecognitionCompletedEvent)
+activate EventBus
+
+EventBus -> EventHandler: 5. 通知事件处理器
+activate EventHandler
+
+EventHandler -> MainProcessor: 6. 注册审核事件(taskId, allResults)
+activate MainProcessor
+
+MainProcessor -> MainProcessor: 7. 提交审核请求
+deactivate MainProcessor
+
+EventHandler --> EventBus:
+deactivate EventHandler
+EventBus --> TaskTracker:
+deactivate EventBus
+TaskTracker --> BatchCoordinator:
+deactivate TaskTracker
+BatchCoordinator --> BatchCoordinator:
+deactivate BatchCoordinator
+BatchCoordinator --> MainProcessor:
+deactivate BatchCoordinator
+
+... 后续流程 ...
+
+MainProcessor -> EventBus: 8. 发布审核完成事件\n(AuditCompletedEvent)
+activate EventBus
+
+EventBus -> EventHandler: 9. 通知事件处理器
+activate EventHandler
+
+EventHandler -> MainProcessor: 10. 注册结果查询事件
+activate MainProcessor
+
+MainProcessor -> MainProcessor: 11. 执行结果查询
+deactivate MainProcessor
+
+EventHandler --> EventBus:
+deactivate EventHandler
+EventBus --> MainProcessor:
+deactivate EventBus
+
+@enduml
