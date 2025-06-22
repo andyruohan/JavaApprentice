@@ -1,0 +1,49 @@
+@startuml
+!theme plain
+title 进口来单电文审核审核流程
+
+box "跑批审核任务入口"
+participant 主任务管理器 as TaskGenerator
+end box
+
+box "单条审核任务管理"
+participant 子任务管理器 as TaskCoordinator
+end box
+
+box "线程池A - 定时调度"
+participant 任务调度器 as TaskScheduler
+participant 审核注册器 as AuditRegister
+end box
+
+box "线程池B - 图像处理"
+participant 图像处理器 as ImageProcessor
+end box
+
+TaskGenerator -> TaskCoordinator: 1. 提交新任务(mainTask)
+TaskScheduler -> TaskCoordinator: 2. 创建任务上下文(taskId)
+TaskCoordinator --> TaskScheduler: 上下文引用
+
+TaskScheduler -> TaskScheduler: 3. 拆分图像抽取任务
+TaskScheduler -> ImageProcessor: 4. 提交影像抽取子任务(List<imageSubTask>)
+
+loop 每个图像抽取子任务
+    ImageProcessor -> ImageProcessor: 4.1 提交到线程池B处理
+    ImageProcessor --> ImageProcessor: 4.2 对接多模态/OCR平台处理影像
+    ImageProcessor -> TaskCoordinator: 4.3 更新单张影像识别状态(imageId, result)
+    TaskCoordinator -> TaskCoordinator: 4.4 检查影像抽取子任务完成情况
+end
+
+TaskCoordinator -> TaskScheduler: 5. 注册审核任务(taskId)
+TaskScheduler -> AuditRegister: 6. 提交审核请求
+AuditRegister -> 审核大模型: 7. 调用审核大模型
+审核大模型 -> 审核大模型: 9. 处理审核
+
+
+AuditRegister -> TaskScheduler: 11. 注册审核结果查询任务
+TaskScheduler -> 审核大模型: 12. 执行审核结果查询请求
+审核大模型 -> 审核大模型: 13. 执行查询
+审核大模型 -> TaskCoordinator: 14. 返回审核结果
+TaskCoordinator -> TaskGenerator: 15. 汇总审核结果
+
+
+@enduml
