@@ -633,7 +633,7 @@ public class GoodsController {
 ```
 
 
-##Redis事务
+## Redis事务
 ### 事务介绍
 - Redis的事务是通过<font color = 'orange'>MULTI，EXEC，DISCARD和WATCH</font>这四个命令来完成。
 - Redis的单个命令都是<font color = 'orange'>原子性</font>的，所以这里确保事务性的对象是<font color = 'orange'>命令集合</font>。
@@ -733,14 +733,14 @@ zookeeper：CP
 Redisson
 https://redis.io/docs/manual/patterns/distributed-locks/
 
-### redis缓存过期淘汰策略
-### 生产上redis内存设置多少
-
-### 如何配置、修改redis的内存大小
-### 如果内存满了你怎么办  
-### redis清理内存的方式？定期删除和惰性删除了解过吗
-### redis缓存淘汰策略
-### redis的LRU了解过吗？可否手写一个LRU算法
+## redis常见面试题
+一些面试题举例：
+1) 生产上redis内存设置多少
+2) 如何配置、修改redis的内存大小
+3) 如果内存满了你怎么办  
+4) redis清理内存的方式？定期删除和惰性删除了解过吗
+5) redis缓存淘汰策略
+6) redis的LRU了解过吗？可否手写一个LRU算法
 
 
 ### redis默认内存多少？在哪里查看？如何修改设置？
@@ -803,12 +803,13 @@ find /Users/lijunxin -name redis.conf
   ```
 
 #### 什么命令可以查看redis使用情况？
+进入redis以后，使用命令：
 ``` 
 info memory
 ```
 
 ### redis内存真的打满了怎么办
-实测会产生OOM：
+redis内存打满后，实测会产生OOM：
 ``` 
 127.0.0.1:6379> config set maxmemory 1
 OK
@@ -816,9 +817,9 @@ OK
 (error) OOM command not allowed when used memory > 'maxmemory'.
 ```
 
-##### 
+#### redis缓存淘汰策略
 redis键过期后，并不会立即被删除。常见的处理思想有：
-- **立即删除**：能保证内存中所有数据的最大新鲜度，但对CPU不友好（`以CPU时间换空间`）
+- **定时删除**：能保证内存中所有数据的最大新鲜度，但对CPU不友好（`以CPU时间换空间`）
 - **惰性删除**：访问数据过期才删除，但存在数据过期一直未被访问不会被删除，对内存不友好（`以空间换CPU时间`）
 - **定期删除**：二者结合，每隔一段时间执行一次删除过期键操作。但这种方案只是一种妥协方案，`上述两点的缺陷其依旧也存在`。
 
