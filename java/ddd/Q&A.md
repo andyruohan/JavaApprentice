@@ -351,6 +351,18 @@ MECE：Mutually Exclusive，Collectively Exhaustive
 ### 数据校验
 通用技术校验在适配器层，业务满足性校验在应用层，强业务属性校验沉淀到实体。
 
+### 异常处理
+哪些层可以抛出异常
+
+### 代码检视的问题收集
+1. 组里新人，Assemble不止做了转换，还调用repository的查询、存储
+
+### 架构守护遇到的问题
+历史代码或者此前未开启架构守护的应用，开启架构守护
+
+### 架构守护的自定义例子
+Assemble的转换，不允许调用repository
+
 ### 多线程拒绝策略
 
 在多线程编程中，当线程池或任务队列达到其容量限制时，需要采用拒绝策略来处理新提交的任务。以下是常见的几种拒绝策略：
@@ -579,18 +591,6 @@ public class OrderConfirmedEventHandler {
     <scope>test</scope>
 </dependency>
 ```
-
-### 异常处理
-哪些层可以抛出异常
-
-### 架构守护的自定义例子
-Assemble的转换，不允许调用repository
-
-### 架构守护遇到的问题
-历史代码或者此前未开启架构守护的应用，开启架构守护
-
-### 代码检视的问题收集
-1. 组里新人，Assemble不止做了转换，还调用repository的查询、存储
 
 ---
 
