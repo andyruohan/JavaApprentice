@@ -1314,18 +1314,100 @@ public static final ArchRule executor_visibility = classes()
 | varchar 字段最大长度              | MySQL/TDSQL：≤2000字节（建议）<br>TiDB：≤2000字节（强制） |
 | varchar2 字段最大长度             | Oracle/GaussDB：≤4000字节（强制） |
 
-表数据量发生较大变化时（如批量转历史表、批量增删改数据、促销营销等业务场景），需进行统计信息收集，否则 SQL 执行效率可能降低。
+表数据量发生较大变化时（如批量转历史表、批量增删改数据、促销营销等业务场景），需进行统计信息收集，否则 SQL 执行效率可能降低。  
 **注：统计信息收集建议在业务低峰期进行，因为会对表加 MDL 读锁，可能阻塞 DDL 操作。**
----
-
-#### 统计信息收集方法
 
 | 数据库类型         | 规范级别   | 收集统计信息方法 | 命令 |
 |-----------------|-----------|----------------|------|
 | Oracle          | <span style="color:red;">【强制】</span>  | 开发人员申请数据库高权限，将命令封装存储过程并授权普通用户执行 | ```plsql begin dbms_stats.gather_table_stats( ownname => upper('CVM'), tabname => upper('BIZINFO'), estimate_percent => dbms_stats.auto_sample_size, method_opt => 'for all columns size auto', degree => 2, granularity => 'AUTO', cascade => TRUE, no_invalidate => TRUE, force => FALSE ); end; / ``` |
 | MySQL、TDSQL、TiDB | <span style="color:orange;">【建议】</span> | 使用拥有表 select 和 insert 权限的用户执行 | `ANALYZE TABLE 表名1 [表名2...]` |
 
+### 索引设计概念及规范
+### 索引设计规范
 
+设计良好的索引可以提高数据查询性能，增强系统的稳定性。
+
+<span style="color:orange;">【推荐】</span> Oracle、GaussDB 数据库 **分区表不建议建立全局索引**，必须建立 **本地索引**，查询条件必须指定分区键。  
+<span style="color:red;">【强制】</span> 避免创建冗余、重复索引，合理创建联合索引。
+  > 1. **唯一索引与主键**
+  >     - 唯一索引不能和主键重复。与主键重复的唯一索引会增加性能与空间开销。
+  >     - 在 MySQL、TDSQL 中，主键可以代替唯一索引，但唯一索引无法代替主键。  
+  > 2. **联合索引**
+  >     - 合理创建联合索引。
+  >     - 联合索引 `(a, b, c)` 相当于同时包含 `(a)` 、`(a, b)` 、`(a, b, c)` 三个索引，可有效降低索引数量。
+
+<span style="color:red;">【强制】</span> 索引最佳实践
+
+| 指标项        | 最佳实践                                                                                                         |
+|------------|--------------------------------------------------------------------------------------------------------------|
+| 单张表上的索引总个数 | 不超过 5 个                                                                                                      |
+| 主键索引的字段个数  | Oracle、GaussDB、TiDB：不超过 4 个；<br>TDSQL、MySQL：不超过 3 个                                                          |
+| 普通索引的字段个数  | TDSQL、MySQL、TiDB：不超过 5 个；<br>GaussDB、Oracle：不超过 3 个                                                          |
+| 索引字段总长度    | Oracle、GaussDB：不超过 100 字节；<br>TDSQL、MySQL：建议控制在 50 字节以下，最长不超过 100 字节 <span style="color:orange;">【推荐】</span> |
+
+### SQL设计概念及规范
+
+SQL 设计质量对系统性能和稳定性有直接影响。在事务控制、批量数据处理设计等场景中，需充分预估风险，避免因事务设计不当或复杂 SQL 导致重大生产问题。
+
+---
+
+#### 1. 数据库事务
+
+- <span style="color:red;">【强制】</span> 禁止将非核心业务逻辑加入核心业务的数据库事务中。
+- <span style="color:red;">【强制】</span> 业务系统在业务结束时需及时提交或回滚事务，需支持任意时间点回滚，避免因网络中断、连接断开、数据库报错等造成数据不一致。
+- <span style="color:red;">【强制】</span> 禁止出现大事务、长事务，大事务、长事务会导致锁超时、主从同步延迟等，影响系统并发与高可用性。
+
+**事务最佳实践**
+
+| 指标项 | 最佳实践 |
+| ------ | -------- |
+| 大事务处理的最大记录数（OLTP） | Oracle、GaussDB、TiDB：每事务 ≤1w；<br>TDSQL、MySQL：每事务 ≤1000 |
+| 大事务处理的最大记录数（批处理） | 每事务 ≤10w |
+| 长事务（OLTP） | Oracle、GaussDB：≤30分钟；<br>TDSQL、MySQL、TiDB：≤1分钟 |
+| 长事务（批处理） | Oracle、GaussDB：≤1小时；<br>TDSQL、MySQL、TiDB：≤10分钟 |
+| 单条查询语句返回记录数（OLTP） | ≤500条 |
+| 单事务数据库日志（undo日志）消耗 | Oracle、GaussDB：≤1GB；<br>TDSQL、MySQL、TiDB：≤150MB |
+| IN 子句值个数 | ≤300 |
+| 多表关联表数量 | ≤3张 |
+| 单条 SQL 语句文本长度 | ≤2000字节 |
+| load data 文件大小 | MySQL、TDSQL：≤128MB；<br>TiDB：≤1GB；<br>Oracle、GaussDB：≤512MB |
+
+---
+
+#### 2. SQL语句
+
+- <span style="color:red;">【强制】</span> 联机交易禁止出现任何形式的全表扫描。
+- <span style="color:red;">【强制】</span> 联机程序谨慎使用 JOIN，批处理禁止使用复杂 JOIN（超过3张表）。
+- <span style="color:red;">【强制】</span> JOIN 操作必须有关联条件，避免笛卡尔积。
+- <span style="color:red;">【强制】</span> 使用 `SELECT FOR UPDATE` 时，需确保 SQL 命中索引。
+- <span style="color:red;">【强制】</span> 禁止使用存储过程、自定义函数、触发器、定时作业、视图。
+  > Oracle 分区表的 `TRUNCATE`、`DROP`、`EXCHANGE`、`ADD` 权限无法精确到表级，可通过存储过程封装这些操作以降低误操作风险。
+- <span style="color:red;">【强制】</span> 避免出现隐式数据类型转换（字符型、数值型、布尔型等），否则可能导致索引失效或逻辑错误。
+- <span style="color:red;">【强制】</span> Oracle、GaussDB 禁止拼接 SQL，避免动态 SQL 与绑定过多变量，防止内存占用过大或产生碎片。
+- <span style="color:orange;">【推荐】</span> 查询语句建议显式指定索引，避免因数据量变化导致执行计划改变。
+
+
+**HINT 指定索引示例**
+
+**MySQL/TDSQL/Oracle**
+```sql
+SELECT /*+INDEX(WRT_SHARE_PRD_DEF_T WRT_SHARE_PRD_DEF_IDX_1) */
+    PRODUCT_CODE, PRODUCT_TYPE, PAY_ORDER
+FROM WRT_SHARE_PRD_DEF_T
+WHERE PRODUCT_CODE = #{productCode};
+```
+
+**Gauss**
+```sql
+SELECT /*+INDEXSCAN(WRT_SHARE_PRD_DEF_T WRT_SHARE_PRD_DEF_IDX_1) */  
+PRODUCT_CODE, PRODUCT_TYPE, PAY_ORDER  
+FROM WRT_SHARE_PRD_DEF_T
+WHERE PRODUCT_CODE = #{productCode};
+```
+
+#### 3. 批量数据处理
+<span style="color:red;">【强制】</span> 批量导入或删除数据前，需预估数据量及日志量，并与 DBA 确认归档日志空间。  
+<span style="color:red;">【强制】</span> MySQL、TDSQL 进行批量数据导入时，需按主键顺序排序后再导入。
 
 ### 数据库产品选型方法
 1. 首先考虑单库性能
