@@ -1229,6 +1229,104 @@ public static final ArchRule executor_visibility = classes()
 4. 考虑成本：不要为了拆分而拆分
 
 ## 数据库
+### 表设计概念及规范
+#### 事务隔离级别
+<span style="color:red;">【强制】</span> 数据库需使用固定的隔离级别，禁止进行个性化调整。各数据库隔离级别要求如下：
+
+| 数据库     | 默认隔离级别          | 脏读 (Dirty Read) | 不可重复读 (Non-Repeatable Read) | 幻读 (Phantom Read) |
+| ------- | --------------- | --------------- | --------------------------- | ----------------- |
+| Oracle  | Read Committed  | ❌ 禁止            | ✅ 允许                        | ✅ 允许              |
+| GaussDB | Read Committed  | ❌ 禁止            | ✅ 允许                        | ✅ 允许              |
+| MySQL   | Read Committed  | ❌ 禁止            | ✅ 允许                        | ✅ 允许              |
+| TDSQL   | Read Committed  | ❌ 禁止            | ✅ 允许                        | ✅ 允许              |
+| TiDB    | Repeatable Read | ❌ 禁止            | ❌ 禁止                        | ✅ 允许              |
+
+**Read Committed**：性能优先，防脏读，允许不可重复读 → 单机 OLTP 场景普遍使用。  
+**Repeatable Read**：一致性优先，防脏读和不可重复读 → 分布式或强一致性场景优先使用。
+
+>💡 说明：
+>- 脏读：事务只能看到已提交的数据，所有数据库都默认禁止脏读。
+>- 不可重复读：同一事务中再次读取可能与第一次不同，Read Committed 允许，Repeatable Read 禁止。
+>- 幻读：事务内对满足条件的行集合再次查询可能出现新行，所有数据库默认隔离级别都允许幻读（除 Serializable）。
+
+---
+
+#### 存储引擎
+<span style="color:red;">【强制】</span> 数据库需使用固定的存储引擎，禁止创建其他引擎的数据表。各数据库存储引擎要求如下：
+
+| 数据库    | 存储引擎   |
+|-----------|------------|
+| Oracle    | 无         |
+| GaussDB   | Ustore     |
+| MySQL     | InnoDB     |
+| TDSQL     | InnoDB     |
+| TiDB      | 无         |
+
+---
+
+#### 主键
+<span style="color:red;">【强制】</span> MySQL、TDSQL 数据表必须定义主键，不可用唯一索引替代。 上线投产后禁止修改主键。  
+1、MySQL、TDSQL无主键的表主从同步效率差；  
+2、非主键的唯一索引查询需二次回表，会带来额外性能开销；  
+3、调整主键会导致数据重新分布，带来锁和大量系统资源开销，严重影响性能；  
+4、TDSQL/MySQL主键名称为PRIMARY，不可指定。  
+
+> 说明：主键（Primary Key）保证列唯一且非空，通常作为聚簇索引存储行，用于行定位和外键关联；
+唯一索引（Unique Index）仅保证唯一性，可包含空值，不一定作为聚簇索引，不能完全替代主键，行定位和事务处理效率较低。
+> 
+> | 数据库          | 主键作用与唯一索引差异                           |
+> | ------------ | ------------------------------------- |
+> | MySQL/InnoDB | 主键作为聚簇索引，唯一索引仅保证唯一性，无法替代主键            |
+> | TDSQL        | 同 MySQL（InnoDB 引擎）规则一致                |
+> | OracleDB     | 主键和唯一索引都保证唯一性，聚簇索引可选，唯一索引可为空，不完全依赖主键  |
+> | GaussDB      | 主键主要用于约束和优化，聚簇存储可选，唯一索引可保证唯一性，但不等同于主键 |
+
+
+<span style="color:orange;">【推荐】</span> 主键定义时优先选择有业务含义的字段，如果联合主键字段超过3个，建议使用数据库自增列作为主键。  
+1、MySQL、TDSQL非主键索引字段过多、过长时，空间消耗增大，数据分布稀疏，IO效率差；  
+2、尽量使用整型字段作为主键，如使用自增列，推荐使用 8 字节 BIG INT，不推荐使用 4 字节 INT；  
+3、不推荐将更新频繁的列作为主键，不使用 UUID、MD5、HASH作为主键；  
+4、表之间的关联查询尽可能使用主键作为关联字段； 
+5、MySQL、TDSQL分区表的主键必须包含分区键，否则表创建失败。。
+
+#### 字段类型
+- <span style="color:red;">【强制】</span> MySQL、TDSQL 禁止使用 `ENUM`、`SET`、`JSON`、`LOB`、`BLOB`、`CLOB` 类型字段。
+- <span style="color:red;">【强制】</span> Oracle、GaussDB 禁止使用 `BLOB`、`CLOB`、`LONG`、`TEXT`、`IMAGE` 类型字段。
+
+- <span style="color:orange;">【推荐】</span> MySQL、TDSQL 尽量避免使用 `TEXT` 类型字段。
+- <span style="color:orange;">【推荐】</span> TiDB 不建议使用 `ENUM`、`SET` 类型字段，尽量使用 `TINYINT` 替代。
+
+---
+
+#### 性能
+- <span style="color:red;">【强制】</span> 数据库性能要求较高的系统，正式投产前必须经过性能压测评估，避免数据库不可用。
+- <span style="color:red;">【强制】</span> 合理控制数据库容量，各数据库单库、单表容量最佳实践如下：
+
+| 指标项                           | 最佳实践 |
+|---------------------------------|-------------------------------|
+| 单库的最大容量                    | Oracle/GaussDB：≤1500GB<br>TDSQL/MySQL：≤500GB<br>TiDB：≥5TB |
+| 数据库对象标识符长度（库名、表名等） | ≤30字节 |
+| 单表的最大字段数量                | ≤128个字段 |
+| 非分区表的单表记录数（OLTP）       | ≤1000万行（TiDB 无要求） |
+| 非分区表的单表存储容量（OLTP）     | ≤10GB（TiDB 无要求） |
+| 单表分区的个数                    | ≤1024个 |
+| 单库中表与表分区的总个数           | ≤8万个 |
+| varchar 字段最大长度              | MySQL/TDSQL：≤2000字节（建议）<br>TiDB：≤2000字节（强制） |
+| varchar2 字段最大长度             | Oracle/GaussDB：≤4000字节（强制） |
+
+表数据量发生较大变化时（如批量转历史表、批量增删改数据、促销营销等业务场景），需进行统计信息收集，否则 SQL 执行效率可能降低。
+**注：统计信息收集建议在业务低峰期进行，因为会对表加 MDL 读锁，可能阻塞 DDL 操作。**
+---
+
+#### 统计信息收集方法
+
+| 数据库类型         | 规范级别   | 收集统计信息方法 | 命令 |
+|-----------------|-----------|----------------|------|
+| Oracle          | <span style="color:red;">【强制】</span>  | 开发人员申请数据库高权限，将命令封装存储过程并授权普通用户执行 | ```plsql begin dbms_stats.gather_table_stats( ownname => upper('CVM'), tabname => upper('BIZINFO'), estimate_percent => dbms_stats.auto_sample_size, method_opt => 'for all columns size auto', degree => 2, granularity => 'AUTO', cascade => TRUE, no_invalidate => TRUE, force => FALSE ); end; / ``` |
+| MySQL、TDSQL、TiDB | <span style="color:orange;">【建议】</span> | 使用拥有表 select 和 insert 权限的用户执行 | `ANALYZE TABLE 表名1 [表名2...]` |
+
+
+
 ### 数据库产品选型方法
 1. 首先考虑单库性能
    - 如果单库数据规模超过5TB，并且不属于A/B类系统1/2级子系统的1/2级服务单元，直接选择TiDB。
@@ -2115,6 +2213,9 @@ GCH 迁移
 
 ### 灰度部署赋能问题
 灰度发布，异步任务流量处理
+熔断：账户总览：外系统TPS2000、本系统10+，外系统缓存挂了不要调本系统
+限流：FTC配置
+动态伸缩：OAM（附件上传）、FTC，注意对下游和数据库的影响
 
 ### 云服务赋能问题
 redis 解决一户多币问题
