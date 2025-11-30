@@ -1,11 +1,11 @@
-##Java8新特性
+## Java8新特性
 >- 速度更快（HashMap数据结构变化）
 >- 代码更少（Lambda表达式）
 >- 强大的Stream API
 >- 便于并行（Parallel Stream）
 >- 最大化减少空指针异常（Optional）
 
-###HashMap数据结构变化
+### HashMap数据结构变化
 HashMap：数组+链表 -> 数组+链表+红黑树
 ```java
 static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; //初始容量16
@@ -21,8 +21,8 @@ static final int MIN_TREEIFY_CAPACITY = 64;
 ConcurrentHashMap由分段锁改为无锁算法CAS，效率更高。分段锁取消原因：<font color='red'>ConcurrentLevel不好评定</font>
 
 ----
-###Lambda表达式
-####Lambda常见语法格式
+### Lambda表达式
+#### Lambda常见语法格式
 1) 语法格式一：无参数，无返回值
 ```java
 () -> System.out.println("Hello Lambda!");
@@ -56,10 +56,10 @@ Comparator<Integer> com = (x, y) -> Integer.compare(x, y);
 (Integer x, Integer y) -> Integer.compare(x, y);
 ```
 
-####函数式接口
+#### 函数式接口
 **函数式接口：接口中只有一个抽象方法的接口**，Lambda 表达式需要“函数式接口”的支持。使用注解 @FunctionalInterface 修饰，可以检查是否是函数式接口。
 
-#####Java内置四大核心函数式接口
+##### Java内置四大核心函数式接口
 > 消费型接口 Consumer<T> : void accept(T t);  
 > 供给型接口 Supplier<T> : T get();  
 > 函数型接口 Function<T, R> : R apply(T t);  
@@ -67,11 +67,11 @@ Comparator<Integer> com = (x, y) -> Integer.compare(x, y);
  
 ![](%20illustration/核心函数式接口.png)
 
-#####其他函数式接口
+##### 其他函数式接口
 ![](%20illustration/其他函数式接口.png)
 
-###方法引用
-#####对象::实例方法
+### 方法引用
+##### 对象::实例方法
 ```java
 Employee emp = new Employee(101, "张三", 18, 9999.99);
 
@@ -80,20 +80,20 @@ Supplier<String> sup1 = () -> emp.getName();
 Supplier<String> sup2 = emp::getName;
 ```
 
-#####类::静态方法
+##### 类::静态方法
 ```java
 BiFunction<Double, Double, Double> fun1 = (x, y) -> Math.max(x, y);
 //等同于
 BiFunction<Double, Double, Double> fun2 = Math::max;
 ```
 
-#####类::实例方法
+##### 类::实例方法
 ```java
 BiPredicate<String, String> bp1 = (x, y) -> x.equals(y);
 //等同于
 BiPredicate<String, String> bp2 = String::equals;
 ```
-###构造器引用 ClassName::new
+### 构造器引用 ClassName::new
 ```java
 Supplier<Employee> sup1 = () -> new Employee();
 //等同于
@@ -106,7 +106,7 @@ Function<String, Employee> fun1 = Employee::new;
 BiFunction<String, Integer, Employee> fun2 = Employee::new;
 ```
 
-###数组引用 type[]::new
+### 数组引用 type[]::new
 ```java
 Function<Integer, String[]> fun1 = (args) -> new String[args];
 String[] strs1 = fun1.apply(10);
@@ -116,14 +116,14 @@ String[] strs2 = fun2.apply(10);
 ```
 
 ---
-###Stream
+### Stream
 ![](%20illustration/Stream示意图.png)
 Stream操作的三个步骤
 - 创建Stream 
 - 中间操作
 - 终止操作(终端操作)
 
-###创建Stream
+### 创建Stream
 1) 通过Collection获取串行流和并行流
 ```java
 List<String> list = new ArrayList<>();
@@ -154,12 +154,12 @@ Stream<Double> stream4 = Stream.generate(Math::random).limit(2);
 stream4.forEach(System.out::println);
 ```
 
-###Stream的中间操作
-####筛选与切片
+### Stream的中间操作
+#### 筛选与切片
 ![](%20illustration/筛选与切片.png)
-####映射
+#### 映射
 ![](%20illustration/映射.png)
-####排序
+#### 排序
 ![](%20illustration/排序.png)
 多个`中间操作`可以连接起来形成一个`流水线`，除非流水线上触发终止操作，否则`中间操作不会执行任何的处理`！而在终止操作时一次性全部处理，称为**惰性求值**。
 ```java
@@ -181,25 +181,25 @@ Stream<Employee> stream = emps.stream()
 stream.forEach(System.out::println);
 ```
 
-###Stream的终止操作
-####查找与匹配
+### Stream的终止操作
+#### 查找与匹配
 ![](%20illustration/查找与匹配1.png)
 ![](%20illustration/查找与匹配2.png)
-####规约（约简）
+#### 规约（约简）
 ![](%20illustration/规约.png)
-####收集
+#### 收集
 ![](%20illustration/收集.png)
 >######Collectors实用类提供了很多静态方法，可以方便地创建常见收集器实例
 >![](%20illustration/Collectors静态方法1.png)
 >![](%20illustration/Collectors静态方法2.png)
 
-###串行流与并行流
+### 串行流与并行流
 Java 8 中将并行进行了优化，我们可以很容易的对数据进行并行操作。Stream API 可以声明性地通过 parallel() 与 sequential() 在并行流与顺序流之间进行切换。  
 >并行流基于**Fork/Join 框架**：就是在必要的情况下，将一个大任务，进行拆分(fork)成若干个小任务（拆到不可再拆时），再将一个个的小任务运算的结果进行 join 汇总。
->####Fork/Join框架原理图
+>#### Fork/Join框架原理图
 >![](%20illustration/ForkJoin框架.png)
 
-####代码示例：
+#### 代码示例：
 ```java
 public class TestForkJoin {
     //串行计算
@@ -248,9 +248,9 @@ public class TestForkJoin {
 ```
 
 ---
-###Optional类
+### Optional类
 Optional<T> 类(java.util.Optional) 是一个容器类，代表一个值存在或不存在，原来用 null 表示一个值不存在，现在 Optional 可以更好的表达这个概念。并且可以避免空指针异常。  
-####常用方法：
+#### 常用方法：
 - Optional.of(T t): 创建一个 Optional 实例
   ```java
   Optional<Employee> op = Optional.of(new Employee());
@@ -356,8 +356,8 @@ public class TestOptional {
 ```
 
 ---
-###接口中的默认方法和静态方法
-####接口的默认方法
+### 接口中的默认方法和静态方法
+#### 接口的默认方法
 Java 8中允许接口中包含具有具体实现的方法，该方法称为“默认方法”，默认方法使用 default 关键字修饰。其“类优先原则”如下：
 - 选择父类中的方法。如果一个父类提供了具体的实现，那么接口中具有相同名称和参数的默认方法会被忽略。
     ```java
@@ -421,7 +421,7 @@ Java 8中允许接口中包含具有具体实现的方法，该方法称为“�
     ```
     >输出结果：呵呵呵
 
-####接口中的静态方法
+#### 接口中的静态方法
 Java8 中，接口中允许添加静态方法。
 ```java
 public interface MyInterface1 {
@@ -440,7 +440,7 @@ public class TestDefaultInterface {
 ```
 
 ---
-###新时间日期API
+### 新时间日期API
 >Java8出了一套全新的时间API，代替了原来的时间API。其部分原因如下：
 >- JDK1.0的Date类：Date(int year, int month, int date, int hrs, int min)构造年份时需对日期做加减法，比如2022年需传122，因其内部会默认加1900。
 >- JDK1.1的Calendar类：其改善了Date的类上述问题，并对日期可进行运算。但是也存在一些问题：
@@ -449,7 +449,7 @@ public class TestDefaultInterface {
 >   - 不支持时区（注意即便支持，Java中的时区TimeZone类也是线程不安全的）
 >- Date和Calendar类声明在java.util包中，但时间格式化类SimpleDateFormat在java.text包中，声明不规范
 
-####Date线程安全举例
+#### Date线程安全举例
 ```java
 public class TestSimpleDateFormat {
     public static void main(String[] args) throws Exception {
@@ -477,7 +477,7 @@ public class TestSimpleDateFormat {
 上述代码，会出现如下报错：
 ![](%20illustration/Date类线程安全问题.png)
 
-####Java8之前的解决方案：加锁
+#### Java8之前的解决方案：加锁
 ```java
 public class TestSimpleDateFormat {
     public static void main(String[] args) throws Exception {
@@ -502,7 +502,7 @@ public class TestSimpleDateFormat {
 }
 ```
 
-####Java8可使用LocalDate类
+#### Java8可使用LocalDate类
 >LocalDate类的实例是不可变对象，本身线程安全
 ```java
 public class TestSimpleDateFormat {
@@ -529,12 +529,12 @@ public class TestSimpleDateFormat {
 }
 ```
 
-####LocalDate、LocalTime、LocalDateTime类
+#### LocalDate、LocalTime、LocalDateTime类
 LocalDate、LocalTime、LocalDateTime 类的实例是<font color='red'>不可变的对象</font>，分别表示使用`ISO-8601日历系统`的日期、时间、日期和时间。
 ![](%20illustration/LocalDateTime方法.png)
 >注：ISO-8601日历系统是国际标准化组织制定的现代公民的日期和时间的表示法  
 
-####Instant类
+#### Instant类
 用于“时间戳”的运算，<font color='red'>默认使用UTC时区</font>。它是以Unix元年(传统的设定为UTC时区1970年1月1日午夜时分)开始所经历的描述进行运算。常见的方法如下：
 ```java
 Instant ins = Instant.now();  //默认使用 UTC 时区
@@ -544,11 +544,11 @@ OffsetDateTime odt = ins.atOffset(ZoneOffset.ofHours(8)); //东八区时区
 System.out.println(odt);
 ```
 
-####Duration和Period类
+#### Duration和Period类
 - Duration:用于计算两个“时间”间隔
 - Period:用于计算两个“日期”间隔
 
-###时间校正器TemporalAdjuster
+### 时间校正器TemporalAdjuster
 TemporalAdjuster<font color='red'>s</font>: 该类通过静态方法提供了大量的常用 TemporalAdjuster 的实现。
 ```java
 public class TestLocalDateTime {
@@ -582,7 +582,7 @@ public class TestLocalDateTime {
 }
 ```
 
-###日期格式化
+### 日期格式化
 使用java.time.format.DateTimeFormatter类，该类提供了三种格式化方法：
 - 预定义的标准格式
 - 语言环境相关的格式
@@ -603,7 +603,7 @@ public class TestLocalDateTime {
 }
 ```
 
-###时区
+### 时区
 Java8 中加入了对时区的支持，带时区的时间为分别为：ZonedDate、ZonedTime、ZonedDateTime。
 >其中每个时区都对应着ID，地区ID都为“{区域}/{城市}”的格式。例如：Asia/Shanghai 等。
 ```java
@@ -624,6 +624,6 @@ public class TestLocalDateTime {
 }
 ```
 ---
-###重复注解与类型注解
+### 重复注解与类型注解
 Java 8对注解处理提供了两点改进：可重复的注解及可用于类型的注解。
 ![](%20illustration/重复的注解及可用于类型的注解.png)
