@@ -213,3 +213,49 @@ i=3：此时list.size()为3，i=3不小于3，循环结束.
 最终列表：[1, 3, 5].  
 
 错误点：原答案D（抛出异常）是错误的，因为索引遍历不会触发ConcurrentModificationException。   
+
+
+以下代码的执行结果是？
+
+```java
+public class Deadlock {
+   private static final Object lock1 = new Object();
+   private static final Object lock2 = new Object();
+
+   public static void main(String[] args) {
+      Thread t1 = new Thread(() -> {
+         synchronized (lock1) {
+            try {
+               Thread.sleep(100);
+            } catch (InterruptedException e) {
+               e.printStackTrace();
+            }
+            synchronized (lock2) {
+               System.out.println("t1 done");
+            }
+         }
+      });
+
+      Thread t2 = new Thread(() -> {
+         synchronized (lock2) {
+            try {
+               Thread.sleep(100);
+            } catch (InterruptedException e) {
+               e.printStackTrace();
+            }
+            synchronized (lock1) {
+               System.out.println("t2 done");
+            }
+         }
+      });
+
+      t1.start();
+      t2.start();
+   }
+}
+```
+
+A. 输出 t1 done 和 t2 done
+B. 输出 t1 done
+C. 输出 t2 done
+D. 死锁，程序无法结束
