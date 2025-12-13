@@ -143,6 +143,43 @@ D. 1 - 父类静态代码块 4 - 子类静态代码块 3 - 父类构造函数 2 
 2. 实例初始化阶段（普通代码块 + 构造函数执行规则）
    每次创建实例时，都会执行以下顺序：① 执行父类普通代码块 → ② 执行父类构造函数 → ③ 执行子类普通代码块 → ④ 执行子类构造函数。本质原因：子类构造器默认隐含super()（调用父类无参构造），而父类普通代码块会被编译器插入到父类构造器的最前端，因此顺序为：父类普通代码块 → 父类构造函数 → 子类普通代码块 → 子类构造函数。
 
+### 方法抛出异常
+```java
+import java.io.IOException;
+
+class Parent {
+    public void test() throws IOException, NullPointerException {
+        // 父类方法
+    }
+}
+
+class Child extends Parent {
+    @Override
+    public void test() throws Exception, ArithmeticException { // ①
+        throw new ArithmeticException(); // ②
+    }
+
+    public static void main(String[] args) {
+        Parent p = new Child();
+        try {
+            p.test();
+        } catch (IOException e) { // ③
+            e.printStackTrace();
+        }
+    }
+}
+```
+A. 编译通过，运行抛出 ArithmeticException     
+B. ①行编译错误，子类重写方法抛出的异常范围不能大于父类    
+C. ②行编译错误，未声明抛出 ArithmeticException    
+D. ③行编译错误，catch 捕获的异常与实际抛出的不匹配
+
+解析：B。
+- 子类重写父类方法时，抛出的检查异常范围必须≤父类（运行时异常无此限制）；
+- 父类 test () 抛出的检查异常是IOException（属于 Exception 的子类），子类①行抛出Exception（范围更大），违反重写规则，编译错误；
+- 补充：ArithmeticException/NullPointerException 是运行时异常，父类 / 子类无需强制声明，因此②行无错；③行 catch 捕获 IOException（父类声明的检查异常），语法上无错，只是运行时不会触发。
+
+
 ### 集合问题
 #### 集合操作
 以下代码执行后，输出结果是？
