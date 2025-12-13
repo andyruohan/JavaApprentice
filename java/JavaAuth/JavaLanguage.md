@@ -214,7 +214,7 @@ i=3：此时list.size()为3，i=3不小于3，循环结束.
 
 错误点：原答案D（抛出异常）是错误的，因为索引遍历不会触发ConcurrentModificationException。   
 
-
+### 线程锁问题
 以下代码的执行结果是？
 
 ```java
@@ -255,13 +255,23 @@ public class Deadlock {
 }
 ```
 
-A. 输出 t1 done 和 t2 done
-B. 输出 t1 done
-C. 输出 t2 done
-D. 死锁，程序无法结束
+A. 输出 t1 done 和 t2 done     
+B. 输出 t1 done   
+C. 输出 t2 done    
+D. 死锁，程序无法结束   
+
+解析：选D。
 
 ### Java IO
-Java IO体系主要分为传统BIO、NIO（Non-blocking IO，非阻塞IO）、AIO（Asynchronous IO，异步IO）三类，其中NIO和AIO是对传统BIO的性能优化，核心差异体现在**阻塞方式**和**处理模型**上：
+Java IO体系主要分为传统BIO、NIO（Non-blocking IO，非阻塞IO）、AIO（Asynchronous IO，异步IO）三类，其中NIO和AIO是对传统BIO的性能优化，其核心对比如下：
+
+| 维度         | NIO                | AIO                |
+|--------------|--------------------|--------------------|
+| 核心模型     | 非阻塞+多路复用   | 异步非阻塞+回调    |
+| 线程开销     | 需轮询，中等开销   | 无轮询，低开销     |
+| 编程复杂度   | 中等（需处理Selector） | 较高（需设计回调逻辑） |
+| 典型应用     | 高并发短连接（如Netty） | 大文件读写、慢速IO |
+
 
 #### 1. NIO（Java 1.4引入）
 NIO的核心是“非阻塞”+“多路复用”，基于**通道（Channel）** 和**缓冲区（Buffer）** 实现，而非BIO的流模型：
@@ -281,56 +291,46 @@ AIO是“真正的异步IO”，基于“事件回调”模型，完全脱离线
 - **工作流程**：调用异步IO方法（如`AsynchronousFileChannel.read()`）并传入回调处理器→线程继续执行其他任务→操作系统完成IO后触发回调方法处理结果。
 - **注意**：AIO在Windows系统基于IOCP实现，性能优异；Linux下依赖epoll模拟，高并发下优势不明显，因此实际开发中NIO使用更广泛。
 
-#### 核心对比
-| 维度         | NIO                | AIO                |
-|--------------|--------------------|--------------------|
-| 核心模型     | 非阻塞+多路复用   | 异步非阻塞+回调    |
-| 线程开销     | 需轮询，中等开销   | 无轮询，低开销     |
-| 编程复杂度   | 中等（需处理Selector） | 较高（需设计回调逻辑） |
-| 典型应用     | 高并发短连接（如Netty） | 大文件读写、慢速IO |
+> 总结：
+> 1. NIO是“非阻塞+多路复用”，通过Selector管理多个Channel，解决BIO线程浪费问题，是高并发网络编程的主流选择；
+> 2. AIO是“异步非阻塞”，由操作系统完成IO并回调通知，适合耗时较长的IO操作，但跨平台性能表现不一；
+> 3. 核心区别：NIO需线程主动轮询IO状态，AIO完全由系统异步通知，编程复杂度更高但资源利用率更优。
 
-#### 总结
-1. NIO是“非阻塞+多路复用”，通过Selector管理多个Channel，解决BIO线程浪费问题，是高并发网络编程的主流选择；
-2. AIO是“异步非阻塞”，由操作系统完成IO并回调通知，适合耗时较长的IO操作，但跨平台性能表现不一；
-3. 核心区别：NIO需线程主动轮询IO状态，AIO完全由系统异步通知，编程复杂度更高但资源利用率更优。
+#### 题目1：Java NIO 核心特性选择题
+##### 题干
+关于Java NIO（Non-blocking IO）的核心实现与特性，下列说法**错误**的是（）  
+A. Selector是NIO多路复用的核心，一个Selector线程可监听多个Channel的IO事件，但仅支持监听OP_READ、OP_WRITE、OP_ACCEPT、OP_CONNECT四种事件   
+B. NIO的Buffer是数据读写的核心载体，调用flip()方法后，Buffer的limit会设置为当前position，position重置为0，常用于写模式切读模式    
+C. SocketChannel配置为非阻塞模式后，调用connect()方法会立即返回，此时需通过finishConnect()确认连接是否完成，未完成时不会阻塞线程    
+D. 当Selector调用select(1000)返回0时，表示1000ms内无任何Channel就绪，且此时调用selectedKeys()会返回空集合，keys()也会返回空集合    
 
-你需要两道有难度、能精准考察Java NIO和AIO核心特性的选择题，我会确保题目不仅覆盖关键知识点，还能甄别对IO模型底层逻辑的理解程度，同时附上详细解析。
-
-### 题目1：Java NIO 核心特性选择题
-#### 题干
-关于Java NIO（Non-blocking IO）的核心实现与特性，下列说法**错误**的是（）
-A. Selector是NIO多路复用的核心，一个Selector线程可监听多个Channel的IO事件，但仅支持监听OP_READ、OP_WRITE、OP_ACCEPT、OP_CONNECT四种事件
-B. NIO的Buffer是数据读写的核心载体，调用flip()方法后，Buffer的limit会设置为当前position，position重置为0，常用于写模式切读模式
-C. SocketChannel配置为非阻塞模式后，调用connect()方法会立即返回，此时需通过finishConnect()确认连接是否完成，未完成时不会阻塞线程
-D. 当Selector调用select(1000)返回0时，表示1000ms内无任何Channel就绪，且此时调用selectedKeys()会返回空集合，keys()也会返回空集合
-
-#### 答案
+##### 答案
 D
 
-#### 详细解析
+##### 详细解析
 - **A正确**：Selector仅支持监听这四种核心事件，分别对应读、写、服务器接受连接、客户端发起连接，是NIO多路复用的基础；
 - **B正确**：flip()是Buffer的核心方法，作用是“翻转”缓冲区，将写模式切换为读模式，limit标记可读数据的末尾，position标记读取起始位置；
 - **C正确**：非阻塞模式下的connect()不会阻塞线程，即使连接未完成也会立即返回，需通过finishConnect()轮询确认连接状态；
 - **D错误**：select(1000)返回0表示无就绪事件，但selectedKeys()返回空集合（无就绪Key），而keys()返回Selector中**所有注册的Key集合**（包含未就绪的），并非空集合，这是极易混淆的考点。
 
-### 题目2：Java AIO 核心特性选择题
-#### 题干
-关于Java AIO（Asynchronous IO，NIO.2）的异步文件操作，下列说法**正确**的是（）
-A. AsynchronousFileChannel的read()异步读取方法，若传入CompletionHandler回调，线程会阻塞直到读取完成，回调函数在调用线程中执行
-B. AIO的异步操作依赖操作系统底层支持：Windows下基于IOCP实现，Linux下基于epoll模拟，因此Linux下AIO性能优于NIO
-C. 使用AsynchronousFileChannel完成大文件分块复制时，需通过CountDownLatch等同步工具保证所有异步读写回调完成后再关闭通道，否则会导致数据丢失
-D. AIO的异步操作结果可通过Future获取，调用Future.get()会立即返回结果，无需等待异步操作完成
+#### 题目2：Java AIO 核心特性选择题
+##### 题干
+关于Java AIO（Asynchronous IO，NIO.2）的异步文件操作，下列说法**正确**的是（）   
+A. AsynchronousFileChannel的read()异步读取方法，若传入CompletionHandler回调，线程会阻塞直到读取完成，回调函数在调用线程中执行     
+B. AIO的异步操作依赖操作系统底层支持：Windows下基于IOCP实现，Linux下基于epoll模拟，因此Linux下AIO性能优于NIO     
+C. 使用AsynchronousFileChannel完成大文件分块复制时，需通过CountDownLatch等同步工具保证所有异步读写回调完成后再关闭通道，否则会导致数据丢失     
+D. AIO的异步操作结果可通过Future获取，调用Future.get()会立即返回结果，无需等待异步操作完成     
 
-#### 答案
+##### 答案
 C
 
-#### 详细解析
+##### 详细解析
 - **A错误**：AIO的核心是“异步非阻塞”，传入CompletionHandler的read()方法会立即返回，线程不阻塞；回调函数由操作系统的IO线程执行，而非调用线程；
 - **B错误**：Linux下AIO是基于epoll模拟实现，并非原生异步IO，高并发场景下性能反而不如NIO（多路复用），这也是实际开发中NIO使用更广泛的原因；
 - **C正确**：AIO的读写操作是异步的，主线程可能在回调未完成时就执行关闭通道的逻辑，导致数据未写入完成，需通过CountDownLatch等工具等待所有回调执行完毕，保证数据完整性；
 - **D错误**：Future.get()是阻塞方法，会等待异步操作完成后才返回结果；若想非阻塞获取结果，需先调用isDone()判断是否完成。
 
-### 总结
-1. NIO考点核心：Selector的key集合（selectedKeys() vs keys()）、Buffer的flip()/compact()等方法、非阻塞Channel的操作逻辑；
-2. AIO考点核心：异步回调的执行机制、跨平台实现差异、异步操作的同步等待方式、Future的阻塞特性；
-3. 两道题均针对NIO/AIO的易混淆核心点设计，能有效考察对IO模型底层逻辑的理解，而非仅记忆API用法。
+> 总结
+> 1. NIO考点核心：Selector的key集合（selectedKeys() vs keys()）、Buffer的flip()/compact()等方法、非阻塞Channel的操作逻辑；
+> 2. AIO考点核心：异步回调的执行机制、跨平台实现差异、异步操作的同步等待方式、Future的阻塞特性；
+> 3. 两道题均针对NIO/AIO的易混淆核心点设计，能有效考察对IO模型底层逻辑的理解，而非仅记忆API用法。
