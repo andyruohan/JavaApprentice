@@ -1,6 +1,10 @@
 ## 基础知识
 1. Collection和Map是Java集合框架的两大根接口,它们都直接继承自Object类。
 2. transient关键字：标记为transient的字段不会被序列化。
+3. Java 中线程优先级的范围确实是 1 到 10，其中：
+   Thread.MIN_PRIORITY 对应的常量值是 1（最低优先级）；
+   Thread.MAX_PRIORITY 对应的常量值是 10（最高优先级）；
+   默认优先级是 Thread.NORM_PRIORITY，值为 5。
 
 ## 弱项模拟 
 ### 泛型
@@ -76,54 +80,8 @@ D. 语句 1 编译错误，语句 2 抛出 NoSuchMethodException.
  - 动态代理基于接口生成代理类，Proxy.newProxyInstance返回的代理对象可强转为 Service 接口，调用execute()会触发 InvocationHandler 的invoke方法，输出 “Proxy-”。
  - 枚举类的构造器由 JVM 隐式定义（参数为String name, int ordinal），但反射无法创建枚举实例：即使设置setAccessible(true)，Constructor.newInstance()会直接抛出IllegalArgumentException（JVM 强制限制）。
 
-### 线程同步（高级：StampedLock+ABA 问题）
-以下关于 StampedLock 与 AtomicStampedReference 的描述，正确的是？
-```java
-import java.util.concurrent.atomic.AtomicStampedReference;
-import java.util.concurrent.locks.StampedLock;
 
-public class SyncAdvanced {
-    private int value = 100;
-    private StampedLock lock = new StampedLock();
-    private AtomicStampedReference<Integer> asr = new AtomicStampedReference<>(100, 0);
-
-    // StampedLock乐观读
-    public int optimisticRead() {
-        long stamp = lock.tryOptimisticRead();
-        int current = value;
-        if (!lock.validate(stamp)) { // 乐观读验证
-            stamp = lock.readLock();
-            try {
-                current = value;
-            } finally {
-                lock.unlockRead(stamp);
-            }
-        }
-        return current;
-    }
-
-    // AtomicStampedReference解决ABA
-    public boolean update() {
-        int current = asr.getReference();
-        int stamp = asr.getStamp();
-        return asr.compareAndSet(current, current + 1, stamp, stamp + 1);
-    }
-}
-```
-
-选项：  
-A. optimisticRead()中，若乐观读验证失败，会升级为悲观读锁，保证数据一致性.   
-B. StampedLock的乐观读无需释放锁，因此性能远高于ReentrantReadWriteLock.  
-C. AtomicStampedReference的compareAndSet仅比较引用值，未解决 ABA 问题.   
-D. update()中，若其他线程将值从 100→101→100，compareAndSet仍会执行成功.   
-
-解析：选 A。   
-- StampedLock的乐观读逻辑：先尝试无锁读取（tryOptimisticRead），若验证（validate）发现数据被修改，则升级为悲观读锁重新读取，保证一致性。
-- B 错误：乐观读虽无需释放锁，但验证失败会升级为悲观锁；且高竞争场景下，StampedLock性能不一定优于ReentrantReadWriteLock。
-- C 错误：AtomicStampedReference同时比较引用值 + 版本戳，解决了 ABA 问题（普通AtomicReference仅比较引用值）。
-- D 错误：若值从 100→101→100，版本戳会从 0→1→2，compareAndSet中旧戳（0）不匹配，执行失败。
-
-### Java 类加载与实例初始化顺序选择题
+### Java 类加载与实例初始化
 以下代码执行后，输出结果的顺序是？
 ```java
 class Parent {
@@ -185,7 +143,27 @@ D. 1 - 父类静态代码块 4 - 子类静态代码块 3 - 父类构造函数 2 
 2. 实例初始化阶段（普通代码块 + 构造函数执行规则）
    每次创建实例时，都会执行以下顺序：① 执行父类普通代码块 → ② 执行父类构造函数 → ③ 执行子类普通代码块 → ④ 执行子类构造函数。本质原因：子类构造器默认隐含super()（调用父类无参构造），而父类普通代码块会被编译器插入到父类构造器的最前端，因此顺序为：父类普通代码块 → 父类构造函数 → 子类普通代码块 → 子类构造函数。
 
-### 集合遍历与并发修改
+### 集合问题
+#### 集合操作
+以下代码执行后，输出结果是？
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+public class Test {
+    public static void main(String[] args) {
+        List<String> list = new ArrayList<>();
+        list.add("A");
+        list.add("B");
+        list.add(1, "C");
+        System.out.println(list);
+    }
+}
+```
+解析：B。  
+ArrayList.add(int index, E element)会将元素插入到指定索引位置，原索引及之后的元素后移。此处add(1, "C")会把 “C” 插入到索引 1，原索引 1 的 “B” 后移，最终列表为[A, C, B]。
+
+#### 并发修改
 以下代码的输出是？
 ```java
 List<Integer> list = new ArrayList<>(Arrays.asList(1, 2, 3, 4, 5));
@@ -212,9 +190,97 @@ i=2：元素4（偶数，删除后列表变为[1, 3, 5]，i递增到3.
 i=3：此时list.size()为3，i=3不小于3，循环结束.  
 最终列表：[1, 3, 5].  
 
-错误点：原答案D（抛出异常）是错误的，因为索引遍历不会触发ConcurrentModificationException。   
+错误点：原答案D（抛出异常）是错误的，因为索引遍历不会触发ConcurrentModificationException。
 
-### 线程锁问题
+### 线程问题
+#### 线程的生命周期
+以下代码执行后，线程 t1 最终处于什么状态？
+```java
+import java.util.concurrent.locks.ReentrantLock;
+
+public class ThreadStateTest {
+	private static ReentrantLock lock = new ReentrantLock();
+
+	public static void main(String[] args) throws InterruptedException {
+		Thread t1 = new Thread(() -> {
+			lock.lock();
+			try {
+				synchronized (ThreadStateTest.class) {
+					ThreadStateTest.class.wait(); // ①
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			} finally {
+				lock.unlock(); // ②
+			}
+		});
+		t1.start();
+		Thread.sleep(1000); // 确保t1执行到①处
+		System.out.println(t1.getState());
+	}
+}
+```
+A. BLOCKED（阻塞态）  
+B. WAITING（等待态）   
+C. TIMED_WAITING（超时等待态）   
+D. RUNNABLE（运行态）
+
+解析：B。  
+- t1 先获取 ReentrantLock 锁，再进入 synchronized 代码块调用wait()，wait()会释放 synchronized 的锁，但不会释放 ReentrantLock 锁；
+- 调用wait()后线程进入WAITING（等待态），需其他线程调用notify()/notifyAll()唤醒；
+- 注意：getState()此时获取的是 WAITING，而非 BLOCKED（BLOCKED 是等待 synchronized 锁的状态）。
+
+线程状态转换参考：
+![threadStateTransitions.png](../aiguigu/firstWrittenExam/threadStateTransitions.png)
+
+#### 线程同步（高级：StampedLock+ABA 问题）
+以下关于 StampedLock 与 AtomicStampedReference 的描述，正确的是？
+```java
+import java.util.concurrent.atomic.AtomicStampedReference;
+import java.util.concurrent.locks.StampedLock;
+
+public class SyncAdvanced {
+    private int value = 100;
+    private StampedLock lock = new StampedLock();
+    private AtomicStampedReference<Integer> asr = new AtomicStampedReference<>(100, 0);
+
+    // StampedLock乐观读
+    public int optimisticRead() {
+        long stamp = lock.tryOptimisticRead();
+        int current = value;
+        if (!lock.validate(stamp)) { // 乐观读验证
+            stamp = lock.readLock();
+            try {
+                current = value;
+            } finally {
+                lock.unlockRead(stamp);
+            }
+        }
+        return current;
+    }
+
+    // AtomicStampedReference解决ABA
+    public boolean update() {
+        int current = asr.getReference();
+        int stamp = asr.getStamp();
+        return asr.compareAndSet(current, current + 1, stamp, stamp + 1);
+    }
+}
+```
+
+选项：  
+A. optimisticRead()中，若乐观读验证失败，会升级为悲观读锁，保证数据一致性.   
+B. StampedLock的乐观读无需释放锁，因此性能远高于ReentrantReadWriteLock.  
+C. AtomicStampedReference的compareAndSet仅比较引用值，未解决 ABA 问题.   
+D. update()中，若其他线程将值从 100→101→100，compareAndSet仍会执行成功.
+
+解析：选 A。
+- StampedLock的乐观读逻辑：先尝试无锁读取（tryOptimisticRead），若验证（validate）发现数据被修改，则升级为悲观读锁重新读取，保证一致性。
+- B 错误：乐观读虽无需释放锁，但验证失败会升级为悲观锁；且高竞争场景下，StampedLock性能不一定优于ReentrantReadWriteLock。
+- C 错误：AtomicStampedReference同时比较引用值 + 版本戳，解决了 ABA 问题（普通AtomicReference仅比较引用值）。
+- D 错误：若值从 100→101→100，版本戳会从 0→1→2，compareAndSet中旧戳（0）不匹配，执行失败。
+
+#### 线程锁问题
 以下代码的执行结果是？
 
 ```java
@@ -262,7 +328,7 @@ D. 死锁，程序无法结束
 
 解析：选D。
 
-### Java IO
+### IO问题
 Java IO体系主要分为传统BIO、NIO（Non-blocking IO，非阻塞IO）、AIO（Asynchronous IO，异步IO）三类，其中NIO和AIO是对传统BIO的性能优化，其核心对比如下：
 
 | 维度         | NIO                | AIO                |
