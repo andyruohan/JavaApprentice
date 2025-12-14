@@ -237,6 +237,116 @@ i=3：此时list.size()为3，i=3不小于3，循环结束.
 
 错误点：原答案D（抛出异常）是错误的，因为索引遍历不会触发ConcurrentModificationException。
 
+
+#### ConcurrentModificationException
+`ConcurrentModificationException`（并发修改异常）是Java集合框架中高频出现的异常，核心触发逻辑是：**集合的“修改次数”与迭代器持有的“预期修改次数”不一致**。
+
+##### 核心本质
+- Java集合（如`ArrayList`/`HashMap`）内部维护一个`modCount`变量（记录集合被修改的次数：add/remove/clear等操作都会让`modCount++`）； 
+- 当通过迭代器（`Iterator`/`增强for循环`）遍历集合时，迭代器会先记录当前的`modCount`作为`expectedModCount`；
+- 遍历过程中，若集合被**迭代器之外的方式**修改（如直接调用`add/remove`），会导致`modCount != expectedModCount`，迭代器检测到后立即抛出`ConcurrentModificationException`。
+
+##### `ConcurrentModificationException`的典型触发场景
+###### 场景1：单线程下“迭代遍历 + 直接修改集合”（最常见）
+```java
+public class CmeTest1 {
+    public static void main(String[] args) {
+        List<Integer> list = new ArrayList<>();
+        list.add(1);
+        list.add(2);
+        list.add(3);
+
+        // 增强for循环（底层是Iterator）遍历，同时直接修改集合
+        for (Integer num : list) {
+            if (num == 2) {
+                list.remove(num); // 非迭代器的remove()，触发CME
+            }
+        }
+    }
+}
+```
+**结果**：运行时抛出`ConcurrentModificationException`；   
+**原因**：增强for循环依赖`Iterator`，遍历中直接调用`list.remove()`修改了`modCount`，迭代器下一次`next()`时检测到不一致，抛出异常。
+
+###### 场景2：多线程下“一个线程迭代遍历 + 另一个线程修改集合”
+```java
+public class CmeTest2 {
+    private static List<Integer> list = new ArrayList<>();
+
+    public static void main(String[] args) throws InterruptedException {
+        // 初始化集合
+        for (int i = 0; i < 10; i++) list.add(i);
+
+        // 线程1：迭代遍历集合
+        Thread t1 = new Thread(() -> {
+            for (Integer num : list) { // 增强for循环=Iterator遍历
+                try { Thread.sleep(100); } catch (InterruptedException e) {}
+                System.out.println("遍历：" + num);
+            }
+        });
+
+        // 线程2：直接修改集合
+        Thread t2 = new Thread(() -> {
+            try { Thread.sleep(200); } catch (InterruptedException e) {}
+            list.add(100); // 修改modCount，触发CME
+        });
+
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
+    }
+}
+```
+**结果**：大概率抛出`ConcurrentModificationException`；   
+**原因**：t1通过迭代器遍历，t2直接调用`add()`修改集合，导致`modCount`与迭代器的`expectedModCount`不一致。
+
+###### 场景3：注意！这些情况不会触发CME
+- 仅通过迭代器自身的`remove()`修改：
+  ```java
+  // 正确：迭代器遍历 + 迭代器remove()，不会触发CME
+  Iterator<Integer> it = list.iterator();
+  while (it.hasNext()) {
+      Integer num = it.next();
+      if (num == 2) {
+          it.remove(); // 迭代器自身的remove()，会同步更新expectedModCount
+      }
+  }
+  ```
+  
+- 非迭代遍历的修改（如单纯for循环按索引遍历+修改）：
+  ```java
+  // 按索引遍历，直接remove不会触发CME（但可能导致元素漏遍历）
+  for (int i = 0; i < list.size(); i++) {
+      if (list.get(i) == 2) {
+          list.remove(i); // 无迭代器，不会检测modCount
+      }
+  }
+  ```
+
+###### 场景4: 多线程直接调用add()，无迭代遍历
+  ```java
+    //多线程仅调用add()，无迭代器遍历
+    new Thread(() -> {
+        for (int j = 0; j < 1000; j++) {
+            list.add(finalI * 1000 + j); // 仅add，无迭代
+        }
+    }).start();
+  ```
+**关键原因**：
+CME的触发必须满足“迭代遍历 + 外部修改”两个条件；上例只有多线程`add()`操作，没有任何迭代器遍历，因此不会触发CME。
+
+###### 总结：CME 的触发条件（必同时满足）
+1. 存在迭代器遍历（Iterator / 增强 for 循环 / ListIterator）；
+2. 遍历过程中，通过迭代器之外的方式修改集合（add/remove/clear 等）；
+3. 迭代器执行next()/hasNext()时检测到modCount != expectedModCount。
+
+###### 避坑方案
+1. 单线程：遍历+修改用迭代器自身的`remove()`/`add()`（仅ListIterator支持add）；
+2. 多线程：
+    - 使用线程安全集合（`CopyOnWriteArrayList`/`ConcurrentHashMap`），其迭代器是“快照迭代器”，不会检测`modCount`；
+    - 遍历前加锁（`synchronized`/`ReentrantLock`），保证遍历和修改的原子性。
+
 ### 线程问题
 #### 线程的生命周期 + 锁
 以下代码执行后，线程 t1 最终处于什么状态？
