@@ -381,51 +381,19 @@ C. TIMED_WAITING（超时等待态）
 D. RUNNABLE（运行态）
 
 解析：B。  
-- t1 先获取 ReentrantLock 锁，再进入 synchronized 代码块调用wait()，wait()会释放 synchronized 的锁，但不会释放 ReentrantLock 锁；
-- 调用wait()后线程进入WAITING（等待态），需其他线程调用notify()/notifyAll()唤醒；
-- 注意：getState()此时获取的是 WAITING，而非 BLOCKED（BLOCKED 是等待 synchronized 锁的状态）。
+- t1 先获取 ReentrantLock 锁，再进入 synchronized 代码块调用 wait()，wait() 会释放 synchronized 的锁，但不会释放 ReentrantLock 锁；
+- 调用 wait() 后线程进入WAITING（等待态），需其他线程调用 notify()/notifyAll() 唤醒；
+- getState()此时获取的是 WAITING，而非 BLOCKED（BLOCKED 是等待 synchronized 锁的状态）。   
+  **注意：本题如果ReentrantLock也更改为synchronized，则应选A。**
+
+> 总结：
+> - synchronized 锁竞争 → BLOCKED；
+> - JUC 锁（ReentrantLock）等待 → WAITING；
+> - 带超时的等待（sleep / 超时 wait）→ TIMED_WAITING。   
+
 
 线程状态转换参考：
 ![threadStateTransitions.png](../aiguigu/firstWrittenExam/threadStateTransitions.png)
-
-#### 线程的生命周期 + 锁
-以下代码执行后，线程 t1 最终处于什么状态？
-```java
-import java.util.concurrent.locks.ReentrantLock;
-
-public class ThreadStateTest {
-    private static ReentrantLock lock = new ReentrantLock();
-
-    public static void main(String[] args) throws InterruptedException {
-        Thread t1 = new Thread(() -> {
-            lock.lock();
-            try {
-                synchronized (ThreadStateTest.class) {
-                    ThreadStateTest.class.wait(); // ①
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                lock.unlock(); // ②
-            }
-        });
-        t1.start();
-        Thread.sleep(1000); // 确保t1执行到①处
-        System.out.println(t1.getState());
-    }
-}
-```
-A. BLOCKED（阻塞态）   
-B. WAITING（等待态）    
-C. TIMED_WAITING（超时等待态）   
-D. RUNNABLE（运行态）    
-
-解析：B。
-- synchronized 锁竞争 → BLOCKED；
-- JUC 锁（ReentrantLock）等待 → WAITING；
-- 带超时的等待（sleep / 超时 wait）→ TIMED_WAITING。
-
-注意，如果ReentrantLock更改为synchronized，则应选A。
 
 #### 线程的生命周期 + interrupt
 以下代码执行后，输出结果是？
