@@ -1,4 +1,188 @@
-## Kafka
+# 考纲
+1. Spring Boot（难度：普通 · 理解 · 2% / 困难 · 应用 · 4%）
+   Spring Boot ⇒ Spring AOP ⇒ AOP开发 ⇒ 通知获取参数
+   Spring Boot ⇒ Spring AOP ⇒ AOP开发 ⇒ 织入
+   Spring Boot ⇒ 数据库事务处理 ⇒ @Transactional自调用
+   Spring Boot ⇒ Spring Security ⇒ 安全认证
+   Spring Boot ⇒ Spring Security ⇒ 限制请求 ⇒ 访问权限
+   Spring Boot ⇒ Spring Security ⇒ 用户认证
+   Spring Boot ⇒ Spring高级 ⇒ 异步线程池 ⇒ 异步方法
+   Spring Boot ⇒ Spring高级 ⇒ 异步消息
+
+2. Spring Boot（难度：困难 · 应用 · 2%）
+   Spring Boot ⇒ 数据库事务处理 ⇒ Spring声明式事务的使用 ⇒ Spring事务管理器
+   Spring Boot ⇒ Spring Security ⇒ 自定义用户服务信息 ⇒ 内存用户认证服务
+   Spring Boot ⇒ Spring Security ⇒ 自定义用户服务信息 ⇒ 数据库定义用户认证服务
+   Spring Boot ⇒ Spring Security ⇒ 自定义用户服务信息 ⇒ 用户认证服务
+   Spring Boot ⇒ Spring Security ⇒ 限制请求 ⇒ 请求伪造
+
+3. SpringMVC（难度：困难 · 应用 · 2%）
+   SpringMVC => 框架使用 => 常用注解 => @Controller
+   SpringMVC => 框架使用 => 常用注解 => @RequestMapping
+   SpringMVC => 框架使用 => 常用注解 => @PathVariable
+   SpringMVC => 框架使用 => 常用注解 => @RequestParam
+   SpringMVC => 框架使用 => 常用注解 => @RequestBody
+   SpringMVC => 框架使用 => 常用注解 => @ResponseBody
+   SpringMVC => 框架使用 => 常用注解 => @ModelAttribute
+   SpringMVC => 框架使用 => 常用注解 => @ExceptionHandler
+   SpringMVC => 框架使用 => 常用注解 => @ControllerAdvice
+   SpringMVC => 框架使用 => Rest => Restful 请求方式
+   SpringMVC => 框架使用 => Rest => 统一响应结构
+   SpringMVC => 框架源码 => 启动流程 => ContextLoaderListener 初始化
+   SpringMVC => 框架源码 => 启动流程 => Filter 初始化
+   SpringMVC => 框架源码 => 启动流程 => DispatcherServlet 初始化
+   SpringMVC => 框架源码 => 启动流程 => Servlet 生命周期
+   SpringMVC => MVC模式 => 什么是MVC
+   SpringMVC => Spring框架 => Spring框架的优势
+   SpringMVC => Spring框架 => IoC
+   SpringMVC => Spring框架 => AOP
+   SpringMVC => 控制器 => 控制器相关注解
+   SpringMVC => 控制器 => 控制器返回结果
+   SpringMVC => 统一异常处理 => 相关注解
+   SpringMVC => 注解 => 注解概念理解
+
+4. SpringMVC（难度：困难 · 应用 · 2%）
+   SpringMVC => 框架使用 => 过滤器拦截器
+   SpringMVC => 框架使用 => Rest => 对象序列化
+   SpringMVC => 框架使用 => Rest => 统一异常处理
+   SpringMVC => 拦截器 => 拦截器原理
+   SpringMVC => 拦截器 => 自定义拦截器
+
+5. SpringMVC（难度：困难 · 应用 · 2%）
+   SpringMVC => 框架源码 => 核心组件 => DispatcherServlet
+   SpringMVC => 框架源码 => 核心组件 => HandlerMapping
+   SpringMVC => 框架源码 => 核心组件 => HandlerAdapter
+   SpringMVC => 框架源码 => 核心组件 => ViewResolver
+   SpringMVC => 框架源码 => 核心组件 => Handler
+   SpringMVC => 框架源码 => 设计模式 => 责任链模式
+   SpringMVC => 框架源码 => 设计模式 => 适配器模式
+   SpringMVC => 框架源码 => 设计模式 => 策略模式
+   SpringMVC => 框架源码 => 设计模式 => 建造者模式
+   SpringMVC => 框架源码 => 设计模式 => 组合模式
+
+6. Spring Cloud（难度：普通 · 理解 · 4% / 困难 · 应用 · 4%）
+   Spring Cloud => 断路器 => Hystrix组件
+   Spring Cloud => 断路器 => Sentinel组件
+   Spring Cloud => API网关服务 => zuul组件
+   Spring Cloud => API网关服务 => zuul2组件
+   Spring Cloud => 负载均衡 => Ribbon组件
+   Spring Cloud => 负载均衡 => LoadBalancer组件
+   Spring Cloud => 构建与部署 => Kubernetes
+   Spring Cloud => Spring Cloud Alibaba => 服务治理
+   Spring Cloud Alibaba => 负载均衡
+   Spring Cloud Alibaba => Sentinel
+   Spring Cloud Alibaba => 配置中心
+
+7. MyBatis（难度：普通 · 理解 · 2% / 困难 · 应用 · 4%）
+   MyBatis => 缓存 => 系统缓存
+   MyBatis => 动态sql => bind用法
+   MyBatis => MyBatis运行原理 => SqlSessionFactory构建过程
+   MyBatis => MyBatis运行原理 => SqlSession运行过程
+
+8. MyBatis（难度：普通 · 理解 · 2% / 困难 · 应用 · 2%）
+   MyBatis => 缓存 => 自定义缓存
+
+9. 中间件（难度：困难 · 应用 · 2%）
+   中间件 => 主流中间件 => Kafka => 核心功能
+   中间件 => 主流中间件 => Redis => 核心功能
+   中间件 => 主流中间件 => Elasticsearch => 应用场景
+
+10. 中间件（难度：简单 · 记忆 · 2%）
+    中间件 => 主流中间件 => RabbitMQ => 高级功能
+
+11. 数据库原理（难度：困难 · 应用 · 4%）
+    数据库原理 => SQL => 数据定义 => 主键和外键
+    数据库原理 => SQL => 数据定义 => 索引
+
+12. 数据库原理（难度：困难 · 应用 · 4%）
+    数据库原理 => 关系数据库理论
+    数据库原理 => 规范化 => 1NF
+    数据库原理 => 规范化 => 2NF
+    数据库原理 => 规范化 => 3NF
+    数据库原理 => 规范化 => BCNF
+    数据库原理 => 并发控制 => 封锁
+    数据库原理 => 并发控制 => 活锁和死锁
+    数据库原理 => 并发控制 => 调度的可串行性
+    数据库原理 => 并发控制 => 两段锁协议
+
+13. 数据库（难度：困难 · 应用 · 4%）
+    数据库 => 查询方式 => 多表查询
+    数据库 => 查询方式 => 子查询
+    数据库 => 查询方式 => 专有查询
+    数据库 => 查询方式 => 条件查询
+    数据库 => 基本对象 => 索引
+    数据库 => 基本对象 => 约束
+    数据库 => 表的常用操作 => 创建
+    数据库 => 表的常用操作 => 修改
+    数据库 => 表的常用操作 => 删除
+    数据库 => 条件查询 => where
+    数据库 => 条件查询 => like
+    数据库 => 条件查询 => null
+    数据库 => 条件查询 => between and
+    数据库 => 条件查询 => limit
+    数据库 => 条件查询 => order by
+    数据库 => 聚合 => count
+    数据库 => 聚合 => max/min
+    数据库 => 聚合 => sum/avg
+
+14. 数据库（难度：困难 · 应用 · 4%）
+    数据库 => 基本对象 => 分区
+    数据库 => 表的常用操作 => 表设计
+    数据库 => 字段约束 => 主键约束
+    数据库 => 字段约束 => 主键必增策略
+    数据库 => 字段约束 => 非空约束
+    数据库 => 字段约束 => 唯一约束
+    数据库 => 分组 => group by
+    数据库 => 分组 => having
+
+15. Kafka（难度：普通 · 理解 · 2% / 困难 · 应用 · 4%）
+    Kafka => 体系结构 => zookeeper
+    Kafka => 体系结构 => broker
+    Kafka => 消息管理 => 消息
+
+16. Kafka（难度：普通 · 理解 · 4%）
+    Kafka => Kafka基础 => 架构
+    Kafka => 体系结构 => 分区
+    Kafka => 体系结构 => 主题
+    Kafka => 消息管理 => 数据
+    Kafka => 消息管理 => 日志
+    Kafka => 消息管理 => 异常
+
+17. SQL（难度：普通 · 理解 · 2%）
+    SQL => 聚合与排序 => 分组
+    SQL => 聚合与排序 => HAVING子句
+    SQL => 复杂查询 => 子查询
+    SQL => 复杂查询 => 关联子查询
+    SQL => 语言元素 => 事务
+    SQL => 语言元素 => 变量
+
+18. SQL（难度：困难 · 应用 · 4%）
+    SQL => 聚合运算 => 联结
+    SQL => 高级应用 => 执行事务
+
+19. 架构设计（难度：困难 · 应用 · 8%）
+    架构设计 => 接入层 => 数据安全
+    架构设计 => 接入层 => 设计
+    架构设计 => 业务逻辑层 => 设计 => 服务降级
+    架构设计 => 业务逻辑层 => 实践
+    架构设计 => 分布式缓存 => 缓存类型
+    架构设计 => 分布式缓存 => 缓存冗余
+    架构设计 => 堆栈 => Java 线程堆栈实践
+    架构设计 => 进程管理 => PV操作
+    架构设计 => 进程管理 => 死锁
+    架构设计 => 网络 => HTTP => 状态码
+    架构设计 => 高并发 => 缓存 => 有效性
+    架构设计 => 高并发 => 缓存 => 雪崩
+    架构设计 => 高并发 => 多线程 => volatile
+    架构设计 => 高并发 => 多线程 => synchronized
+    架构设计 => 架构设计 => 微服务
+    架构设计 => 架构设计 => 部署
+    架构设计 => 架构设计 => 设计原则
+    架构设计 => 架构设计 => API => REST => 谓词
+    架构设计 => 业务逻辑层 => 设计 => 逻辑层 => 事务控制
+    架构设计 => 业务逻辑层 => 设计 => 逻辑层 => 重要设计原则
+
+# Kafka
 ### Zookeeper 管理的元数据
 #### 题目
 以下哪项不属于Zookeeper管理的Kafka元数据？
