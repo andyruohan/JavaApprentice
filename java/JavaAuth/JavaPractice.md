@@ -280,6 +280,29 @@ Spring Cloud声明式HTTP调用框架，封装HTTP请求，简化微服务之间
 3. 灰度/蓝绿发布：零停机更新微服务版本；
 4. 资源隔离：CPU、内存配额限制，避免服务资源抢占。
 
+# Spring
+### Spring 事务管理器
+#### 题目
+项目多数据源场景，分别配置 DataSource1、DataSource2，对应两个事务管理器txManager1、txManager2；在方法上使用@Transactional(value = "txManager2", rollbackFor = Exception.class)，下列说法错误的是？
+A. value 指定当前方法使用 txManager2 管理事务
+B. 若省略 value，会使用容器中默认标记@Primary的事务管理器
+C. rollbackFor = Exception.class 时，除非捕获一场，否则所有受检、非受检异常都会触发回滚
+D. 不配置 rollbackFor 时，捕获 Exception 不会触发事务回滚，仅 RuntimeException 触发
+#### 正确答案
+C
+#### 简洁解析
+A 正确：@Transactional 的 value 属性绑定指定事务管理器。
+B 正确：多事务管理器必须指定 value，无指定则取 @Primary 主管理器。
+C 错误：rollbackFor=Exception.class 抛出异常时回滚；若代码 try-catch 捕获 Exception，不会触发回滚。
+D 正确：默认规则下 RuntimeException、Error 都会触发回滚，选项只写 RuntimeException。
+#### 考点总结
+- 单层事务、仅 try-catch 吞异常、无手动标记：不回滚；
+#### 延伸考点
+- catch 内调用setRollbackOnly()：捕获异常也回滚；
+- REQUIRED 嵌套事务，子方法抛异常：外层捕获依然回滚；（因为内外层事务标记是共享的，一旦内层打上 rollback-only，整个事务再也无法提交）
+- Spring 默认事务传播级别：Propagation.REQUIRED，默认隔离级别：Isolation.DEFAULT，使用底层数据库默认隔离级别；
+- Spring 默认自动回滚范围：RuntimeException、Error。
+
 # Kafka
 ### Zookeeper 管理的元数据
 #### 题目
