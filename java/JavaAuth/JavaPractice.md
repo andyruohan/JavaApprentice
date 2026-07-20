@@ -196,13 +196,13 @@ Hystrix = 针对 “系统崩溃” 问题的防护工具
 词根来自 hysteria，字面：歇斯底里、失控崩溃  
 命名寓意：组件用来防止服务调用链 “失控雪崩”，阻止系统陷入崩溃。
 
-Ribbon：丝带 → 串联服务做负载均衡
-字面：丝带、缎带、带状捆束
+Ribbon：丝带 → 串联服务做负载均衡  
+字面：丝带、缎带、带状捆束  
 命名寓意：把多个服务实例 “串联绑定” 起来，做客户端负载均衡，像丝带一样串联所有可用节点。
 
 OpenFeign：模拟伪装 → 伪装成本地接口远程调用  
-Feign：假装、伪装、模拟  
 Open：开源开放  
+Feign：假装、伪装、模拟  
 命名寓意：伪装成本地接口，开发者像调用本地方法一样远程调用服务，屏蔽底层 HTTP 网络细节。
 
 Kubernetes：船长 / 舵手 → 容器集群调度管理者  
@@ -281,22 +281,39 @@ Spring Cloud声明式HTTP调用框架，封装HTTP请求，简化微服务之间
 4. 资源隔离：CPU、内存配额限制，避免服务资源抢占。
 
 # Spring
-### Spring 事务管理器
 #### 题目
-项目多数据源场景，分别配置 DataSource1、DataSource2，对应两个事务管理器txManager1、txManager2；在方法上使用@Transactional(value = "txManager2", rollbackFor = Exception.class)，下列说法错误的是？  
-A. value 指定当前方法使用 txManager2 管理事务  
-B. 若省略 value，会使用容器中默认标记@Primary的事务管理器  
-C. rollbackFor = Exception.class 时，除非捕获异常，否则所有受检、非受检异常都会触发回滚  
-D. 不配置 rollbackFor 时，默认 RuntimeException 和 Error 触发回滚，捕获 Exception 不会回滚
+项目多数据源场景，分别配置 DataSource1、DataSource2，对应两个事务管理器 txManager1、txManager2；在方法上使用 @Transactional(value = "txManager2", rollbackFor = Exception.class)，下列说法错误的是？
+
+A. value 指定当前方法使用 txManager2 管理事务
+B. 若省略 value，会使用容器中标记 @Primary 的默认事务管理器
+C. 配置 rollbackFor = Exception.class 代表：只要抛出 Exception 子类异常，无论是否被代码捕获，事务都会回滚
+D. 不配置 rollbackFor 时，默认仅 RuntimeException 和 Error 触发回滚；若捕获 Exception 且未重新抛出，不会触发回滚
+
 #### 正确答案
-C
+**C**
+
 #### 简洁解析
-A 正确：@Transactional 的 value 属性绑定指定事务管理器。  
-B 正确：多事务管理器必须指定 value，无指定则取 @Primary 主管理器。  
-C 错误：rollbackFor=Exception.class 抛出异常时回滚；若代码 try-catch 捕获 Exception，不会触发回滚。  
-D 正确：Spring 默认回滚规则是 `RuntimeException` 和 `Error` 触发回滚，受检异常不会触发；若捕获 Exception 且未重新抛出，也不会回滚。 
+1. A 正确：`@Transactional` 的 `value` 属性用于指定对应事务管理器。
+2. B 正确：多事务管理器环境，未指定 `value` 时，Spring 会选取添加 `@Primary` 的事务管理器。
+3. C 错误：`rollbackFor` 仅定义**抛出**该异常才满足回滚条件；如果方法内 `try-catch` 捕获异常且不重新抛出，Spring 事务切面感知不到异常，不会执行回滚。
+4. D 正确：Spring 原生默认仅运行时异常、错误触发回滚；受检 Exception 默认不回滚，捕获异常不抛出同样无回滚。
+
 #### 考点总结
-- 单层事务、仅 try-catch 吞异常、无手动标记：不回滚；
+多数据源多事务管理器指定、@Transactional 回滚规则、捕获异常对事务回滚的影响。
+```text
+@Transactional 执行流程：
+
+  ┌──────────────────────────────────────────────────────┐
+  │  代理对象（Proxy）                                     │
+  │    ├── 1. 开启事务                                    │
+  │    ├── 2. 调用目标方法 target.method()                 │
+  │    │      └── 方法内 try-catch 吞掉异常 → 不抛出        │
+  │    │          └── 代理层收不到异常 -> 不回滚            │
+  │    ├── 3. 如果收到异常 → 匹配 rollbackFor → 回滚        │
+  │    └── 4. 如果正常返回 → 提交事务                       │
+  └──────────────────────────────────────────────────────┘
+```
+
 #### 延伸考点
 - catch 内调用setRollbackOnly()：捕获异常也回滚；
 - REQUIRED 嵌套事务，子方法抛异常：外层捕获依然回滚；（因为内外层事务标记是共享的，一旦内层打上 rollback-only，整个事务再也无法提交）
@@ -363,20 +380,20 @@ Spring 父子容器是框架在 Web 场景下的一种容器层级设计：父�
 
 ### 拦截器 preHandle 返回 false 的执行链路分析  
 #### 题目  
-开发自定义拦截器，重写preHandle返回false，下列现象描述正确的是？  
+开发自定义拦截器（仅有一个拦截器），重写preHandle返回false，下列现象描述正确的是？  
 A. 控制器方法执行，不执行postHandle，直接执行afterCompletion  
-B. DispatcherServlet不再继续后续处理器流程，不会进入Controller，afterCompletion依旧执行  
+B. DispatcherServlet不再继续后续处理器流程，不会进入Controller，afterCompletion也不会执行  
 C. 所有Filter后置逻辑会被跳过，直接返回响应  
 D. preHandle返回false时，全局@ControllerAdvice异常处理器会捕获拦截器阻断异常  
 #### 正确答案
 **B**
 #### 简洁解析
 1. A 错误：preHandle返回false直接截断，控制器完全不执行。  
-2. B 正确：preHandle=false中断链路，跳过Controller与postHandle，但一定会执行afterCompletion做资源清理。  
+2. B 正确：preHandle=false中断链路，跳过Controller与postHandle，以及后续的afterCompletion。  
 3. C 错误：Filter是外层组件，后置逻辑不受拦截器返回值影响，正常执行。  
 4. D 错误：preHandle主动阻断不属于异常，不会进入全局异常处理器。  
 #### 考点总结
-拦截器preHandle返回false的链路截断规则，区分postHandle、afterCompletion执行时机。  
+拦截器preHandle返回false的链路截断规则，postHandle、afterCompletion执行时机。  
 #### 参考源码
 ```java
 boolean applyPreHandle(HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -484,11 +501,11 @@ D. Kafka生产者和消费者立即停止所有消息操作，等待手动恢复
 
 ### Kafka 系统结构
 #### 题目
-关于 Kafka 主题（Topic）、分区、副本、消息存储机制，说法错误的是？
-A. 一个Topic由多个Partition组成，分区是消息读写最小并行单元
-B. 同一分区内所有消息严格有序，不同分区之间无法保证全局消息有序
-C. 新建Topic时指定副本数大于Broker数量，Topic会创建成功但部分副本无法分配，分区处于under-replicated状态
-D. Topic删除后磁盘上对应分区日志文件会立刻同步清除，不会占用磁盘空间
+关于 Kafka 主题（Topic）、分区、副本、消息存储机制，说法错误的是？  
+A. 一个Topic由多个Partition组成，分区是消息读写最小并行单元  
+B. 同一分区内所有消息严格有序，不同分区之间无法保证全局消息有序  
+C. 新建Topic时指定副本数大于Broker数量，Topic会创建成功但部分副本无法分配，分区处于under-replicated状态  
+D. Topic删除后磁盘上对应分区日志文件会立刻同步清除，不会占用磁盘空间  
 #### 正确答案
 D
 #### 简洁解析
@@ -774,20 +791,29 @@ D. `SELECT class_id, AVG(score) avg_s FROM score GROUP BY class_id HAVING avg_s 
 `GROUP BY`、`HAVING`、`ORDER BY` 的固定书写顺序：`GROUP BY` → `HAVING` → `ORDER BY`，`HAVING` 必须位于分组后、排序前。
 
 #### 题目
-关于自增主键、分组HAVING、排序组合场景，描述正确的是？  
-A. 自增主键连续无空缺，GROUP BY分组后按自增id排序一定有序，可省去order by  
-B. 表删除部分数据后自增主键断裂，不影响HAVING聚合统计结果  
-C. HAVING中使用自增主键id做过滤条件，可直接利用主键索引快速过滤分组  
-D. 使用自增主键分组，HAVING过滤效率高于普通字段分组，因为主键自带索引  
+关于自增主键、分组 HAVING、排序组合场景，描述正确的是？
+
+A. 自增主键连续无空缺，GROUP BY 分组后按自增 id 排序一定有序，可省去 order by
+B. 表删除部分数据后自增主键断裂，不影响 HAVING 聚合统计结果
+C. HAVING 中使用自增主键 id 做过滤条件，可直接利用主键索引快速过滤分组
+D. 使用自增主键分组，HAVING 过滤效率高于普通字段分组，因为主键自带索引
+
 #### 正确答案
 **B**
+
 #### 简洁解析
-1. A 错误：分组后结果集打乱，与主键自增顺序无关，必须显式order by。
-2. B 正确：自增主键断号只是id数值不连续，聚合统计只看数据行，不受主键空缺影响。
-3. C 错误：HAVING过滤的是分组聚合结果，主键索引只作用原始行，无法优化分组后过滤。
-4. D 错误：分组效率取决于分组字段索引，主键索引无法优化GROUP BY聚合后的HAVING过滤。
+1. A 错误：分组后结果集打乱，与主键自增顺序无关，必须显式 ORDER BY。
+2. B 正确：自增主键断号只是 id 数值不连续，聚合统计只看数据行数，不受主键空缺影响。
+3. C 错误：HAVING 过滤的是分组聚合后的结果，主键索引只作用于原始行，无法优化分组后过滤。
+   > **补充说明**：如果 HAVING 中直接使用非聚合字段 `id`，MySQL 会将其隐式加入 GROUP BY，实际执行的是 `GROUP BY 分组字段, id`。此时若存在 `(分组字段, id)` 的联合索引，可以用于优化分组，但这属于 **GROUP BY 本身的索引利用**，而非 HAVING 利用主键索引。本题 C 选项表述的“自增主键 id 可直接利用主键索引过滤分组”仍不成立。
+4. D 错误：分组效率取决于分组字段上的索引，与主键 id 的索引无关；HAVING 过滤的是聚合结果，也无法利用原始行的主键索引。
+
 #### 考点总结
-自增主键特性，HAVING仅作用分组结果，索引无法优化后置聚合过滤逻辑。
+- GROUP BY 不保留原始顺序，排序必须用 ORDER BY；
+- 自增主键的连续性属于存储层属性，不影响聚合统计逻辑；
+- HAVING 过滤的是分组聚合后的结果，无法利用原始表索引；
+- GROUP BY 的效率取决于分组字段本身是否有索引，与主键无关；
+- 联合索引可优化 GROUP BY，但前提是分组字段在索引的最左前缀中，且这是 GROUP BY 的索引利用，与 HAVING 无关。
 
 ### 索引的生效范围
 #### 题目
