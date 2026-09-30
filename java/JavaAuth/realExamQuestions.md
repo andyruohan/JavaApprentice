@@ -9,31 +9,90 @@ COMMIT;
 A. 有一个会话T2在查询表table1中id为4的记录时也执行了SELECT ... FOR SHARE  
 B. 有一个会话T2在修改表table2中id为4的记录时阻塞了该事务  
 C. 有一个会话T2在修改表table1中id为5的记录时阻塞了该事务  
-D. 有一个会话T2在修改表table1中id为4的记录前也执行了SELECT ... FOR SHARE
+**D. 有一个会话T2在修改表table1中id为4的记录前也执行了SELECT ... FOR SHARE**
+---
+解析：
+B选项。更新不同表，本身不构成同行锁冲突。即便更新同一行，在MySQL 8.4且无其他冲突时，持S锁的T4可越过T2等待中的X锁请求，升级、更新并提交，随后T2继续，不形成死锁。（MySQL 8.4锁冲突处理源码：https://github.com/mysql/mysql-server/blob/8.4/storage/innobase/lock/lock0lock.cc）
+
+| 对比 | S锁：共享锁 | X锁：排他锁 |
+|---|---|---|
+| **目的** | 允许共同锁定读取，阻止别人修改 | 独占修改权，阻止别人取得S/X锁 |
+| **常见操作** | `SELECT ... FOR SHARE` | `SELECT ... FOR UPDATE`、`UPDATE` |
+| **另一个事务申请S锁** | 可以获得 | 需要等待 |
+| **另一个事务申请X锁** | 需要等待 | 需要等待 |
+| **升级** | 修改时需升级为X锁；其他事务持有的S/X锁会阻挡升级 | 已能修改，无需再升级 |
+
+**死锁重点：两个事务都持有同一记录的S锁，再都申请X锁，就可能互相等待。**
+*以上针对同一记录；普通SELECT通过MVCC（Multi-Version Concurrency Control）读旧版本，不一定被X锁挡住。*
+---
 
 2.【数据库】下面有关 ibatis 中的＃与＄的区别，描述错误的是？   
-A. ＄ 方式能够很大程度防止sql注入  
+**A. ＄ 方式能够很大程度防止sql注入**  
 B. ＃ 将传入的数据都当成一个字符串，会对自动传入的数据加一个双引号  
 C. ＄ 将传入的数据直接显示生成在sql中  
 D. ＄方式一般用于传入数据库对象，例如传入表名  
 
+```
+#：参数绑定，按类型处理参数。
+$：直接文本替换，拼接不可信输入会产生注入风险。
+```
+---
+
 3.【Kafka】下列关于 Kafka 的减少分区说法正确的是？  
 A. 删除主题并不会对分区造成任何影响  
-B. 删除分区会导致数据不一致，消息乱序  
+**B. 删除分区会导致数据不一致，消息乱序**  
 C. 減少分区数量，只需要删除某个分区即可，不会对系统操作任何影响  
 D. 减少分区等同于删除主题，两个功能实现的是同一种效果  
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    Kafka 集群：3个Broker、2个Topic                       │
+│                                                                         │
+│  ┌─────────────────────┬─────────────────────┬─────────────────────┐    │
+│  │      Broker 1       │      Broker 2       │      Broker 3       │    │
+│  │                     │                     │                     │    │
+│  ╞═════════════════════╪═════════════════════╪═════════════════════╡    │
+│  │                 Topic：order-events（订单消息）                 │    │
+│  ├─────────────────────┼─────────────────────┼─────────────────────┤    │
+│  │ P0 [Leader]         │ P0 [Follower]       │ P1 [Follower]       │    │
+│  │ P2 [Follower]       │ P1 [Leader]         │ P2 [Leader]         │    │
+│  │                     │                     │                     │    │
+│  ╞═════════════════════╪═════════════════════╪═════════════════════╡    │
+│  │                Topic：payment-events（支付消息）                │    │
+│  ├─────────────────────┼─────────────────────┼─────────────────────┤    │
+│  │ P0 [Follower]       │ P1 [Leader]         │ P0 [Leader]         │    │
+│  │                     │                     │ P1 [Follower]       │    │
+│  │                     │                     │                     │    │
+│  └─────────────────────┴─────────────────────┴─────────────────────┘    │
+│                                                                         │
+│  说明：                                                                 │
+│  1. 竖向每一列是一个Broker，可承载多个Topic的分区副本。                  │
+│  2. 横向每一带是一个Topic，展示其副本在各Broker上的分布。                │
+│  3. P表示Partition（分区）；订单有3个分区，支付有2个分区。                │
+│  4. 每个分区有2份副本：1个Leader、1个Follower，共10份副本。               │
+│  5. 不同Topic的P0是不同分区；同一分区的Follower复制Leader日志。           │
+│  6. Follower可能短暂落后，ISR不表示每一瞬间数据都完全相同。               │
+│  7. 删除订单Topic，相当于清理订单这一横带的数据；                        │
+│     三个Broker仍运行，支付Topic仍保留。                                 │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+---
 
 4.【数据库】关于having子句说法正确的是？  
 A. 其他答案均正确  
 B. having是在一个结果返回之后起作用的  
-C. having是一个约束说明  
+**C. having是一个约束说明**  
 D. having不能够使用聚合函数  
+```
+WHERE筛行 → GROUP BY分组 → HAVING筛组 → 返回最终结果
+```
+---
 
 5.【Spring MVC】对于URL POST请求 http://domain/say/helloworld 的Mapping配置错误的是？  
 A. @PostMapping("/say/helloworld")  
 B. @PostMapping(value="/say/helloworld")  
-C. @Reques tMapping ("/say/helloworld", method = RequestMethod.POST)  
-D. @RequestMapping (value="/say/helloworld", method = RequestMethod.POST)  
+**C. @RequestMapping("/say/helloworld", method = RequestMethod.POST)**  
+D. @RequestMapping(value="/say/helloworld", method = RequestMethod.POST)  
 
 6.【SQL】已知表结构
    people (pid, name, email, telephone, birthday) , member(mid, mname, email, mlevel)，eployee(eid, ename)，下列可查询出不重复人名称的语句是？  
@@ -64,7 +123,7 @@ UNION ALL
 select ename from employee
 ```
 
-D. 
+**D.** 
 ```sql
 select name from people
 UNION
@@ -72,6 +131,11 @@ select mname from member
 UNION
 select ename from employee
 ```
+
+解析：**`union` 会去重排序，`union all` 直接拼接无开销。**
+但本题不严谨，D全部使用UNION可以去重，B也可以，最后一个UNION会对左侧已经合并的结果与employee结果整体去重。
+
+---
 
 7.【Spring Cloud】Feign默认提供的日志级别有哪些：
 1. NONE：默认的，不显示任何日志；
@@ -81,7 +145,18 @@ select ename from employee
 A. 1.2.3.4  
 B. 1.2.3  
 C. 1,2,4  
-D. 1,3.4  
+D. 1,3.4
+
+
+解析：
+OpenFeign日志说明：https://docs.spring.io/spring-cloud-openfeign/reference/spring-cloud-openfeign.html#feign-logging   
+
+The Logger.Level object that you may configure per client, tells Feign how much to log. Choices are:  
+- NONE, No logging (DEFAULT).
+- BASIC, Log only the request method and URL and the response status code and execution time.
+- HEADERS, Log the basic information along with request and response headers.
+- FULL, Log the headers, body, and metadata for both requests and responses.
+---
 
 8.【架构设计】假设我们想利用mysqI双主模式通过内置的自增索引为基础来实现一个全局唯一id生成服务，因此在一个分布式系统中设置一个专门数据库，记录当前的Maxld值，插入记录时来取这个MaxId，然后自增1后插入。这种方案可能会导致？  
 A. 存在多点重复  
@@ -89,11 +164,28 @@ B. 存在多点瓶颈
 C. 存在单点重复  
 D. 存在单点瓶颈  
 
+解析：
+题干把“双主自增”和“集中读取MaxId再加1”混在一起，实际上涉及不同风险。
+- 两个主库使用相同自增规则，未配置不重叠的编号序列，可能产生重复ID，支持A。
+- 所有请求都依赖集中取号数据库，可能产生性能瓶颈，支持题目可能想考的D。
+- 如果真是业务代码先读MaxId再加1，没有原子控制，即便单库并发也可能重复。
+  双主可通过不同的自增步长与偏移量划分编号序列，例如一个产生奇数、另一个产生偶数。
+---
+
 9.【Kafka】以下关于Kafka中Zookeeper的功能和特性描述，哪个是正确的？  
 A. Zookeeper用于存储Kafka的消息数据  
 B. Zookeeper用于执行Kafka集群间的数据同步  
 C. Zookeeper负责处理Kafka消费者的网络连接  
-D. Zookeeper负责管理Kafka中的主题分区  
+D. **Zookeeper负责管理Kafka中的主题分区**  
+
+| 工作              | 主要负责方 |
+|-----------------|---|
+| 存储消息            | Broker上的分区日志 |
+| 分区副本复制          | Broker之间的Leader/Follower机制 |
+| 元数据协调、控制器选举相关协调 | ZooKeeper与Kafka控制器 |
+| 处理消费者拉取请求       | Broker |
+
+---
 
 10.【Mybatis】如何在项目中使用redis整合Mybatis缓存？  
 A.
@@ -106,7 +198,25 @@ update sql ......
 ```
 B. 在Mapper中添加二级缓存配置   
 C. 开启缓存  
-D. 通过重写Cache类中的方法，将mybatis中默认的缓存空间映射到redis空间中  
+**D. 通过重写Cache类中的方法，将mybatis中默认的缓存空间映射到redis空间中**  
+
+解析：整合Redis，就是接入一个实现，让MyBatis通过它读写Redis：
+```
+执行Mapper查询
+       ↓
+MyBatis尝试读取二级缓存
+       ↓
+自定义Cache实现 → 查询Redis
+       │
+       ├─ 命中：返回缓存结果
+       │
+       └─ 未命中：查询数据库
+                    ↓
+              按事务规则写入缓存
+                    ↓
+              Cache实现 → Redis
+```
+---
 
 11.【架构设计】假设我们要设计扣减库存的操作，下列设计方案不合理的是？<br>
 A. 数据库中扣减，成功后更新 Redis 缓存<br>
