@@ -224,15 +224,37 @@ B. 把库存扣减从异步写转为同步写<br>
 C. 先扣减 Redis 缓存，同步扣减数据库，如果失败则回滚 Redis 缓存<br>
 D. 先扣减 Redis 缓存，同时向队列中发送一条扣减数据库库存的消息，异步进行数据库扣减，实现最终一致性。
 
+解析：
+A是一种可以采用的思路，但需要处理两个问题：
+- 数据库成功、Redis更新失败，缓存可能仍是旧库存。
+- 并发请求更新缓存时，旧结果可能覆盖新结果。
+
+这些是需要补充解决的风险，并不意味着A这个方向本身必然不合理。
+  同样：
+- B“改成同步写”也可能是为了保证业务完成后再返回，并非天然错误。
+- C需要处理补偿失败、重复补偿，以及数据库超时但实际成功。
+- D需要保证消息可靠发送、重试和消费幂等。
+
+
+因此，这道题缺少条件，不建议把某个选项硬背为错误。
+
+---
+
 12.【架构设计】Java 中 synchronized 和 lock 的相同点是？<br>
 A. 可以知道有没有成功获取锁<br>
 B. 可以让等待锁的线程响应中断<br>
-C. 可以保证原子性<br>
+**C. 可以保证原子性<br>**
 D. 发生异常时，会自动释放线程占有的锁
 
+| 选项 | 为什么不属于两者共同能力 |
+|---|---|
+| A：知道有没有成功获取锁 | Lock提供`tryLock()`；synchronized没有对应的尝试获取接口 |
+| B：等待锁时响应中断 | Lock可使用`lockInterruptibly()`；synchronized的监视器锁等待不能这样中断 |
+| D：异常时自动释放 | synchronized会自动释放；Lock通常需要在finally中手动unlock |
+---
 
 13.【数据库】电话号码表 t_phonebook 中含有100万条数据，其中号码字段PhoneNo上创建了唯一索引，且电话号码全部由数字组成，要统计号码头为321的电话号码的数量，下面写法执行速度最慢的是？  
-A. `select count(*) from t_phonebook where substr(phoneno, 1,3) = '321'`  
+**A. `select count(*) from t_phonebook where substr(phoneno, 1,3) = '321'`**  
 B. `select count(*) from t_phonebook where phoneno >= '321' and phoneno < '321A'`  
 C. 各选项的执行方式差异不大，性能基本一样  
 D. `select count(*) from t_phonebook where phoneno like '321%'`
@@ -241,8 +263,24 @@ D. `select count(*) from t_phonebook where phoneno like '321%'`
 14.【Kafka】部署支持故障转移（允许1 台服务器宕机而不影响服务）的Kafka 集群，至少需要几台服务器？<br>
 A. 1<br>
 B. 4<br>
-C. 3<br>
+**C. 3<br>**
 D. 2<br>
+
+解析：
+
+| 协调节点总数 | 维持多数派需要 | 宕机1个后 | 是否仍有多数派 |
+|-------:|---:|---:|---|
+|      1 | 1 | 0 | 否 |
+|      2 | 2 | 1 | 否 |
+|      3 | 2 | 2 | 是 |
+|      4 | 3 | 3 | 是 |
+3个是能够容忍1个协调节点故障的最小数量。 
+
+Kafka官方也明确说明：3个KRaft控制器可容忍1个控制器故障。官方链接：https://kafka.apache.org/35/operations/kraft/
+```
+A majority of the controllers must be alive in order to maintain availability. With 3 controllers, the cluster can tolerate 1 controller failure; 
+```
+---
 
 15.【SpringMVC】通过request对象获取以下用户提交的信息
 ```
@@ -259,9 +297,28 @@ Connection: Keep-Alive
 则以下语句返回什么？<br>
 `System.out.println(request.getRequestURI());`<br>
 A. `http://192.168.1.114/day06/response1/`<br>
-B. `/day06/response1`<br>
+**B. `/day06/response1`<br>**
 C. `http://192.168.1.114/day06/response/demo7/regist.html`<br>
 D. `/day06/response/demo7/regist.html`
+
+解析：  
+题目中有两个地址：
+```
+本次请求：
+GET /day06/response1?1339484005562
+
+来源页面：
+Referer: http://localhost/day06/response/demo7/regist.html
+```
+
+因此：
+
+| 获取方式 | 对应结果 |
+|---|---|
+| `request.getRequestURI()` | `/day06/response1` |
+| `request.getQueryString()` | `1339484005562` |
+| `request.getHeader("Referer")` | 来源页面的完整地址 |
+----
 
 16.【数据库原理】以下关于子查询，说法不正确的是？  
 A. 从逻辑结果上看，所有使用JOIN关键字编写的连接查询，都可以通过使用子查询（如IN、EXISTS等）的方式重写以实现相同的查询目标  
