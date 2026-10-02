@@ -324,7 +324,7 @@ D. 不配置 rollbackFor 时，默认仅 RuntimeException 和 Error 触发回滚
 #### 题目  
 关于 Filter 过滤器与 SpringMVC Interceptor 拦截器执行顺序、底层容器归属，说法正确的是？   
 A. 拦截器先执行，过滤器后执行；二者都由Spring IoC容器管理  
-B. Filter属于Servlet规范，由Tomcat容器管理；Interceptor由DispatcherServlet创建，归属Spring IoC  
+**B. Filter属于Servlet规范，由Tomcat容器管理；Interceptor由DispatcherServlet创建，归属Spring IoC**  
 C. 当 Interceptor 的 postHandle () 方法抛出异常时，所有拦截器的 afterCompletion () 都不会执行，Filter 后置逻辑也会中断
 D. 过滤器无法注入Spring容器Bean，拦截器不能注入Servlet原生对象  
 #### 正确答案
@@ -347,7 +347,7 @@ D. 过滤器无法注入Spring容器Bean，拦截器不能注入Servlet原生对
 #### 题目  
 同一个请求链路中，自定义Filter、自定义HandlerInterceptor、@ControllerAdvice异常处理执行顺序，下列流程正确的是？  
 A. Filter前置 → Interceptor preHandle → Controller报错 → @ControllerAdvice → Interceptor postHandle → Filter后置  
-B. Filter前置 → Interceptor preHandle → Controller报错 → @ControllerAdvice → Interceptor afterCompletion → Filter后置  
+**B. Filter前置 → Interceptor preHandle → Controller报错 → @ControllerAdvice → Interceptor afterCompletion → Filter后置**  
 C. Filter前置 → Interceptor preHandle → Controller报错 → Interceptor postHandle → @ControllerAdvice → Filter后置  
 D. Interceptor preHandle最先执行，Filter全部逻辑在所有MVC组件之后  
 #### 正确答案
