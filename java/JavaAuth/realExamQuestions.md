@@ -334,6 +334,18 @@ B. 其他说法都不对
 C. 语法会报错  
 D. 结果是两个表的交集
 
+外连接（OUTER JOIN）会保留未匹配的行，缺失的一侧用NULL补齐。
+
+| 类型 | 保留的行 |
+|---|---|
+| `LEFT JOIN` | 左表全部行，以及右表匹配行 |
+| `RIGHT JOIN` | 右表全部行，以及左表匹配行 |
+| `FULL OUTER JOIN` | 两表全部行，匹配的合并，不匹配的也保留 |
+
+`LEFT JOIN`等同于`LEFT OUTER JOIN`，`RIGHT JOIN`同理。**OUTER JOIN是外连接的统称，不等于完整外连接FULL OUTER JOIN。** MySQL不直接支持FULL OUTER JOIN。
+
+---
+
 18.【SpringMVC】请分析拦截器源码中执行拦截请求的核心代码，描述错误的一项是？
 ```
 public class HandlerExecutionChain {
@@ -370,6 +382,51 @@ A. 如果 preHandle 方法执行失败，则会执行 triggerAfterCompletion 方
 B. 在真正执行 controller 的业务代码的前后，会分别执行 applyPreHandle 方法和 applyPostHandle 方法  
 C. applyPreHandle 方法执行成功后，就会调用 applyPostHandle 方法  
 D. 拦截器是递归调用 applyPreHandle 方法来拦截客户端发送来的请求
+
+解析：
+**C选项：表述不严谨**
+
+> applyPreHandle执行成功后，就会调用applyPostHandle。
+
+严格来说，**不一定**。例如：
+
+```text
+preHandle成功
+→ Controller执行
+→ Controller抛异常
+→ 跳过postHandle，进入异常处理
+```
+
+`postHandle`在处理器正常执行完成后调用。因此，C如果理解成“必然调用”，确实错误。[Spring拦截器说明](https://docs.spring.io/spring-framework/docs/6.0.0/javadoc-api/org/springframework/web/servlet/HandlerInterceptor.html)
+
+**D选项：明确错误**
+
+> 拦截器是递归调用applyPreHandle方法来拦截请求。
+
+题目代码使用的是**循环遍历**：
+
+```java
+for (int i = 0; i < interceptors.length; i++) {
+    interceptor.preHandle(request, response, this.handler);
+}
+```
+
+这里依次调用各个拦截器的`preHandle`，没有调用`applyPreHandle`自身，因此不是递归。
+
+**结论：按单选题命题意图选D；严格分析，C也存在表述问题。**
+
+---
+- Filter 与 Interceptor 分属两套体系：Filter 基于 Servlet 规范，由 Web 容器管理（Filter 可通过注册为 Spring Bean 的方式注入容器中的依赖，但其生命周期仍由 Web 容器管理。）；Interceptor 基于 Spring MVC，由 Spring IoC 容器管理。
+- 执行顺序为 Filter → DispatcherServlet → Interceptor，且异常传播路径不同，拦截器内部异常不影响 Filter 的后置逻辑。
+- Spring 的拦截器执行机制类似于一个 “环绕通知” 的链式调用：
+    - preHandle 决定是否“进门”（返回 true 才进门）。
+    - 只有“进门”了，afterCompletion 才会被放入一个 finally 块中等待执行。
+    - postHandle 是在 try 块正常执行后的回调，而 afterCompletion 是在最终的 finally 块中执行，所以它永远能感知到当前线程抛出的最后一个异常（只要它被注册过）。
+```
+异常示例：Filter前置 → Interceptor preHandle → Controller报错 → @ControllerAdvice → Interceptor afterCompletion → Filter后置
+正常示例：Filter前置 → Interceptor preHandle → Controller → Interceptor postHandle → Interceptor afterCompletion → Filter后置
+```
+---
 
 19.【SpringBoot】使用下列哪段代码可以返回多个非阻塞响应？  
 A. `Flux<String> people = request.bodyToFlux(String.class);`  
