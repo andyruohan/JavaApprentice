@@ -323,7 +323,7 @@ Referer: http://localhost/day06/response/demo7/regist.html
 16.【数据库原理】以下关于子查询，说法不正确的是？  
 A. 从逻辑结果上看，所有使用JOIN关键字编写的连接查询，都可以通过使用子查询（如IN、EXISTS等）的方式重写以实现相同的查询目标  
 B. FROM子句中使用派生表时需要指定一个表别名  
-C. 从逻辑结果上看，所有形式的子查询，都可以通过使用JOIN关键字编写的连接查询来等价替换  
+**C. 从逻辑结果上看，所有形式的子查询，都可以通过使用JOIN关键字编写的连接查询来等价替换**  
 D. 当外部查询需要引用派生表中的计算列（例如函数或表达式结果）时，该计算列在子查询内部需要定义列别名
 
 17.【SQL】有如下语句：  
@@ -331,9 +331,10 @@ D. 当外部查询需要引用派生表中的计算列（例如函数或表达�
 下列说法正确的是？  
 A. 结果是两个表中不在交集的部分  
 B. 其他说法都不对  
-C. 语法会报错  
+**C. 语法会报错**  
 D. 结果是两个表的交集
 
+内连接（INNER JOIN）只保留两表满足连接条件的匹配行。  
 外连接（OUTER JOIN）会保留未匹配的行，缺失的一侧用NULL补齐。
 
 | 类型 | 保留的行 |
@@ -381,7 +382,7 @@ public class HandlerExecutionChain {
 A. 如果 preHandle 方法执行失败，则会执行 triggerAfterCompletion 方法  
 B. 在真正执行 controller 的业务代码的前后，会分别执行 applyPreHandle 方法和 applyPostHandle 方法  
 C. applyPreHandle 方法执行成功后，就会调用 applyPostHandle 方法  
-D. 拦截器是递归调用 applyPreHandle 方法来拦截客户端发送来的请求
+**D. 拦截器是递归调用 applyPreHandle 方法来拦截客户端发送来的请求**
 
 解析：
 **C选项：表述不严谨**
@@ -429,34 +430,124 @@ for (int i = 0; i < interceptors.length; i++) {
 ---
 
 19.【SpringBoot】使用下列哪段代码可以返回多个非阻塞响应？  
-A. `Flux<String> people = request.bodyToFlux(String.class);`  
+**A. `Flux<String> people = request.bodyToFlux(String.class);`**  
 B. `String string = request.parseString(String.class);`  
 C. `RestTemplate.readResponse((String) result);`  
 D. `Mono<String> string = request.bodyToMono(String.class);`
 
+Mono：[Mono 官方文档](https://projectreactor.io/docs/core/release/api/reactor/core/publisher/Mono.html#never())
+```
+emits at most one item via the onNext signal
+```
+![](Mono官网介绍.png)
+
+---
+
+Flux：[Flux 官方文档](https://projectreactor.io/docs/core/release/api/reactor/core/publisher/Flux.html)
+```
+emits 0 to N elements
+```
+![](Flux官网介绍.png)
+---
+
+
 20.【架构设计】假设结算页核心服务的下游是PC端结算页Web、手机App、微信入口等，上游是62个依赖服务接口。下列选项中针对上游的主要降级手段不合理的是？  
-A. 按照用户质量，将高风险用户、爬虫优先降级  
+**A. 按照用户质量，将高风险用户、爬虫优先降级**  
 B. 根据依赖的影响程度和范围进行降级  
 C. 限流降级  
 D. 按照上游系统等级，将低级别系统的资源给高级别系统使用
 
 21.【Mybatis】关于MyBatis二级缓存说法错误的是？  
 A. 二级缓存是 mapper 级别的缓存  
-B. 二级缓存需要在setting全局参数中配置开启二级缓存  
-C. 开启二级缓存后，当一个 sqlSession 执行了一次 select 后，关闭此 session 后，重新执行 select 相同的查询，不会加快查询速度的执行  
+B. 二级缓存需要在 setting 全局参数中配置开启二级缓存  
+**C. 开启二级缓存后，当一个 sqlSession 执行了一次 select 后，关闭此 session 后，重新执行 select 相同的查询，不会加快查询速度的执行**  
 D. 二级缓存默认是没有开启的
+
+```
+一级缓存的作用是：让同一个 SqlSession 内的相同查询可以复用查询结果，避免重复访问数据库（默认 SESSION 作用域下）。  
+二级缓存的作用是：让不同 SqlSession 可以复用同一 Mapper 命名空间下的查询缓存。
+```
+---
 
 22.【架构设计】假设我们要对分布式SQL进行优化，下列方法无效的是？  
 A. 避免关联字段分布倾斜  
 B. 可以使用 union all 的情况下，不要使用 union  
-C. 两表 join 时，条件字段尽量放在 where 里面  
+**C. 两表 join 时，条件字段尽量放在 where 里面**  
 D. 大表 join 小表时，可以考虑 map-side join
+
+- 选项C，内连接（INNER JOIN）只保留两表满足连接条件的匹配行。对于 INNER JOIN，下面两种写法表达相同的查询：
+  ```sql
+  -- 写法1：关联条件放ON
+  SELECT o.id, u.name
+  FROM orders o
+  INNER JOIN users u ON o.user_id = u.id
+  WHERE u.status = 'active';
+  ```
+  
+  ```sql
+  -- 写法2：关联条件放WHERE
+  SELECT o.id, u.name
+  FROM orders o
+  INNER JOIN users u ON 1 = 1
+  WHERE o.user_id = u.id
+  AND u.status = 'active';
+  ```
+
+  优化器可能将它们转换成相同的执行计划，不会因为条件写在WHERE里就必然更快。第二种写法也更难读。
+- 选项D，Map-side join通常会将小表构建为内存中的哈希表，再扫描大表进行匹配。小表构建后的数据能放进内存是重要前提；并非所有连接类型都适用。 [Hive官方说明](https://hive.apache.org/docs/latest/language/languagemanual-joinoptimization/)：  
+  Joins where one side fits in memory. In the new optimization:
+  - that side is loaded into memory as a hash table
+  - only the larger table needs to be scanned
+  - fact tables have a smaller footprint in memory
+---
 
 23.【中间件】以下哪个选项不是 Redis 字符串类型内部编码？  
 A. raw  
 B. embstr  
 C. int  
-D. zip
+**D. zip**
+
+解析：[Redis官方文档](https://redis.io/docs/latest/commands/object-encoding/)
+
+Redis objects can be encoded in different ways:
+
+- **Strings** can be encoded as:
+
+  - **raw**, normal string encoding.
+  - **int**, strings representing integers in a 64-bit signed interval, encoded in this way to save space.
+  - **embstr**, an embedded string, which is an object where the internal simple dynamic string, sds, is an unmodifiable string allocated in the same chuck as the object itself. embstr can be strings with lengths up to the hardcoded limit of OBJ_ENCODING_EMBSTR_SIZE_LIMIT or 44 bytes.
+
+---
+- **Lists** can be encoded as:
+  - **linkedlist**, simple list encoding. No longer used, an old list encoding.
+  - **ziplist**, Redis <= 6.2, a space-efficient encoding used for small lists.
+  - **listpack**, Redis >= 7.0, a space-efficient encoding used for small lists.
+  - **quicklist**, encoded as linkedlist of ziplists or listpacks.
+
+
+- **Sets** can be encoded as:
+
+  - **hashtable**, normal set encoding.
+  - **intset**, a special encoding used for small sets composed solely of integers.
+  - **listpack**, Redis >= 7.2, a space-efficient encoding used for small sets.
+
+- **Hashes** can be encoded as:
+
+  - **zipmap**, no longer used, an old hash encoding.
+  - **hashtable**, normal hash encoding.
+  - **ziplist**, Redis <= 6.2, a space-efficient encoding used for small hashes.
+  - **listpack**, Redis >= 7.0, a space-efficient encoding used for small hashes.
+
+- **Sorted Sets** can be encoded as:
+  - **skiplist**, normal sorted set encoding.
+  - **ziplist**, Redis <= 6.2, a space-efficient encoding used for small sorted sets.
+  - **listpack**, Redis >= 7.0, a space-efficient encoding used for small sorted sets.
+
+**Streams** can be encoded as:
+
+  - stream, encoded as a radix tree of listpacks.
+All the specially encoded types are automatically converted to the general type once you perform an operation that makes it impossible for Redis to retain the space saving encoding.
+---
 
 24.【SQL】已知 SQL 表结构如下，以下哪个选项可以查询所有学生的所有课程的成绩以及平均成绩（按平均成绩从高到低显示）？
 ```
@@ -474,8 +565,8 @@ Teacher (id,     -- 教师编号（主键）
          t_name) -- 教师姓名
 -- 成绩表：存储学生选课成绩（学生与课程的多对多关系）
 SC (s_id,        -- 学生编号（外键，关联 Student.id）
-     c_id,       -- 课程编号（外键，关联 Course.id）
-     score)      -- 课程成绩
+    c_id,       -- 课程编号（外键，关联 Course.id）
+    score)      -- 课程成绩
 ```  
 A.
 ```
@@ -486,7 +577,7 @@ FROM SC LEFT JOIN (
     GROUP BY sc.s_id) AS t1
 ORDER BY t1.avgscore DESC
 ```  
-B.
+**B.**
 ```
 SELECT sc.s_id, sc.c_id, sc.score, t1.avgscore
 FROM SC LEFT JOIN (
@@ -516,7 +607,7 @@ ORDER BY t1.avgscore DESC
 A. 熔断  
 B. 隔离  
 C. 降级  
-D. 重启服务
+**D. 重启服务**
 
 26.【架构设计】假设我们要使用HDFS进行超大文件需求开发，默认的基本存储单位是64M数据块，如果需要每个数据块可分布在不同节点上，同时具有高可靠性，高可扩展性，高吞吐量等特性，其适合的任务是？  
 A. 多次写入，少次读取  
