@@ -335,13 +335,29 @@ D. 过滤器无法注入Spring容器Bean，拦截器不能注入Servlet原生对
 3. C 错误：postHandle 抛异常不会阻断 afterCompletion，所有成功放行的拦截器都会倒序执行 afterCompletion；Filter 后置逻辑独立于 MVC 流程，照常执行。
 4. D 错误：Filter可通过代理/注册Bean注入IoC，拦截器也可获取Servlet相关对象。
 #### 考点总结
-- Filter 与 Interceptor 分属两套体系：Filter 基于 Servlet 规范，由 Web 容器管理；Interceptor 基于 Spring MVC，由 Spring IoC 容器管理。
-- 执行顺序为 Filter → DispatcherServlet → Interceptor，且异常传播路径不同，拦截器内部异常不影响 Filter 的后置逻辑。
-- Spring 的拦截器执行机制类似于一个 “环绕通知” 的链式调用：
-  - preHandle 决定是否“进门”（返回 true 才进门）。
-  - 只有“进门”了，afterCompletion 才会被放入一个 finally 块中等待执行。
-  - postHandle 是在 try 块正常执行后的回调，而 afterCompletion 是在最终的 finally 块中执行，所以它永远能感知到当前线程抛出的最后一个异常（只要它被注册过）。
-- Filter 可通过注册为 Spring Bean 的方式注入容器中的依赖，但其生命周期仍由 Web 容器管理。
+
+- **所属体系**：Filter基于Servlet规范，由Web容器调用；Interceptor基于Spring MVC，由Spring MVC调用，通常注册为Spring Bean，由IoC容器管理。Filter也可注册为Spring Bean以获得依赖注入；当它直接注册到Web容器时，其 `init`、`doFilter`、`destroy` 方法由Web容器调用，采用代理方式时生命周期管理可能不同。
+
+- **执行顺序**：请求进入顺序为 Filter → DispatcherServlet → Interceptor → Controller。异常被Spring MVC成功处理后，Filter的普通后置逻辑可以继续执行；若异常向外传播，普通后置代码可能被跳过，但放在 `finally` 中的清理逻辑仍会执行。
+
+- **回调机制**：在普通同步请求中，Interceptor可以类比为“进入、正常返回、最终收尾”三个阶段，但并非源码中每个Interceptor都对应一个 `try-finally`。以下按回调之间的关系说明，正常执行顺序仍是 preHandle → Controller → postHandle → afterCompletion：
+
+    - `preHandle`：决定是否“进门”，返回 `true` 才继续执行后续Interceptor或Controller。
+    - `afterCompletion`：请求处理完成后的收尾回调，仅对自身 `preHandle` 成功返回 `true` 的Interceptor执行。**回调执行不代表一定拿得到异常**：异常已被异常解析器成功处理，且后续处理正常时，`ex` 为 `null`。
+    - `postHandle`：Controller正常返回后执行；Controller抛异常时跳过。
+
+**以下为普通同步请求流程，假设preHandle返回true，且后续未发生新的异常：**
+
+```text
+正常流程：
+Filter前置 → preHandle → Controller → postHandle → 视图渲染（如有）→ afterCompletion(ex=null) → Filter后置
+
+异常被成功处理流程：
+Filter前置 → preHandle → Controller报错 → @ControllerAdvice中匹配的异常处理方法 → afterCompletion(ex=null) → Filter后置
+
+异常未被处理流程：
+Filter前置 → preHandle → Controller报错 → afterCompletion(ex=异常) → 异常向Filter传播 → Filter的finally执行，普通后置代码跳过
+```
 
 ### Filter、Interceptor、@ControllerAdvice 异常场景执行顺序  
 #### 题目  
