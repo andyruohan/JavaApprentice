@@ -858,25 +858,75 @@ D.
 A. 列也必须拥有相似的数据类型  
 B. UNION 内部的 SELECT 语句必须拥有相同数量的列  
 C. 每条 SELECT 语句中的列的顺序必须相同  
-D. 其他三项都是
+**D. 其他三项都是**
+
+> [SQL官方说明](https://www.postgresql.org/docs/current/queries-union.html): In order to calculate the union, intersection, or difference of two queries, the two queries must be “union compatible”, which means that they return **the same number of columns and the corresponding columns have compatible data types**
+
+---
 
 32.【架构设计】下列关于数据库读写分离的理解，错误的是？  
 A. 数据库读写分离是将数据库分为主库和从库，一个主库用于写数据，多个从库用于读数据，主从库之间通过某种机制进行数据的同步，是一种常见的数据库架构  
 B. 实现线性提升数据库的读性能，消除读写锁冲突从而提升数据库的写性能，那么就可以使用"分组架构"（读写分离架构）  
-C. 读写分离是通过多个写库，分摊了数据库写的压力  
+**C. 读写分离是通过多个写库，分摊了数据库写的压力**  
 D. 读写分离是用来解决数据库的读性能瓶颈的
 
 33.【Kafka】下列关于 Kafka 的 broker 描述错误的是？  
 A. broker接收来自生产者的消息，为消息设置偏移量，并提交消息到磁盘保存  
 B. 一个独立的kafka服务器被称为broker  
-C. 单个broker只能充当一个角色，要么是生产者broker，要么是消费者broker，不能既是生产者broker又是消费者broker  
+**C. 单个broker只能充当一个角色，要么是生产者broker，要么是消费者broker，不能既是生产者broker又是消费者broker**  
 D. broker为消费者提供服务，对读取分区的请求作出响应，返回已经提交到磁盘上的消息
+```
+Producer（生产者）       Broker（服务端）       Consumer（消费者）
+       │                      │                      │
+       ├──── 发送消息 ────────▶│                      │
+       │                      │                      │
+       │               保存Partition副本              │
+       │                  的消息日志                  │
+       │                      │                      │
+       │                      │◀─────  拉取请求 ──────┤
+       │                      ├────── 返回消息 ──────▶│
+       │                      │                      │
+       
+       注：这里的消息日志就是消息数据本身，不是程序运行日志。
+```
+
+
 
 34.【中间件】在RabbitMQ消息队列中，保证消息可靠性的措施不包含下面哪个选项？  
 A. 生产方确认Confirm  
 B. 持久化  
-C. 使用多个分区  
+**C. 使用多个分区**  
 D. 消费方确认Ack
+
+解析：
+保证消息可靠性的措施，可以按消息经过的三个阶段记忆：
+```
+生产者 ───────▶ RabbitMQ ───────▶ 消费者
+      Confirm   持久化     Ack
+      发送确认   存储保障   消费确认
+```
+
+
+C选项，多个分区并不代表有多个副本，以下是它们的区别：
+```
+多个分区：把数据拆开，每个分区保存一部分
+
+分区0：[消息A、消息B]
+分区1：[消息C、消息D]
+
+如果分区0的唯一存储损坏：
+消息A、B仍会丢失，分区1没有它们的备份。
+```
+
+```
+多个副本：同一份数据，保存多份
+
+Leader：  [消息A、消息B]
+Follower：[消息A、消息B]
+
+Leader所在机器故障：
+如果Follower已有这些消息，可以通过副本继续提供服务。
+```
 
 35.【Spring Cloud】下面的Spring Cloud Gateway的配置中，如果我们的请求路径是 /api/v2，当想优先匹配到 server_v2，应该怎么配置？  
 A.
@@ -947,6 +997,23 @@ spring:
           predicates:
             - Path=/api/**
 ```
+
+解析：**Gateway按路由顺序寻找第一个匹配项，不会仅因某个路径更具体就自动优先选择它。**
+
+[Gateway匹配源码](https://raw.githubusercontent.com/spring-cloud/spring-cloud-gateway/main/spring-cloud-gateway-server-webflux/src/main/java/org/springframework/cloud/gateway/handler/RoutePredicateHandlerMapping.java)：
+```java
+// 核心逻辑，省略日志和异常处理
+return this.routeLocator.getRoutes() // 返回 Flux<Route>
+    .filterWhen(route -> route.getPredicate().apply(exchange)) // 筛选后仍是 Flux<Route>
+    .next(); // 取第一个，返回 Mono<Route>
+```
+
+[Flux.next()官方定义](https://projectreactor.io/docs/core/release/api/reactor/core/publisher/Flux.html#next()): 
+```
+Emit only the first item emitted by this Flux, into a new Mono.
+```
+
+---
 
 36.【Mybatis】关于Mybatis生命周期的类线程是否安全说法正确的是？
 1. SessionFactory通常是在应用启动时创建好的且是单例模式创建，所以多个线程可同时使用同一个SessionFactory。
