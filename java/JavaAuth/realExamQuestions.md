@@ -1062,7 +1062,7 @@ D. 2, 3
     通过执行器查询缓存或数据库
 ```
 ---
-知识延伸
+**知识延伸:**
 
 >[MyBatis-Spring官方说明](https://mybatis.org/spring/sqlsession.html): 
 > - `SqlSessionTemplate` is the heart of MyBatis-Spring. It implements `SqlSession` and is meant to be a drop-in replacement for any existing use of `SqlSession in` your code.
@@ -1120,7 +1120,7 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
     }
 }
 ```
-
+---
 
 37.【Spring Cloud】微服务中，关于Sentinel的性能描述正确的是？
 1. Sentinel提供了丰富的控制台界面，方便用户查看监控信息
@@ -1133,6 +1133,8 @@ C. 1, 2
 D. 2, 3
 
 >[Sentinel框架官方适配说明](https://sentinelguard.io/zh-cn/docs/open-source-framework-integrations.html): Sentinel 提供 Dubbo 的相关适配 Sentinel Dubbo Adapter，主要包括针对 Service Provider 和 Service Consumer 实现的 Filter。
+
+---
 
 38.【Spring Cloud】Kubernetes 中 Pod 的重启策略不包括？  
 A. Always  
@@ -1150,18 +1152,86 @@ C. OnFailure
 >[Kubernetes重启策略官方说明](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy): 
 > The spec of a Pod has a `restartPolicy` field with possible values **Always, OnFailure, and Never**. The default value is **Always**.
 
+---
 
 39.【Spring Boot】Spring Security推荐下面哪种加密方式？  
-A. bcrypt  
+**A. bcrypt**  
 B. ldap  
 C. md5  
 D. md4
+
+| 选项 | 判断 |
+|---|---|
+| A：bcrypt | **适合密码存储的自适应单向哈希算法** |
+| B：ldap | 目录访问协议，不是密码哈希算法 |
+| C：md5 | 计算快，不适合直接用于密码存储 |
+| D：md4 | 老旧且不安全，不适合密码存储 |
+
+BCrypt是一种**专门用于密码存储的单向哈希算法**，不能解密还原密码。
+
+- **自动加盐**：盐是随机数据，使相同密码也能产生不同的编码结果。
+- **成本可调**：可以提高计算耗时，增加暴力猜测密码的成本。
+- **盐随结果保存**：验证时使用已有盐，无需开发者单独管理；盐不是秘密，也不是解密密钥。
+
+```text
+张三：密码123456 + 随机盐A → 哈希结果A
+李四：密码123456 + 随机盐B → 哈希结果B
+```
+
+```java
+BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+
+// 注册时：自动加盐，编码并保存结果
+String stored = encoder.encode("123456");
+
+// 登录时：使用存储结果中的盐验证输入密码
+boolean correct = encoder.matches("123456", stored);
+```
+
+**使用 `matches()` 验证，不要重新 `encode()` 后直接比较字符串**，因为每次编码通常会生成不同的随机盐。
+
+---
+**知识延伸：**
+
+[Spring Security官方文档：密码编码器相关章节](https://docs.spring.io/spring-security/reference/features/authentication/password-storage.html)
+
+| 编码器 | 使用的算法 |
+|---|---|
+| **BCryptPasswordEncoder** | bcrypt |
+| **Argon2PasswordEncoder** | Argon2 |
+| **Pbkdf2PasswordEncoder** | PBKDF2 |
+| **SCryptPasswordEncoder** | scrypt |
+
+以上四个编码器分别对应Spring Security官方建议使用的自适应单向密码哈希算法。
+
+---
 
 40.【架构设计】多租户体系下（高并发数据读操作）数据库设计一般采用？  
 A. 垂直分库  
 B. 水平分表  
 C. 水平分库  
 D. 垂直分表
+
+“租户”可以理解为使用同一套系统的不同企业客户。按租户把相同结构的数据分到不同数据库实例，可以分散访问压力：
+
+```text
+租户A、B → 数据库实例1：订单表、用户表
+租户C、D → 数据库实例2：订单表、用户表
+租户E、F → 数据库实例3：订单表、用户表
+```
+
+| 选项 | 拆分方式 | 示例 |
+|---|---|---|
+| A：垂直分库 | 按业务拆库 | 用户库、订单库 |
+| B：水平分表 | 同类记录拆到多张表 | `orders_0`、`orders_1` |
+| C：水平分库 | 同类记录分散到多个库 | 按租户分配到不同数据库实例 |
+| D：垂直分表 | 按字段拆表 | 用户基本信息表、用户详细信息表 |
+
+这里要注意：**只在同一个数据库实例里创建多个逻辑库，不一定能分摊CPU、磁盘等资源压力。**
+
+题干信息较少，C是根据“按租户分散数据和并发负载”推断的命题答案，不能背成“多租户一定要水平分库”。实际还要结合读副本、缓存、租户规模及隔离要求判断。
+
+---
 
 41.【Kafka】以下关于Kafka分区数量描述错误的是？  
 A. 每个broker包含有分区个数、可用的磁盘空间和网络带宽  
