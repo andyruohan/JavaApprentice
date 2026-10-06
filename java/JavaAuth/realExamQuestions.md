@@ -1021,25 +1021,135 @@ Emit only the first item emitted by this Flux, into a new Mono.
 3. 由于SqlSessionTemplate继承SqlSession，所以SqlSessionTemplate也不是线程安全的。
 
 A. 1, 3  
-B. 1, 2  
+**B. 1, 2**  
 C. 1, 2, 3  
 D. 2, 3
+
+三个核心对象：
+
+| 对象 | 作用 | 是否可多线程共享 |
+|---|---|---|
+| `SqlSessionFactory` | 创建SqlSession，**通常配置为单例**，随应用长期复用 | ✅ |
+| `SqlSessionTemplate` | 统一调用入口，通过代理获取对应会话并委托执行 | ✅ |
+| `DefaultSqlSession` | 实际会话，关联连接、事务、一级缓存等状态 | ❌ |
+
+常规调用流程：
+```
+       userMapper.findById(1L)
+                │
+                ▼
+         Mapper代理解析调用
+                │
+                ▼
+    SqlSessionTemplate.selectOne(...)
+                │
+                ▼
+    内部动态代理 sqlSessionProxy
+                │
+                ▼
+    SqlSessionInterceptor.invoke()
+                │
+                ▼
+    获取当前事务对应的SqlSession
+       ├── 已有 → 复用
+       └── 没有 → SqlSessionFactory创建
+                   （通常单例，可共享）
+                │
+                ▼
+    底层SqlSession.selectOne(...)
+                │
+                ▼
+    通过执行器查询缓存或数据库
+```
+---
+知识延伸
+
+>[MyBatis-Spring官方说明](https://mybatis.org/spring/sqlsession.html): 
+> - `SqlSessionTemplate` is the heart of MyBatis-Spring. It implements `SqlSession` and is meant to be a drop-in replacement for any existing use of `SqlSession in` your code.
+> - `SqlSessionTemplate` is <font color = 'green'>thread safe</font> and can be shared by multiple DAOs or mappers.
+
+>[SqlSessionTemplate源码](https://mybatis.org/spring/xref/org/mybatis/spring/SqlSessionTemplate.html#L75):   
+```java
+// 核心源码节选，省略部分字段、方法及异常处理，非完整可编译代码
+public class SqlSessionTemplate implements SqlSession, DisposableBean {
+    private final SqlSession sqlSessionProxy;
+
+    public SqlSessionTemplate(
+            SqlSessionFactory sqlSessionFactory,
+            ExecutorType executorType,
+            PersistenceExceptionTranslator exceptionTranslator) {
+		
+        // 创建动态代理，而不是供所有线程共用的DefaultSqlSession
+        this.sqlSessionProxy = (SqlSession) newProxyInstance(
+            SqlSessionFactory.class.getClassLoader(),
+            new Class[] { SqlSession.class },
+            new SqlSessionInterceptor()
+        );
+    }
+
+    @Override
+    public <T> T selectOne(String statement) {
+        return this.sqlSessionProxy.selectOne(statement);
+    }
+
+    @Override
+    public <T> T selectOne(String statement, Object parameter) {
+        return this.sqlSessionProxy.selectOne(statement, parameter);
+    }
+
+    private class SqlSessionInterceptor implements InvocationHandler {
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args)
+                throws Throwable {
+
+            // 复用当前Spring事务的会话；没有时通过Factory创建
+            SqlSession sqlSession = getSqlSession(
+                SqlSessionTemplate.this.sqlSessionFactory,
+                SqlSessionTemplate.this.executorType,
+                SqlSessionTemplate.this.exceptionTranslator
+            );
+
+            // 以下简化了原源码的try/catch/finally结构
+            // 委托实际SqlSession执行selectOne等方法
+            Object result = method.invoke(sqlSession, args);
+
+            // 省略提交、异常处理和会话释放逻辑
+            return result;
+        }
+    }
+}
+```
+
 
 37.【Spring Cloud】微服务中，关于Sentinel的性能描述正确的是？
 1. Sentinel提供了丰富的控制台界面，方便用户查看监控信息
 2. Sentinel可以整合到Spring中，但无法和Dubbo整合
 3. Sentinel提供系统负载保护
 
-A. 1, 3  
+**A. 1, 3**  
 B. 1, 2, 3  
 C. 1, 2  
 D. 2, 3
+
+>[Sentinel框架官方适配说明](https://sentinelguard.io/zh-cn/docs/open-source-framework-integrations.html): Sentinel 提供 Dubbo 的相关适配 Sentinel Dubbo Adapter，主要包括针对 Service Provider 和 Service Consumer 实现的 Filter。
 
 38.【Spring Cloud】Kubernetes 中 Pod 的重启策略不包括？  
 A. Always  
 B. Never  
 C. OnFailure  
-D. DaemonSet
+**D. DaemonSet**
+
+| 选项 | 含义                  |
+|---|---------------------|
+| `Always` | 容器退出后，无论成功还是失败，都重启  |
+| `Never` | 容器退出后，不自动重启         |
+| `OnFailure` | 容器失败退出时重启           |
+| `DaemonSet` | **工作负载控制器，用于确保符合条件的节点运行指定Pod，不是重启策略** |
+
+>[Kubernetes重启策略官方说明](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy): 
+> The spec of a Pod has a `restartPolicy` field with possible values **Always, OnFailure, and Never**. The default value is **Always**.
+
 
 39.【Spring Boot】Spring Security推荐下面哪种加密方式？  
 A. bcrypt  
