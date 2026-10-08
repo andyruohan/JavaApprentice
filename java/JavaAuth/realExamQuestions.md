@@ -1374,10 +1374,29 @@ D. 仅根据每次请求携带数据进行相应的业务逻辑处理
 A. 全局非分区索引：在分区表上创建的全局普通索引，索引没有被分区  
 B. 局部分区索引：在分区表上创建的索引，在每个表分区上创建独立的索引，索引的分区范围与表一致（按照表分区对索引进行分区）  
 C. 全局分区索引：在分区表或非分区表上创建的索引，索引单独指定分区的范围，与表的分区范围或是否分区无关  
-D. 其他都是
+**D. 其他都是**
+
+记忆：**局部索引跟着表分区；全局分区索引独立分区；全局非分区索引自身不分区**。
+
+> [Oracle 官方文档](https://docs.oracle.com/database/121/TDPDW/tdpdw_physdes.htm#TDPDW365): 
+> Index Partitioning
+> 
+>
+>- **Local Indexes**
+>
+>  A local index is an index on a partitioned table that is coupled with the underlying partitioned table, **'inheriting' the partitioning strategy from the table.** 
+>
+>- **Global Partitioned Indexes**
+>
+>  A global partitioned index is an index on a partitioned or nonpartitioned table that **is partitioned using a different partitioning-key or partitioning strategy than the table**. Global-partitioned indexes can be partitioned using range or hash partitioning and **are uncoupled from the underlying table.** 
+>
+>- **Global Non-Partitioned Indexes**
+>
+>  **The index structure is not partitioned** and uncoupled from the underlying table.
+
 
 47.【Spring Boot】在Spring Boot中，关于 @Transactional 的使用，下面说法错误的是？  
-A. 将 @Transactional 放置在类级的声明中，会使得所有方法都有事务  
+**A. 将 @Transactional 放置在类级的声明中，会使得所有方法都有事务**  
 B. 使用了 @Transactional 的方法，被同一个类里面的方法调用，@Transactional 无效  
 C. 在接口上声明 @Transactional 时，注解可能无效  
 D. 使用了 @Transactional 的方法，可以是 public 或 protected
@@ -1430,12 +1449,206 @@ try (SqlSession session = sqlSessionFactory.openSession()) {
 
 49.【Spring Cloud】下列对于 LoadBalancer 描述正确的是？  
 A. 全局只有一个 BlockingLoadBalancerClient，负责执行所有的负载均衡请求  
-B. 其它三项均正确  
+**B. 其它三项均正确**  
 C. 每个微服务下有独自的 LoadBalancer，LoadBalancer 里面包含负载均衡的算法，根据算法从 ServiceInstanceListSupplier 返回的实例列表中选择一个实例返回  
 D. BlockingLoadBalancerClient 从 LoadBalancerClientFactory 里加载对应微服务的负载均衡配置
+
+```
+BlockingLoadBalancerClient
+          │
+          ▼
+根据serviceId向LoadBalancerClientFactory获取负载均衡器
+          │
+     ┌────┴───────────┐
+     ▼                ▼
+订单服务的LB      用户服务的LB
+     │                │
+获取各自实例列表，按算法选出一个实例
+```
+
+| 选项 | 解释 |
+|---|---|
+| A | 在常见单应用默认阻塞式配置下，共享一个 `BlockingLoadBalancerClient` 入口 |
+| C | 按目标服务ID维护对应的负载均衡器，从实例供应器提供的列表中选择实例 |
+| D | 客户端通过Factory获取目标服务对应的负载均衡组件 |
+| B | 按上述默认场景理解，其他三项成立 |
 
 50.【Mybatis】Mybatis默认采用哪种动态代理？  
 A. ASM  
 B. CGLIB  
-C. JDK动态代理  
+**C. JDK动态代理**  
 D. javassist
+
+| 名称 | 全称或名称含义 | 核心方式 | 代表使用场景 |
+|---|---|---|---|
+| **ASM** | 官方直接使用 ASM 这个名称，没有给出正式英文展开 | 直接操作字节码，生成或修改类 | **代码覆盖率统计、字节码插桩**，例如 JaCoCo |
+| **CGLIB** | **Code Generation Library**，官方项目描述为 Byte Code Generation Library，字节码生成库 | 生成目标类的子类 | **Spring AOP 的类代理**，例如为 Service 添加事务、日志 |
+| **JDK 动态代理** | **Java Development Kit Dynamic Proxy**；JDK 指 Java 开发工具包 | 生成实现指定接口的代理类 | **MyBatis Mapper 接口代理**、Spring AOP 的接口代理 |
+| **Javassist** | **Java Programming Assistant**，Java 编程助手 | 提供字节码操作和动态代理工具 | **运行时生成或修改类、创建代理对象**，例如通过 `ProxyFactory` 拦截方法 |
+
+下面用同一个例子说明：**调用 `sayHello()` 时，代理先打印日志，再执行原方法。**
+以下是核心示例，省略部分导包、异常声明和外围类。共同使用这个接口和实现类：
+
+```java
+public interface Hello {
+    void sayHello();
+}
+
+public class HelloService implements Hello {
+    public void sayHello() {
+        System.out.println("Hello");
+    }
+}
+```
+
+**① JDK 动态代理：实现接口，调用交给处理器**
+
+```java
+HelloService target = new HelloService();
+
+Hello proxy = (Hello) java.lang.reflect.Proxy.newProxyInstance(
+    Hello.class.getClassLoader(),
+    new Class<?>[] { Hello.class }, // 代理实现哪个接口
+    (proxyObject, method, args) -> {
+        System.out.println("调用前打印日志");
+
+        // 转交给真实对象执行
+        return method.invoke(target, args);
+    }
+);
+
+proxy.sayHello();
+```
+
+理解为：
+
+```text
+调用代理的 sayHello()
+        ↓
+InvocationHandler 处理调用
+        ↓
+打印日志 → 调用 target.sayHello()
+```
+
+**代理实现的是 `Hello` 接口，不是继承 `HelloService`。**MyBatis Mapper 使用的就是这类代理，但其处理器会把 Mapper 方法调用转换为 SQL 操作，不需要你提供 Mapper 实现类。[JDK 官方说明](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/reflect/Proxy.html)
+
+**② CGLIB：生成子类，拦截方法**
+
+这里使用 Spring 提供的 CGLIB 包：
+
+```java
+import org.springframework.cglib.proxy.Enhancer;
+import org.springframework.cglib.proxy.MethodInterceptor;
+
+Enhancer enhancer = new Enhancer();
+
+// 动态生成 HelloService 的子类
+enhancer.setSuperclass(HelloService.class);
+
+enhancer.setCallback((MethodInterceptor)
+    (proxyObject, method, args, methodProxy) -> {
+        System.out.println("调用前打印日志");
+
+        // 执行父类中的原方法
+        return methodProxy.invokeSuper(proxyObject, args);
+    }
+);
+
+HelloService proxy = (HelloService) enhancer.create();
+proxy.sayHello();
+```
+
+可以把生成的代理理解为下面这样的子类：
+
+```java
+class HelloServiceProxy extends HelloService {
+    @Override
+    public void sayHello() {
+        System.out.println("调用前打印日志");
+        super.sayHello();
+    }
+}
+```
+
+**即使 `HelloService` 不实现接口，这种方式也可以工作。**但类不能是 `final`，被拦截的方法也不能是 `final` 或 `private`。[Spring 官方说明](https://docs.spring.io/spring-framework/reference/core/aop/proxying.html)
+
+**③ Javassist：通过代理工厂生成子类**
+
+Javassist 不只有字节码编辑功能，也提供现成的 `ProxyFactory`：
+
+```java
+import javassist.util.proxy.ProxyFactory;
+import javassist.util.proxy.MethodHandler;
+
+ProxyFactory factory = new ProxyFactory();
+factory.setSuperclass(HelloService.class);
+
+// 本例只拦截 sayHello 方法
+factory.setFilter(method -> method.getName().equals("sayHello"));
+
+MethodHandler handler = (self, method, proceed, args) -> {
+    System.out.println("调用前打印日志");
+
+    // 执行原方法
+    return proceed.invoke(self, args);
+};
+
+HelloService proxy = (HelloService) factory.create(
+    new Class<?>[0], // 无参构造器
+    new Object[0],
+    handler
+);
+
+proxy.sayHello();
+```
+
+**这个例子同样是“生成子类 → 拦截调用 → 执行原方法”。**所以“Javassist 是字节码工具”与“它能创建动态代理”并不矛盾。[Javassist 代理工厂说明](https://www.javassist.org/html/javassist/util/proxy/ProxyFactory.html)
+
+**④ ASM：自己生成代理方法的字节码**
+
+ASM 更底层，没有像上面那样直接设置回调的统一代理 API。下面展示**生成子类中 `sayHello()` 方法的核心代码**，省略类定义、构造器生成和类加载：
+
+```java
+// cw 是用于生成代理子类的 ClassWriter
+// 代理子类的父类假设为 demo.HelloService
+MethodVisitor mv = cw.visitMethod(
+    ACC_PUBLIC, "sayHello", "()V", null, null
+);
+
+mv.visitCode();
+
+// 生成：System.out.println("调用前打印日志");
+mv.visitFieldInsn(
+    GETSTATIC, "java/lang/System",
+    "out", "Ljava/io/PrintStream;"
+);
+mv.visitLdcInsn("调用前打印日志");
+mv.visitMethodInsn(
+    INVOKEVIRTUAL, "java/io/PrintStream",
+    "println", "(Ljava/lang/String;)V", false
+);
+
+// 生成：super.sayHello();
+mv.visitVarInsn(ALOAD, 0);
+mv.visitMethodInsn(
+    INVOKESPECIAL, "demo/HelloService",
+    "sayHello", "()V", false
+);
+
+mv.visitInsn(RETURN);
+mv.visitMaxs(2, 1);
+mv.visitEnd();
+```
+
+这段字节码表达的意思，就是：
+
+```java
+public void sayHello() {
+    System.out.println("调用前打印日志");
+    super.sayHello();
+}
+```
+
+**ASM 需要你自己安排生成什么类、什么方法、执行什么指令。**它是构建代理机制的底层工具。[ASM 官方介绍](https://asm.ow2.io/)
+
+记忆：**JDK 实现接口；CGLIB 生成子类；Javassist 提供类生成和代理工具；ASM 直接编写字节码。**
