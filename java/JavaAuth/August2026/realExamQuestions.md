@@ -158,6 +158,60 @@ The Logger.Level object that you may configure per client, tells Feign how much 
 - FULL, Log the headers, body, and metadata for both requests and responses.
 ---
 
+**① NONE**
+
+```text
+无 Feign 请求、响应日志
+```
+
+**② BASIC**
+
+```text
+---> POST https://example.com/users HTTP/1.1
+<--- HTTP/1.1 201 Created (35ms)
+```
+
+**③ HEADERS**
+
+```text
+---> POST https://example.com/users HTTP/1.1
+Content-Type: application/json
+Accept: application/json
+---> END HTTP (16-byte body)
+
+<--- HTTP/1.1 201 Created (35ms)
+Content-Type: application/json
+Location: /users/1
+<--- END HTTP (23-byte body)
+```
+
+**④ FULL**
+
+```text
+---> POST https://example.com/users HTTP/1.1
+Content-Type: application/json
+Accept: application/json
+
+{"name":"Alice"}
+---> END HTTP (16-byte body)
+
+<--- HTTP/1.1 201 Created (35ms)
+Content-Type: application/json
+Location: /users/1
+
+{"id":1,"name":"Alice"}
+<--- END HTTP (23-byte body)
+```
+
+| 级别 | 请求方法、URL、响应状态码、耗时 | 请求／响应头 | 请求／响应正文 |
+|---|---|---|---|
+| `NONE`（默认） | ❌ | ❌ | ❌ |
+| `BASIC` | ✅ | ❌ | ❌ |
+| `HEADERS` | ✅ | ✅ | ❌ |
+| `FULL` | ✅ | ✅ | ✅ |
+
+---
+
 8.【架构设计】假设我们想利用mysqI双主模式通过内置的自增索引为基础来实现一个全局唯一id生成服务，因此在一个分布式系统中设置一个专门数据库，记录当前的Maxld值，插入记录时来取这个MaxId，然后自增1后插入。这种方案可能会导致？  
 A. 存在多点重复  
 B. 存在多点瓶颈  
