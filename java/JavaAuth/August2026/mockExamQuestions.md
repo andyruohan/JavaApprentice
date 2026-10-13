@@ -629,3 +629,169 @@ D. 将支付请求号记录在当前服务进程的内存集合中，集合存�
 | 20 | C | C | ✓ |
 
 **合计：答对 7/10，正确率 70%。**
+
+## 21．【Spring Security：认证流程】
+
+某系统使用标准的用户名、密码认证流程。数据库中保存的是 BCrypt 密码哈希，用户信息查询正常，账号也未过期或锁定。开发人员配置了下面的密码校验逻辑：
+
+```java
+public boolean matches(
+        CharSequence rawPassword, String encodedPassword) {
+    return encode(rawPassword).equals(encodedPassword);
+}
+```
+
+其中 `encode()` 每次都使用随机盐生成 BCrypt 哈希。正确密码也经常校验失败，最合理的修复是？（单选）
+
+A. 查询用户时，先把数据库中的哈希再次编码，再交给认证组件  
+B. 使用 BCrypt 自带的匹配方法，将输入的明文密码与数据库哈希进行校验  
+C. 注册和登录都使用同一个编码器实例，使随机盐保持一致  
+D. 将比较方式改为忽略大小写，避免哈希字符串大小写不同导致失败
+
+## 22．【MyBatis：缓存范围】
+
+程序直接使用 MyBatis，分别通过同一个 `SqlSessionFactory` 打开 `sessionA` 和 `sessionB`。两个会话独立，一级缓存使用默认配置，二级缓存关闭。
+
+假设数据库最初保存用户名字为 `"旧名字"`，依次执行：
+
+```text
+① sessionA 查询用户 1，得到“旧名字”
+② sessionB 更新用户 1 为“新名字”，并提交
+③ sessionA 再次执行与①完全相同的查询
+```
+
+期间 `sessionA` 没有提交、回滚、更新或清理缓存，也没有插件改变缓存行为。下列说法最准确的是？（单选）
+
+A. 两个会话来自同一个 Factory，因此②会自动清理 A 的一级缓存  
+B. B 提交后会更新 A 中已缓存的对象，因此③直接从缓存得到“新名字”  
+C. 一级缓存只缓存 SQL，不缓存查询结果，因此③一定访问数据库  
+D. ③可以命中 A 的一级缓存，仍返回“旧名字”；B 的更新不会自动清理 A 的一级缓存
+
+**解析：正确答案 D。**
+
+虽然两个会话来自同一个 `SqlSessionFactory`，但它们的一级缓存彼此独立。一级缓存保存的是查询结果，不只是 SQL。
+
+```text
+              SqlSessionFactory
+                 /         \
+                ↓           ↓
+           sessionA      sessionB
+                │           │
+           一级缓存 A    一级缓存 B
+                \           /
+                 ↓         ↓
+                   数据库
+```
+
+| 步骤 | 操作 | A 的一级缓存 | 数据库 |
+|---|---|---|---|
+| ① | A 查询用户 1 | 缓存“旧名字” | 旧名字 |
+| ② | B 更新用户 1 并提交 | **仍是“旧名字”** | 新名字 |
+| ③ | A 再次执行相同查询 | 命中缓存，返回“旧名字” | 新名字 |
+
+**B 更新数据库，不会自动修改或清理 A 已缓存的查询结果。**
+
+**一级缓存的清理情况**
+
+| 操作 | 是否清理当前会话的一级缓存 | 出处原文或关键源码 |
+|---|---|---|
+| 当前会话执行 `insert`、`update`、`delete`，或调用 `commit()`、`rollback()`、`close()` | **会** | “The local cache is cleared upon `update`, `commit`, `rollback` and `close`.” [官方原文](https://mybatis.org/mybatis-3/java-api.html#Local_Cache)<br>`insert()`、`delete()` 也会转调 `update()`：[源码](https://mybatis.org/mybatis-3/xref/org/apache/ibatis/session/defaults/DefaultSqlSession.html#L183) |
+| 当前会话调用 `clearCache()` | **会** | `executor.clearLocalCache();` [源码](https://mybatis.org/mybatis-3/xref/org/apache/ibatis/session/defaults/DefaultSqlSession.html) |
+| 执行配置了 `flushCache="true"` 的普通查询 | **查询前清理** | `if (queryStack == 0 && ms.isFlushCacheRequired()) { clearLocalCache(); }` [源码](https://mybatis.org/mybatis-3/xref/org/apache/ibatis/executor/BaseExecutor.html#L148) |
+| 使用 `localCacheScope=STATEMENT` | **一次最外层查询结束后清理** | `if (configuration.getLocalCacheScope() == LocalCacheScope.STATEMENT) { clearLocalCache(); }` [源码](https://mybatis.org/mybatis-3/xref/org/apache/ibatis/executor/BaseExecutor.html#L169) |
+| **另一个会话**执行更新、提交 | **不会自动清理当前会话** | `this.localCache = new PerpetualCache("LocalCache");` [源码](https://mybatis.org/mybatis-3/xref/org/apache/ibatis/executor/BaseExecutor.html#L68)<br>**源码推导：**各执行器拥有独立缓存，清理仅作用于自身。 |
+| 查询参数改变 | **不会仅因此清理** | `cacheKey.update(value);` [源码](https://mybatis.org/mybatis-3/xref/org/apache/ibatis/executor/BaseExecutor.html#L228)<br>**源码推导：**实际 SQL 参数值参与生成缓存键，变化通常导致缓存不命中，而不是清理旧缓存。 |
+
+**与第 17 题对比**
+
+| 场景 | 对 A 的一级缓存的影响 |
+|---|---|
+| A 自己执行更新，即使更新的是其他记录 | 清理 A 的整个一级缓存 |
+| B 执行更新并提交，即使更新的是 A 缓存的记录 | 不自动清理 A 的一级缓存 |
+
+如果需要让 A 不再使用旧缓存，可以执行：
+
+```java
+sessionA.clearCache();
+User user = mapperA.findById(1L);
+```
+
+在本题二级缓存关闭的前提下，这次查询会重新访问数据库。但**清理 MyBatis 缓存不等于刷新数据库事务快照**，能否读取到新值，还取决于数据库隔离级别和事务状态。
+
+**记忆：自己的更新清自己的缓存；别人的更新不会自动清我的缓存。**
+
+## 23．【Spring Boot：线程池任务调度】
+
+某 `ThreadPoolTaskExecutor` 的配置如下：
+
+```java
+executor.setCorePoolSize(2);
+executor.setMaxPoolSize(4);
+executor.setQueueCapacity(2);
+executor.setRejectedExecutionHandler(
+    new ThreadPoolExecutor.AbortPolicy()
+);
+```
+
+线程池初始为空，连续提交 6 个任务。假设这些任务都执行很久，**提交第 6 个任务时，前面已经开始的任务均未结束**，线程创建正常。
+
+提交完这 6 个任务后，最符合该配置的状态是？（单选）
+
+A. 4 个任务已分配给工作线程，2 个任务在队列中，无任务被拒绝  
+B. 2 个任务已分配给工作线程，2 个任务在队列中，另外 2 个任务被拒绝  
+C. 4 个任务已分配给工作线程，另外 2 个任务由提交任务的线程执行  
+D. 6 个任务都已分配给工作线程，因为队列容量会增加最大线程数
+
+## 24．【Spring：异步调用与事务】
+
+系统使用普通的 Spring 代理式事务管理和异步执行。两个方法位于不同的 Spring Bean 中，均通过代理调用：
+
+```java
+@Transactional
+public void createOrder() {
+    orderMapper.insert(order);
+    notificationService.sendAsync(order.getId());
+}
+```
+
+```java
+@Async
+public void sendAsync(Long orderId) {
+    // 在另一个线程中查询订单并发送通知
+}
+```
+
+没有额外配置事务上下文传播或提交后回调。下列说法正确的是？（单选）
+
+A. 异步方法自动加入创建订单的事务，查询时一定能读取到尚未提交的订单  
+B. `@Async` 会自动等到外层事务提交成功后，再开始执行任务  
+C. 异步线程不会自动继承调用线程的事务，任务可能在订单提交前开始；若要求提交成功后才触发，应显式安排提交后的处理  
+D. 异步方法中只要抛出异常，创建订单的事务就一定回滚
+
+## 25．【架构设计：数据库与消息的一致性】
+
+订单服务需要同时完成两件事：
+
+- 将订单写入关系型数据库。
+- 向消息队列发送“订单已创建”事件。
+
+系统不使用跨数据库与消息队列的分布式事务。要求服务崩溃重启后仍能补发事件，允许消息重复，但消费者必须避免重复处理。
+
+哪种设计最符合要求？（单选）
+
+A. 先发送消息，再写订单；发送成功即可保证数据库最终一定存在该订单  
+B. 先提交订单，再直接发送消息；发送失败只记录应用日志，不保存待发送任务  
+C. 将数据库操作与消息发送放进同一个 `@Transactional` 方法，即可自动保证两者一起提交或回滚  
+D. 在同一个数据库事务中保存订单和待发送事件，由后台任务重试投递，并由消费者按事件唯一标识实现幂等处理
+
+## 答案与作答记录
+
+| 题号 | 我的答案 | 正确答案 | 结果 |
+|---|---|---|---|
+| 21 | B | B | ✓ |
+| 22 | B | D | ✗ |
+| 23 | A | A | ✓ |
+| 24 | C | C | ✓ |
+| 25 | D | D | ✓ |
+
+**合计：答对 4/5，正确率 80%。**
