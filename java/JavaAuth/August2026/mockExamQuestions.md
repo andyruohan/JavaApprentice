@@ -1375,3 +1375,444 @@ D. 新会话不能使用二级缓存，因为任意一个会话关闭都会清�
 | 40 | B | B | ✓ |
 
 **合计：答对 4/5，正确率 80%。**
+
+# 专项练习：41～50 题
+
+以下均为单选题。
+
+## 41．【Spring：REQUIRED 与回滚标记】
+
+两个方法位于不同的 Spring Bean 中，调用均经过事务代理。使用同一个事务管理器和默认回滚规则：
+
+```java
+@Transactional
+public void outer() {
+    orderMapper.insert(order);
+    try {
+        auditService.saveAudit();
+    } catch (IllegalStateException e) {
+        // 记录日志，不再抛出
+    }
+}
+```
+
+```java
+@Transactional(propagation = Propagation.REQUIRED)
+public void saveAudit() {
+    auditMapper.insert(audit);
+    throw new IllegalStateException("模拟失败");
+}
+```
+
+假设两次插入成功，没有其他特殊配置。外层结束时，最符合默认行为的是？
+
+A. 订单提交，审计记录回滚，因为每个事务方法可以独立回滚  
+B. 两项都提交，因为异常没有传播出 `outer()`  
+C. 两项都回滚，外层尝试提交时通常抛出 `UnexpectedRollbackException`  
+D. 两项都回滚，但外层调用者一定不会收到异常，因为业务异常已被捕获
+
+**我的答案：D。正确答案：C。**
+
+### 解析：捕获了业务异常，为什么仍然会报错？
+
+业务异常被捕获，不代表事务的回滚标记被撤销。
+
+```text
+saveAudit() 抛出 IllegalStateException
+          ↓
+内层事务代理将共享事务标记为 rollback-only
+          ↓
+外层 catch 捕获 IllegalStateException
+          ↓
+outer() 正常返回
+          ↓
+外层事务代理尝试提交，发现事务只能回滚
+          ↓
+执行回滚，抛出 UnexpectedRollbackException
+```
+
+**这里有两个不同的异常：**
+
+| 异常 | 发生位置 | 是否被题目中的 catch 捕获 |
+|---|---|---|
+| `IllegalStateException` | 内层业务方法 | 是 |
+| `UnexpectedRollbackException` | 外层方法返回后的事务提交阶段 | 否 |
+
+### 补充问答：既然已经捕获异常，调用方还会收到异常吗？
+
+**我的疑问：**
+
+> 既然已经捕获异常了，这段代码还会报错吗？我在实际项目中没有遇到过这种情况。
+
+**解答：**
+
+**会。`outer()` 方法体结束，不代表事务已经提交；提交发生在方法体外面的事务代理中。**
+
+可以将代理的工作简化理解为：
+
+```java
+// 示意代码：Spring 事务代理
+public void 调用outer() {
+    开启事务();
+
+    target.outer(); // 业务代码，里面的 catch 已经执行完
+
+    提交事务();     // 发现 rollback-only，回滚并抛出新异常
+}
+```
+
+`outer()` 内部的 `catch` 无法捕获该方法返回以后、代理提交事务时发生的异常。
+
+例如：
+
+```java
+@Transactional
+public void outer() {
+    orderMapper.insert(order);
+
+    try {
+        auditService.saveAudit();
+    } catch (IllegalStateException e) {
+        System.out.println("① 已捕获业务异常");
+    }
+
+    System.out.println("② outer 方法体执行结束");
+}
+```
+
+调用方：
+
+```java
+try {
+    orderService.outer();
+    System.out.println("③ 调用成功");
+} catch (UnexpectedRollbackException e) {
+    System.out.println("④ 提交失败，事务实际已回滚");
+}
+```
+
+在题目条件下，输出是：
+
+```text
+① 已捕获业务异常
+② outer 方法体执行结束
+④ 提交失败，事务实际已回滚
+```
+
+**③ 不会输出。**要等事务代理也处理成功，这次调用才算正常返回。
+
+实际项目中没有遇到，可能是以下条件不同：
+
+| 实际情况 | 与第 41 题的区别 |
+|---|---|
+| 同类中使用 `this.inner()` | 没经过内层事务代理；对应第 36 题 |
+| 异常在内层方法里面就被捕获 | 异常没有传播到内层事务代理，不会由该代理因这个异常触发回滚 |
+| 内层使用生效的 `REQUIRES_NEW` | 内外是独立事务，内层回滚不直接将外层标记为只能回滚；外层若捕获异常，可以继续提交 |
+| 更上层或全局异常处理器捕获了异常 | 异常实际发生了，但可能被统一转换成响应，因此调用者没有直接看到异常堆栈 |
+
+前两种情况还需要排除数据库错误、手动设置 `rollback-only` 等其他回滚原因；**不能理解为“只要捕获异常，就一定能提交”。**
+
+Spring 官方说明：内层将共享事务标记为只能回滚后，外层尝试提交时需要收到 `UnexpectedRollbackException`，避免调用者误以为数据已经提交。
+
+出处：[Spring 官方事务传播说明](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/tx-propagation.html)
+
+**记忆：捕获业务异常，不会撤销已经设置的 rollback-only；提交阶段还可能抛出新异常。**
+
+## 42．【Spring：REQUIRES_NEW 与独立提交】
+
+两个方法位于不同的 Spring Bean 中，调用均经过事务代理。数据库连接充足，两项操作不存在锁冲突或外键依赖：
+
+```java
+@Transactional
+public void createOrder() {
+    orderMapper.insert(order);
+    auditService.saveAudit();
+    throw new IllegalStateException("订单处理失败");
+}
+```
+
+```java
+@Transactional(propagation = Propagation.REQUIRES_NEW)
+public void saveAudit() {
+    auditMapper.insert(audit);
+}
+```
+
+审计方法正常完成，异常未被外层捕获。最终结果是什么？
+
+A. 订单回滚，审计记录提交  
+B. 订单和审计记录都回滚，因为异常最终离开了最外层方法  
+C. 订单提交，审计记录回滚，因为新事务优先承担回滚  
+D. 两项都提交，因为内部新事务提交会同时提交外层事务
+
+## 43．【SQL：NOT IN 与 NULL】
+
+表中数据如下：
+
+```text
+customer
+id
+1
+2
+3
+
+blocked_customer
+customer_id
+2
+NULL
+```
+
+执行：
+
+```sql
+SELECT id
+FROM customer
+WHERE id NOT IN (
+    SELECT customer_id
+    FROM blocked_customer
+);
+```
+
+在标准 SQL 的 NULL 比较语义下，结果是什么？
+
+A. 返回 `1、3`，因为 NULL 会被 `NOT IN` 自动忽略  
+B. 返回 `1、2、3`，因为子查询有 NULL，整个条件被忽略  
+C. 语法报错，因为 `NOT IN` 子查询不能返回 NULL  
+D. 不返回任何行，因为没有一行的条件计算结果为 TRUE
+
+**我的答案：A。正确答案：D。**
+
+### 解析：NOT IN 不会自动忽略 NULL
+
+```sql
+id NOT IN (2, NULL)
+```
+
+可以理解为：
+
+```sql
+id <> 2 AND id <> NULL
+```
+
+SQL 中，与 `NULL` 使用普通比较运算，结果是 **UNKNOWN（未知）**。
+
+| id | `id <> 2` | `id <> NULL` | AND 的结果 | WHERE 是否保留 |
+|---|---|---|---|---|
+| 1 | TRUE | UNKNOWN | UNKNOWN | 否 |
+| 2 | FALSE | UNKNOWN | FALSE | 否 |
+| 3 | TRUE | UNKNOWN | UNKNOWN | 否 |
+
+**WHERE 只保留条件为 TRUE 的行**，因此本题不返回任何行。
+
+如果希望查询未被拉黑的客户，可以过滤子查询中的 NULL：
+
+```sql
+SELECT id
+FROM customer
+WHERE id NOT IN (
+    SELECT customer_id
+    FROM blocked_customer
+    WHERE customer_id IS NOT NULL
+);
+```
+
+也可以使用关联的 `NOT EXISTS`：
+
+```sql
+SELECT c.id
+FROM customer c
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM blocked_customer b
+    WHERE b.customer_id = c.id
+);
+```
+
+在本题数据下，这两种改写都返回客户 `1、3`。
+
+## 44．【SQL：同时统计全部订单与已支付订单】
+
+需要返回**所有客户**，并统计每个客户的：
+
+- 全部订单数；
+- 已支付订单数。
+
+没有订单的客户，两项都应为 0。`orders.id` 是非空主键。
+
+哪条 SQL 满足要求？
+
+**A.**
+```sql
+SELECT c.id,
+       COUNT(o.id) AS total_count,
+       COUNT(o.id) AS paid_count
+FROM customer c
+LEFT JOIN orders o ON o.customer_id = c.id
+WHERE o.status = 'PAID'
+GROUP BY c.id;
+```
+
+**B.**
+```sql
+SELECT c.id,
+       COUNT(o.id) AS total_count,
+       SUM(CASE WHEN o.status = 'PAID' THEN 1 ELSE 0 END) AS paid_count
+FROM customer c
+LEFT JOIN orders o ON o.customer_id = c.id
+GROUP BY c.id;
+```
+
+**C.**
+```sql
+SELECT c.id,
+       COUNT(*) AS total_count,
+       SUM(CASE WHEN o.status = 'PAID' THEN 1 ELSE 0 END) AS paid_count
+FROM customer c
+LEFT JOIN orders o ON o.customer_id = c.id
+GROUP BY c.id;
+```
+
+**D.**
+```sql
+SELECT c.id,
+       COUNT(o.id) AS total_count,
+       SUM(CASE WHEN o.status = 'PAID' THEN 1 ELSE 0 END) AS paid_count
+FROM customer c
+JOIN orders o ON o.customer_id = c.id
+GROUP BY c.id;
+```
+
+**我的答案：D。正确答案：B。**
+
+### 解析：统计正确，还要保证客户没有被遗漏
+
+D 的聚合表达式正确，但 `JOIN` 默认是 `INNER JOIN`，没有订单的客户会被排除，不满足“所有客户”的要求。
+
+B 的三个关键点：
+
+| 写法 | 作用 |
+|---|---|
+| `LEFT JOIN` | 保留所有客户 |
+| `COUNT(o.id)` | 只计算非 NULL 的订单编号，没有订单时得到 0 |
+| `SUM(CASE WHEN ... THEN 1 ELSE 0 END)` | 已支付订单计 1，其他情况计 0 |
+
+| 选项 | 问题 |
+|---|---|
+| A | WHERE 过滤后只剩已支付订单，既会遗漏客户，也无法统计全部订单 |
+| B | 正确，保留所有客户并分别统计两类数量 |
+| C | `COUNT(*)` 会把无订单客户的补 NULL 行也计入，得到 1 |
+| D | INNER JOIN 会遗漏没有订单的客户 |
+
+## 45．【MyBatis：二级缓存与其他会话的一级缓存】
+
+`UserMapper` 已开启二级缓存，一级缓存范围为 `SESSION`，查询和更新均采用默认缓存配置。初始二级缓存为空，按以下顺序执行：
+
+```text
+① A 查询用户 1，得到“旧名字”，A 不提交、不关闭
+② B 更新用户 1 为“新名字”，并提交
+③ A 再次执行与①相同的查询
+```
+
+A、B 是独立会话。期间没有其他查询、操作或插件干预。
+
+下列说法正确的是？
+
+A. A 必然得到“新名字”，因为 B 提交时会同步更新所有缓存对象  
+B. A 必然访问数据库，因为清理二级缓存会同时清理各会话的一级缓存  
+C. A 可以先发现二级缓存未命中，再命中自己的一级缓存，返回“旧名字”  
+D. A 的查询会失败，因为 B 更新后，A 的一级缓存被标记为不可访问
+
+## 46．【线程池：CallerRunsPolicy】
+
+某线程池配置为：
+
+```java
+corePoolSize = 1;
+maximumPoolSize = 1;
+workQueue = new ArrayBlockingQueue<>(1);
+rejectedExecutionHandler = new ThreadPoolExecutor.CallerRunsPolicy();
+```
+
+线程池正常运行、未关闭。主线程依次调用 `execute()` 提交任务 A、B、C。提交 C 时：
+
+- A 正在工作线程中执行，尚未结束；
+- B 仍在队列中；
+- C 是一个耗时任务。
+
+下列说法正确的是？
+
+A. C 由提交它的主线程执行，主线程要等 C 执行结束，才从本次 `execute()` 返回  
+B. C 会创建第二个工作线程执行，因为拒绝策略可以突破最大线程数  
+C. C 会替换队列中的 B，B 被丢弃  
+D. C 被静默丢弃，主线程立即从 `execute()` 返回
+
+## 47．【消息可靠性：生产者确认与消费者确认】
+
+某 RabbitMQ 应用同时启用了生产者确认和消费者手动确认。下列理解正确的是？
+
+A. 生产者收到发布确认，就说明消费者的数据库事务已经提交  
+B. 消费者发送 ACK 后，生产者才会收到对应的发布确认  
+C. 启用这两类确认后，消息不会重复投递，业务不再需要幂等  
+D. 两类确认关注不同阶段；生产者收到发布确认，不代表消费者已经完成业务处理
+
+## 48．【架构设计：读写分离与读己之写】
+
+系统采用主从异步复制。用户提交资料修改后，主库事务已成功提交，页面随即发起查询，但从库尚未同步，页面显示旧资料。
+
+如果要求**本次修改后的紧接查询能看到这次修改**，哪种方案最直接且可靠？
+
+A. 修改成功后清理应用缓存，紧接查询仍随机路由到任意从库  
+B. 将这次紧接查询路由到主库，并在能够看到已提交修改的新事务中执行  
+C. 固定等待 50 毫秒，再随机查询从库，即可保证复制完成  
+D. 为从库查询增加 Redis 分布式锁，即可保证主从数据一致
+
+## 49．【MyBatis：自定义二级缓存】
+
+开发人员实现了一个基于 Redis 的 MyBatis `Cache`，并通过 Mapper 的 `<cache type="..."/>` 接入。
+
+假设每个 Mapper 使用独立的缓存标识。关于自定义缓存的 `clear()` 方法，下列设计最合理的是？
+
+A. 直接执行 Redis `FLUSHALL`，因为 MyBatis 要求清理所有 Mapper 的缓存  
+B. 只清理当前线程最近查询的那个键，因为 `clear()` 的范围就是一条记录  
+C. 清理该缓存实例所属的全部条目，并通过缓存标识隔离，避免删除其他 Mapper 或业务的数据  
+D. 不执行任何操作，因为数据库更新后 Redis 会自动识别并删除相关查询结果
+
+## 50．【架构设计：设计模式与扩展】
+
+系统根据客户类型计算折扣。当前代码包含大量分支：
+
+```java
+if (type == NORMAL) {
+    // 普通客户折扣
+} else if (type == VIP) {
+    // VIP 折扣
+} else if (type == PARTNER) {
+    // 合作伙伴折扣
+}
+```
+
+现在希望将不同折扣算法独立封装，按客户类型选择，并让新增算法尽量不修改已有算法实现。
+
+哪种设计最符合这一目标？
+
+A. 使用单例模式，保证所有折扣算法只存在一个实例  
+B. 使用策略模式，为不同折扣算法提供统一接口，并通过注册表等方式选择实现  
+C. 使用代理模式，为原来的整个分支方法添加统一日志，但保留所有算法分支  
+D. 使用模板方法模式，仅把所有折扣分支原样搬进父类的一个固定方法中，不设置可替换步骤
+
+## 答案与作答记录
+
+| 题号 | 我的答案 | 正确答案 | 结果 |
+|---|---|---|---|
+| 41 | D | C | ✗ |
+| 42 | A | A | ✓ |
+| 43 | A | D | ✗ |
+| 44 | D | B | ✗ |
+| 45 | C | C | ✓ |
+| 46 | A | A | ✓ |
+| 47 | D | D | ✓ |
+| 48 | B | B | ✓ |
+| 49 | C | C | ✓ |
+| 50 | B | B | ✓ |
+
+**合计：答对 7/10，正确率 70%。**
