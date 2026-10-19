@@ -232,12 +232,28 @@ B. Zookeeper用于执行Kafka集群间的数据同步
 C. Zookeeper负责处理Kafka消费者的网络连接  
 D. **Zookeeper负责管理Kafka中的主题分区**  
 
-| 工作              | 主要负责方 |
-|-----------------|---|
-| 存储消息            | Broker上的分区日志 |
-| 分区副本复制          | Broker之间的Leader/Follower机制 |
-| 元数据协调、控制器选举相关协调 | ZooKeeper与Kafka控制器 |
-| 处理消费者拉取请求       | Broker |
+| 选项 | 描述的工作 | 实际主要负责方 | 说明 |
+|---|---|---|---|
+| A | 存储 Kafka 消息数据 | **Broker** | 消息保存在 Broker 上的分区日志中 |
+| B | Kafka 集群间的数据同步 | **MirrorMaker 等跨集群复制工具** | 如果是同一集群内的分区副本复制，则由 Broker 之间完成 |
+| C | 处理消费者的网络连接 | **Broker** | 消费者与 Broker 建立连接，发送拉取请求并获取消息 |
+| D | 管理主题、分区相关信息 | **ZooKeeper 与 Kafka Controller 配合** | ZooKeeper 存储相关元数据并提供协调；Controller 负责分区领导者选举等控制操作 |
+---
+**知识延伸：
+Zookeeper存储的元数据包括哪些？**
+
+在 Kafka 的 ZooKeeper 模式下，元数据主要是描述“集群怎么组织、谁负责什么”的信息，不是消息正文。
+
+| 元数据类别 | 主要内容 | 举例 | ZooKeeper 路径 |
+|---|---|---|---|
+| **Broker 注册信息** | Broker ID、连接地址、注册状态等 | Broker 1 的地址是 `host1:9092` | `/brokers/ids/<brokerId>` |
+| **Topic 与分区信息** | Topic 信息、各分区的副本分配 | `orders` 的分区 0，副本位于 Broker 1、2、3 | `/brokers/topics/<topic>` |
+| **分区领导者与 ISR** | 分区 Leader、同步副本集合等 | 分区 0 的 Leader 是 Broker 1，ISR 为 `[1,2]` | `/brokers/topics/<topic>/partitions/<partitionId>/state` |
+| **Controller 信息** | 当前 Controller 的身份及任期编号等 | Broker 2 当前担任 Controller | `/controller`、`/controller_epoch` |
+| **动态配置信息** | Topic、Broker 等的配置覆盖项 | 某 Topic 的消息保留时间 | `/config/topics/<topic>`、`/config/brokers/<brokerId>` 等 |
+| **管理操作信息** | 分区副本重新分配、删除 Topic 等操作的相关状态或通知 | 将某分区的副本迁移到其他 Broker | `/admin/reassign_partitions`、`/admin/delete_topics/<topic>` 等 |
+
+来源：[Apache Kafka 官方 ZooKeeper 数据结构说明](https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=62688426)。具体路径和用途可能随 Kafka 版本变化。
 
 ---
 
