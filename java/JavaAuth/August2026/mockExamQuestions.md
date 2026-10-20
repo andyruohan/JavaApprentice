@@ -2099,3 +2099,174 @@ D. 将 A 的健康检查间隔缩短，使 B 自动获得 A 内存中的登录�
 | 55 | C | C | ✓ |
 
 **合计：答对 4/5，正确率 80%。**
+
+# 专项练习：56～60 题
+
+以下均为单选题。
+
+## 56．【SQL：不存在与关联条件】
+
+有以下数据，两个表的 `id` 均为非空主键：
+
+```text
+customer
+id | name
+1  | 张三
+2  | 李四
+3  | 王五
+
+orders
+id  | customer_id | status
+101 | 1           | PAID
+102 | 1           | UNPAID
+103 | 2           | UNPAID
+```
+
+执行：
+
+```sql
+SELECT c.id
+FROM customer c
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM orders o
+    WHERE o.customer_id = c.id
+      AND o.status = 'PAID'
+);
+```
+
+返回哪些客户？
+
+A. 只有王五，因为 `NOT EXISTS` 表示完全没有订单  
+B. 张三、李四，因为他们都存在未支付订单  
+C. 李四、王五，因为他们都没有已支付订单  
+D. 不返回任何客户，因为订单表中存在已支付订单
+
+## 57．【SQL：平均值的计算范围】
+
+员工数据如下，部门编号和工资均非空：
+
+```text
+employee
+id | department_id | salary
+1  | 10            | 100
+2  | 10            | 300
+3  | 20            | 800
+4  | 20            | 1000
+```
+
+下面两条 SQL 的区别只有子查询中的关联条件。
+
+```sql
+-- 查询一
+SELECT e.id
+FROM employee e
+WHERE e.salary > (
+    SELECT AVG(e2.salary)
+    FROM employee e2
+    WHERE e2.department_id = e.department_id
+);
+```
+
+```sql
+-- 查询二
+SELECT e.id
+FROM employee e
+WHERE e.salary > (
+    SELECT AVG(e2.salary)
+    FROM employee e2
+);
+```
+
+不考虑返回顺序，下列结果正确的是？
+
+A. 查询一返回 `2、4`；查询二返回 `3、4`  
+B. 查询一返回 `2、4`；查询二返回 `4`  
+C. 两条查询都返回 `2、4`，因为外层存在部门字段就会自动按部门求平均  
+D. 查询一报错，因为子查询不能引用外层别名；查询二返回 `3、4`
+
+## 58．【Kafka：副本与 ISR】
+
+某分区的状态如下：
+
+```text
+全部副本所在 Broker：[1, 2, 3]
+Leader：Broker 1
+ISR：[1, 2]
+```
+
+已知 Broker 3 的副本因复制落后被移出 ISR，尚未完成追赶。此时 Broker 1 故障，Broker 2 正常。假设禁止非同步副本参与的不干净领导者选举，也没有其他特殊选举机制。
+
+下列说法正确的是？
+
+A. Broker 3 更适合成为 Leader，因为它不在 ISR 中，当前负载更低  
+B. ISR 不包含 Leader，所以题目中的 ISR 配置不合法  
+C. Broker 2、3 都有副本，因此成为新 Leader 的资格完全相同  
+D. Broker 2 是合适的新 Leader 候选；Broker 3 虽然保存副本，但当前不符合本题的选举条件
+
+## 59．【Kafka：ZooKeeper 保存什么】
+
+某 Kafka 集群运行在 ZooKeeper 模式。运维人员检查到以下信息：
+
+```text
+/brokers/topics/orders
+    分区 0 的副本分配：[1, 2, 3]
+
+/brokers/topics/orders/partitions/0/state
+    leader：1
+    isr：[1, 2]
+```
+
+现在需要查找一条消息正文：
+
+```json
+{"orderId":1001,"status":"PAID"}
+```
+
+下列理解正确的是？
+
+A. 消息正文应保存在 `state` 节点，因为这里记录了分区当前状态  
+B. 上述节点保存分区的组织和状态信息，实际消息保存在对应 Broker 的分区日志中  
+C. ISR 只有两个副本，说明 ZooKeeper 只保存了这条消息的两个副本  
+D. Controller 保存所有消息正文，其他 Broker 只保存消息偏移量
+
+## 60．【Spring：REQUIRES_NEW 与异常传播】
+
+`OrderService` 和 `AuditService` 是不同的 Spring Bean，调用均经过事务代理。两者使用同一个事务管理器，连接充足，数据库操作不存在锁冲突或外键依赖。
+
+```java
+// OrderService
+@Transactional
+public void createOrder() {
+    orderMapper.insert(order);
+    auditService.saveAudit();
+}
+```
+
+```java
+// AuditService
+@Transactional(propagation = Propagation.REQUIRES_NEW)
+public void saveAudit() {
+    auditMapper.insert(audit);
+    throw new IllegalStateException("审计失败");
+}
+```
+
+两次插入均成功执行，外层**没有捕获异常**，使用默认回滚规则。最终结果是什么？
+
+A. 审计回滚、订单提交，因为独立事务之间不会互相影响  
+B. 两项都提交，因为异常发生在插入之后  
+C. 两项都回滚：内层事务因异常回滚；异常继续传播出外层方法，外层事务也按回滚规则回滚  
+D. 两项都回滚，因为 `REQUIRES_NEW` 会将内外两个事务合并，并共享同一个回滚标记
+
+## 答案与作答记录
+
+| 题号 | 我的答案 | 正确答案 | 结果 | 作答理由（整理后） |
+|---|---|---|---|---|
+| 56 | C | C | ✓ | 查询当前客户是否不存在已支付订单，因此选出李四、王五 |
+| 57 | A | A | ✓ | 查询一按当前员工所属部门计算平均值，分别为 200、900；查询二计算全体平均值 550 |
+| 58 | D | D | ✓ | Broker 3 不在 ISR 中，且本题禁止不干净领导者选举，因此不符合候选条件 |
+| 59 | B | B | ✓ | ZooKeeper 保存元数据，不保存实际消息正文；正文保存在 Broker 的分区日志中 |
+| 60 | C | C | ✓ | 内层异常触发独立事务回滚；异常未被外层捕获，继续触发外层事务回滚 |
+
+**合计：答对 5/5，正确率 100%。**
