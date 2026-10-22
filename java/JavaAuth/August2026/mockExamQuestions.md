@@ -2270,3 +2270,369 @@ D. 两项都回滚，因为 `REQUIRES_NEW` 会将内外两个事务合并，并�
 | 60 | C | C | ✓ | 内层异常触发独立事务回滚；异常未被外层捕获，继续触发外层事务回滚 |
 
 **合计：答对 5/5，正确率 100%。**
+
+# 专项练习：61～70 题
+
+以下均为单选题。
+
+## 61．【MyBatis：对象生命周期】
+
+某 Web 应用没有使用 MyBatis-Spring，而是直接使用 MyBatis。多个请求可能同时查询或修改数据库。
+
+以下对象管理方式最合理的是？
+
+A. 应用共享一个 `SqlSessionFactory` 和一个 `SqlSession`，通过不同 Mapper 区分请求  
+B. 应用共享一个 `SqlSessionFactory`；每个独立工作单元获取自己的 `SqlSession`，按需提交或回滚，最终关闭  
+C. 每执行一条 SQL 都重新解析配置并创建 `SqlSessionFactory`，避免线程安全问题  
+D. 应用共享一个 `SqlSession`，只要每次执行前调用 `clearCache()`，就能保证并发安全
+
+## 62．【Spring MVC：Interceptor 执行顺序】
+
+普通同步请求配置了三个 Interceptor，注册顺序为：
+
+```text
+I1 → I2 → I3
+```
+
+执行时：
+
+- I1 的 `preHandle()` 返回 `true`；
+- I2 的 `preHandle()` 返回 `false`，并自行写入响应；
+- 全程没有异常。
+
+下列调用顺序正确的是？
+
+A. I1.pre → I2.pre → I2.afterCompletion → I1.afterCompletion  
+B. I1.pre → I2.pre → I3.pre → Controller → 三个 afterCompletion  
+C. I1.pre → I2.pre，之后所有回调都不执行  
+D. I1.pre → I2.pre → I1.afterCompletion；不执行 Controller、postHandle，也不执行 I2、I3 的 afterCompletion
+
+**我的答案：A。正确答案：D。**
+
+### 解析：先判断回调资格，再判断执行顺序
+
+`afterCompletion()` 只对**自身 `preHandle()` 成功返回 true** 的 Interceptor 执行，然后按进入时的相反顺序回调。
+
+| Interceptor | `preHandle()` 情况 | 是否执行自己的 `afterCompletion()` |
+|---|---|---|
+| I1 | 返回 true | 是 |
+| I2 | 返回 false | 否 |
+| I3 | 未执行 | 否 |
+
+本题执行顺序：
+
+```text
+I1.preHandle() → true
+        ↓
+I2.preHandle() → false
+        ↓
+中断后续处理
+        ↓
+I1.afterCompletion(ex=null)
+```
+
+**不执行 Controller，也不执行任何 `postHandle()`。**
+
+出处：[Spring 官方 HandlerInterceptor 说明](https://docs.spring.io/spring-framework/docs/6.0.0/javadoc-api/org/springframework/web/servlet/HandlerInterceptor.html)
+
+### 补充问答一：与 Controller 抛异常的流程有什么区别？
+
+**我的疑问：**
+
+> 之前记的是：Filter 前置 → preHandle → Controller 报错 → afterCompletion(ex=异常) → 异常向 Filter 传播 → Filter 的 finally 执行，普通后置代码跳过。第 62 题是因为 preHandle 返回 false，所以不执行 afterCompletion 吗？
+
+**解答：**
+
+需要限定：**I2 返回 false，所以不执行的是 I2 自己的 `afterCompletion()`；之前返回 true 的 I1 仍会执行。**
+
+原来的异常流程成立，需要满足：`preHandle()` 已返回 true，Controller 随后抛出异常，且异常未被 Spring MVC 成功处理。
+
+```text
+preHandle 返回 true
+        ↓
+Controller 抛出未被处理的异常
+        ↓
+afterCompletion(ex=异常)
+        ↓
+异常向 Filter 传播
+```
+
+而第 62 题在进入 Controller 前就已中断，并没有发生异常。
+
+| 场景 | 自身 `afterCompletion()` 是否执行 |
+|---|---|
+| 自身 `preHandle()` 返回 true，Controller 正常完成 | 执行 |
+| 自身 `preHandle()` 返回 true，之后 Controller 抛异常 | 执行 |
+| 自身 `preHandle()` 返回 false | 不执行 |
+| 自身 `preHandle()` 根本没被调用 | 不执行 |
+
+**返回 false 不等于抛异常。**本题处理正常返回 Filter，因此 Filter 的普通后置代码也可以继续执行。
+
+### 补充问答二：如果 I2 返回 true，I3 返回 false 呢？
+
+假设 I1 也返回 true，且全程没有异常：
+
+```text
+I1.preHandle() → true
+        ↓
+I2.preHandle() → true
+        ↓
+I3.preHandle() → false
+        ↓
+I2.afterCompletion(ex=null)
+        ↓
+I1.afterCompletion(ex=null)
+```
+
+- Controller 不执行，所有 `postHandle()` 都不执行。
+- I3 自己的 `afterCompletion()` 不执行。
+- I1、I2 按与进入时相反的顺序收尾。
+
+**记忆：前置顺序执行，成功放行的拦截器逆序收尾。**
+
+## 63．【Java 并发：volatile 与原子性】
+
+程序中有一个共享计数器：
+
+```java
+private volatile int count = 0;
+```
+
+两个线程分别执行 1000 次：
+
+```java
+count++;
+```
+
+主线程等待两个线程都结束后读取 `count`。假设没有其他线程修改该变量。
+
+下列说法正确的是？
+
+A. 结果一定为 2000，因为 `volatile` 保证每次自增都是原子的  
+B. 结果一定为 2000，因为等待线程结束可以补偿丢失的更新  
+C. 结果不保证为 2000，因为 `count++` 包含读、计算、写多个步骤，`volatile` 不保证这一组合操作原子化  
+D. 改用 `Integer` 并保留 `volatile`，即可保证结果为 2000
+
+## 64．【数据库：并发扣减与条件更新】
+
+某商品库存为 1，使用 MySQL InnoDB。两个独立事务并发执行：
+
+```sql
+UPDATE product
+SET stock = stock - 1
+WHERE id = 100
+  AND stock >= 1;
+```
+
+假设 `id` 是主键，两个事务最终都正常提交，无其他操作、超时或死锁。
+
+下列说法正确的是？
+
+A. 两个事务的影响行数分别为 1 和 0，最终库存为 0；业务应根据影响行数判断是否扣减成功  
+B. 两个事务都影响 1 行，最终库存为 -1，因为它们最初都可能看到库存为 1  
+C. 最终库存为 0，但两个事务都可以根据“SQL 没抛异常”判定购买成功  
+D. 必须先执行 `SELECT stock`，再做无条件 UPDATE，才能避免库存变成负数
+
+## 65．【Kafka：分区与消费者组】
+
+某 Topic 有 4 个分区。消费者组 G1 有 6 个消费者实例，消费者组 G2 有 2 个实例。
+
+所有实例订阅该 Topic，使用标准消费者组分区分配机制，当前分配已经稳定。下列说法正确的是？
+
+A. 两个组总共 8 个实例，因此每个分区只能从两个组中任选一个实例消费  
+B. G1 最多有 4 个实例获得分区；G2 可以独立消费该 Topic 的全部 4 个分区  
+C. G1 的 6 个实例都能获得分区，因为一个分区可以同时分配给同组多个实例  
+D. G2 只能消费 G1 尚未提交消费进度的消息，因为两个组共享消费进度
+
+**我的答案：B。正确答案：B。**
+
+### 我的疑问
+
+> 不太了解消费者组的分区分配机制，主要通过排除其他选项选出 B。
+
+### 解析：组内分工，组间独立
+
+在本题机制下，分配稳定时：
+
+- **同一组内，一个分区只能分配给一个消费者。**
+- 一个消费者可以负责多个分区。
+- 不同消费者组分别分配分区，分别维护消费进度。
+
+一种可能的分配如下：
+
+```text
+Topic：P0、P1、P2、P3
+
+消费者组 G1：6 个实例
+  C1 → P0
+  C2 → P1
+  C3 → P2
+  C4 → P3
+  C5 → 无分区
+  C6 → 无分区
+
+消费者组 G2：2 个实例
+  C7 → P0、P1
+  C8 → P2、P3
+```
+
+具体分配取决于分配策略，但 G1 不可能让 6 个实例都获得该 Topic 的分区。
+
+**G1 消费 P0，不妨碍 G2 也消费 P0。**例如，同一批订单消息可以由“库存处理组”和“数据分析组”分别处理。
+
+“消费进度不共享”需要说完整：**不同消费者组之间不共享消费进度；同组成员接手分区时，可以使用该组已提交的进度。**
+
+出处：[Kafka 官方消费者组说明](https://kafka.apache.org/39/javadoc/org/apache/kafka/clients/consumer/KafkaConsumer.html)
+
+## 66．【架构设计：读写分离与数据切分】
+
+某系统已经采用“一主多从”，读请求主要访问从库。现在监控发现：
+
+- 主库写入持续接近容量上限；
+- 从库查询负载较低；
+- 业务数据可以按照租户进行相对独立的划分。
+
+如果目标是分散写入压力，下列方案最直接？
+
+A. 再增加几个只读从库，让它们自动分担主库的 INSERT 和 UPDATE  
+B. 增加每个查询的 JOIN 数量，充分利用从库空闲资源  
+C. 将所有写操作加上一把全局分布式锁，降低写请求之间的竞争，从而提高整体写入吞吐量  
+D. 按租户将数据分散到多个独立写库，并设计相应的路由和跨库操作处理方式
+
+## 67．【SQL：UNION 与 UNION ALL】
+
+两个表的数据如下：
+
+```text
+table_a
+name
+张三
+张三
+李四
+
+table_b
+name
+李四
+王五
+```
+
+分别执行：
+
+```sql
+-- 查询一
+SELECT name FROM table_a
+UNION
+SELECT name FROM table_b;
+```
+
+```sql
+-- 查询二
+SELECT name FROM table_a
+UNION ALL
+SELECT name FROM table_b;
+```
+
+下列说法正确的是？
+
+A. 查询一返回 4 行，查询二返回 5 行，因为 UNION 只消除两张表之间的重复，不消除同一张表内部的重复  
+B. 两条查询都返回 3 行，因为 SQL 默认对查询结果去重  
+C. 查询一返回 3 行，查询二返回 5 行；未使用 ORDER BY 时，都不能保证返回顺序  
+D. 查询一返回 3 行，查询二返回 5 行；两者都保证先返回 table_a 的全部结果，再返回 table_b 的结果
+
+## 68．【MyBatis：参数绑定与动态排序】
+
+系统提供用户列表查询接口。客户端可以指定排序字段，但只允许按 `name` 或 `created_at` 排序。
+
+开发人员希望动态生成：
+
+```sql
+SELECT id, name, created_at
+FROM users
+ORDER BY 某个字段;
+```
+
+下列方案最合理的是？
+
+A. 在服务端将客户端选项映射到固定白名单列名，再使用动态 SQL 分支或受控拼接生成排序字段；普通条件值仍使用 `#{}`  
+B. 使用 `ORDER BY #{sortColumn}`，数据库会自动将绑定的字符串识别为列名  
+C. 使用 `ORDER BY ${sortColumn}`，原样接收客户端输入即可，因为排序字段不涉及 SQL 注入  
+D. 将客户端输入先加上单引号，再拼到 ORDER BY 后面，既安全又能正确选择列排序
+
+## 69．【Kubernetes：容器重启与副本恢复】
+
+一个 Deployment 期望运行 3 个 Pod，集群有足够资源，并且不存在影响调度的额外约束。某个 Pod 所在节点永久故障，控制平面已经确认故障并进入正常恢复流程。
+
+下列理解正确的是？
+
+A. 故障节点上的 kubelet 会把原容器直接迁移到其他节点  
+B. Pod 的 `restartPolicy: Always` 会独立完成跨节点迁移，不需要控制器和调度器参与  
+C. Deployment 可以恢复期望副本数，并自动恢复原容器内存中的所有业务状态  
+D. 控制器通过补建 Pod 恢复期望副本数，新 Pod 由调度器安排到可用节点；原进程内存状态不会自动恢复
+
+**我的答案：D。正确答案：D。**
+
+### 我的疑问
+
+> 不太了解 Kubernetes，主要通过判断“不可能自动恢复全部内存状态”等条件排除了其他选项。
+
+### 解析：补建新 Pod，而不是搬迁原 Pod
+
+| 情况 | 主要处理方式 |
+|---|---|
+| 节点正常，但 Pod 内的容器退出 | kubelet 按适用的重启策略处理容器 |
+| 节点永久故障，需要在其他节点恢复服务 | 控制器补建 Pod，调度器选择可用节点，新节点上的 kubelet 启动容器 |
+
+```text
+原节点故障
+    ↓
+控制器为恢复期望副本数创建替代 Pod
+    ↓
+调度器选择可用节点
+    ↓
+新节点上的 kubelet 启动容器
+```
+
+**原 Pod 不会被搬到另一个节点继续运行；替代它的是新的 Pod。**原进程内存状态也不会自动恢复。需要保留的业务状态，应通过数据库、共享存储等方式另行管理。
+
+出处：[Kubernetes 官方 Pod 生命周期说明](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/)
+
+## 70．【架构设计：分布式锁的释放】
+
+某系统使用 Redis 实现带租约的分布式锁：
+
+```redis
+SET lock:order:100 tokenA NX PX 3000
+```
+
+客户端 A 获得锁后执行时间超过 3 秒，锁已过期。客户端 B 随后用 `tokenB` 获得同名锁。此时 A 执行结束，准备释放锁。
+
+如果目标是**避免 A 删除 B 的锁**，哪种做法正确？
+
+A. A 直接执行 `DEL lock:order:100`，因为最先获得锁的客户端有权释放  
+B. A 通过 Lua 脚本原子地比较锁值是否仍为 `tokenA`，只有匹配才删除  
+C. A 先执行 GET，发现值为 `tokenA` 后，再单独执行 DEL；两个命令分开发送也不存在竞态  
+D. A 先给该锁延长有效期，再执行 DEL，即可保证删除的是自己的锁
+
+## 答案与作答记录
+
+| 题号 | 我的答案 | 正确答案 | 结果 | 作答理由（整理后） |
+|---|---|---|---|---|
+| 61 | B | B | ✓ | Factory 可以共享，独立工作单元使用自己的 SqlSession |
+| 62 | A | D | ✗ | 原以为 I2 也能逆序收尾，遗漏了自身 preHandle 必须返回 true 的条件 |
+| 63 | C | C | ✓ | volatile 不保证 `count++` 这一组合操作的原子性 |
+| 64 | A | A | ✓ | UPDATE 的锁与同一语句中的库存条件配合，避免超扣；根据影响行数判断成功 |
+| 65 | B | B | ✓ | 组内一个分区只分给一个消费者，组间独立；分配机制需进一步巩固 |
+| 66 | D | D | ✓ | 多个独立写库可以分散写压力，增加只读从库不能直接解决 |
+| 67 | C | C | ✓ | UNION 去重，UNION ALL 不去重；没有 ORDER BY 时顺序不保证 |
+| 68 | A | A | ✓ | `#{}` 用于值绑定，动态列名使用白名单或固定分支 |
+| 69 | D | D | ✓ | 故障恢复需要控制器与调度器，不能自动恢复原进程内存状态 |
+| 70 | B | B | ✓ | 比较锁所有权与删除必须作为一个原子操作执行 |
+
+**合计：答对 9/10，正确率 90%。**
+
+## 表述补充
+
+- **第 64 题：**不仅是 UPDATE 有排他锁，还因为库存检查与扣减放在同一条语句中。后执行的更新会重新判断条件，库存为 0 时不再扣减。
+- **第 67 题：**未指定 `ORDER BY` 是“顺序不保证”，不是“每次都随机乱序”。
+- **第 68 题：**单引号通常表示字符串常量，也不能正确表达动态列名排序。
+- **第 70 题：**并非只有 Lua 才能实现原子性。本题使用 Lua，是为了原子执行“比较所有权＋删除”。这能防止误删别人的锁，但不能单独解决租约过期后旧持有者仍继续执行业务的问题。
