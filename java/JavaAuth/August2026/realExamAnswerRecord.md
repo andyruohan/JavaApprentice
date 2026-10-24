@@ -1,3 +1,4 @@
+# 21～40
 2026.10.24 14:40
 21 C 有二级缓存后，会有相应加速。对一级二级缓存的加载顺序，需再加深记忆。
 22 C 放到where条件里，在join时不起作用。
@@ -551,29 +552,7 @@ Home
 
 所以不能得出“多租户高并发读操作一定要水平分库”的结论。
 
-## 三、第 20 题补充：上下游概念
-
-你前面第 20 题也值得顺便纠正一下。
-
-题目把 PC Web、手机 App、微信入口称为下游，把 62 个依赖服务称为上游。这体现了一种按业务依赖方向命名的方式。
-
-但在微服务调用链中，更常见的是：
-
-PC Web / App / 微信入口
-
-请求发起方（调用上游）
-
-结算页核心服务
-
-商品、库存、优惠券等 62 个依赖接口
-
-被调用方（调用下游）
-
-因此，“上游”“下游”必须结合具体语境理解。
-
-第 20 题按预期可选 A，但 A 所述的高风险用户、爬虫降级是一种入口流量治理策略，本身也合理。只是相较于其他选项，它不属于针对依赖服务的直接降级手段。
-
-## 四、你这组题最值得巩固的知识点
+## 三、你这组题最值得巩固的知识点
 
 结合你的解答，我建议优先巩固以下几项：
 
@@ -590,3 +569,559 @@ PC Web / App / 微信入口
 本组核心结论：第 32 题需要改成 C，第 21 题存在歧义，第 40 题虽然倾向 C，但要按分片需求判断，而不是按用户数量直接判断。
 
 你其余大部分解释能够抓到核心原理，接下来最需要提升的是区分“考试中的简化规则”和“实际工程中的成立条件”。
+
+# 41～50 
+2026.10.24 21:18
+41 C 分数个数不会自动增长。
+42 A 当该id没有被占用，主键允许更新。
+43 D linger.ms不能盲目减少，对于C选项我不太清楚，为什么增加副本fetchers可以增加吞吐量。但根据题意应该选D。
+44 B 根据代码显然可以得出是B。
+45 D  首先BC是正确的，A选项我不知道对称性是什么意思，D仅根据每次请求携带数据进行相应的业务逻辑处理，看表述更像是与业务状态有关。
+46 D ABC表述均正确。
+47 A 私有方法不会有事务。C选项我不确定什么情况下会失效，D选项我不太确定protected对切面是否生效，感觉是不生效，所以D似乎也有点不对。
+48 C B感觉也是对的，因为提到了自动提交已开启，但C相对更完备。
+49 B 我其实没了解LoadBalancer，但我觉得AC表述均正确，至于D这个负载均衡配置我确实不知道怎么加载的，但综合一下AC是对的，推测是B选项。
+50 C Mybatis使用JDK代理，但其余几个代理是干啥的需加深记忆。
+
+结合完整题干，你第 41～50 题的答案基本正确。但有三个地方值得特别注意：第 45 题无状态的含义、第 47 题事务注解的方法可见性、第 48 题 MyBatis 的事务提交与并发安全。
+
+## 一、答案核对
+
+| 题号 | 你的答案 | 建议答案               | 判断 |
+| -- | ---- | ------------------ | -- |
+| 41 | C    | C                  |    |
+| 42 | A    | A                  |    |
+| 43 | D    | D                  |    |
+| 44 | B    | B                  |    |
+| 45 | D    | C（题目有歧义）           |    |
+| 46 | D    | D                  |    |
+| 47 | A    | A（版本相关）            |    |
+| 48 | C    | B、C 均可，C 更符合常规事务管理 |    |
+| 49 | B    | B                  |    |
+| 50 | C    | C                  |    |
+
+下面重点解释你不确定的选项，并且区分考试答案和实际工程实现。
+
+## 二、逐题解析
+
+### 第 41 题：Kafka 分区数量
+
+答案：C，正确。
+
+Kafka 的分区数量不会根据生产者和消费者数量自动增长。
+
+例如一个 Topic 有 6 个分区：
+
+- 生产者从 2 个增长至 20 个，不会自动增加分区。
+- 同一消费者组从 3 个消费者增长至 10 个消费者，也不会自动增加分区。
+- 10 个消费者中，最多通常只有 6 个消费者能同时承担该 Topic 的分区消费任务，其余可能空闲。
+
+对于 D 选项，每个分区在同一个消费者组内同一时刻通常只会由一个消费者负责，但不同消费者组可以分别消费该分区。
+
+所以 D 的表达不够严格，不过 C 明显错误。
+
+### 第 42 题：数据库主键是否允许修改
+
+答案：A，正确。
+
+你的理解完全正确。
+
+```
+UPDATE student
+SET studentid = 100
+WHERE studentid = 101;
+```
+
+假设 100 不存在，且没有其他约束阻止修改，数据库可以将主键从 101 更新为 100。
+
+需要记住：
+
+主键约束要求唯一性和非空，不意味着主键不可修改。
+
+但是在实际系统设计中，通常不建议修改主键，原因包括：
+
+- 可能影响引用该主键的外键数据。
+- 可能造成关联关系维护困难。
+- 可能引发索引维护和额外锁竞争。
+
+尤其是采用 ID 作为实体身份标识时，最好保持其不可变。
+
+### 第 43 题：Kafka 吞吐量优化
+
+答案：D，正确。
+
+你问为什么增加 `num.replica.fetchers` 能提升吞吐量。
+
+Kafka 存在不同的吞吐量指标：
+
+| 吞吐量     | 涉及组件              |
+| ------- | ----------------- |
+| 生产吞吐量   | Producer → Leader |
+| 消费吞吐量   | Broker → Consumer |
+| 副本复制吞吐量 | Leader → Follower |
+
+`num.replica.fetchers` 是 Broker 的配置参数，控制副本数据拉取线程数量。
+
+例如一个 Follower Broker 需要同步多个分区的数据：
+
+Leader Broker
+
+分区 P0、P1、P2、P3
+
+Fetcher 1
+
+Fetcher 2
+
+Fetcher 3
+
+Follower Broker
+
+并行拉取不同分区的副本数据
+
+增加 Fetcher 线程，可以提高多个分区副本的并行同步能力，在复制是瓶颈时改善吞吐量。
+
+但这不意味着线程越多越好，因为还受到网络、CPU、磁盘 IO 的限制。
+
+对于 D：
+
+`linger.ms` 控制 Producer 为了凑批次而等待的时间。
+
+- 适当增大：可能形成更大的 Batch，提升吞吐量。
+- 减小：通常降低等待延迟，但可能导致批次更小、请求次数更多。
+
+因此减少 `linger.ms` 不是通用的吞吐量优化手段。
+
+[image](https://www.google.com/s2/favicons?domain=https://kafka.apache.org\&sz=32)
+
+Apache Kafka
+
+
+
+### 第 44 题：synchronized 线程同步
+
+答案：B，正确。
+
+```
+private int data = 2;
+int result = 0;
+```
+
+三个线程共享同一个 `Test` 对象，而且都使用：
+
+```
+synchronized (mv) {
+    mv.m();
+}
+```
+
+所以同一时刻只有一个线程可以进入 `mv.m()`。
+
+三次执行结果：
+
+```
+2 2
+4 2
+6 2
+```
+
+这里容易忽略的是：虽然线程执行顺序不确定，但输出值的顺序是确定的，因为 `result += data` 和打印操作都在同一个临界区内。
+
+### 第 45 题：业务无状态性
+
+重点纠正
+
+你选 D，我更倾向于 C，但这道题的表述本身有问题。
+
+先看选项：
+
+A. 多个模块（子系统）之间与对称性无关。
+
+这里的“对称性”不是描述无状态性的常见标准术语，缺少上下文，不适合直接判定正确。
+
+B. 请求提交到任何服务器，处理结果都是完全一样。
+
+这属于对无状态服务的常见简化描述。准确来说，相同请求在相同业务状态和环境下，应能够由任意合适的服务实例处理，而不是保证任何时间都得到完全一样的结果。
+
+C. 系统不存储业务的上下文信息。
+
+这个说法过于绝对。
+
+D. 仅根据每次请求携带数据进行相应的业务逻辑处理。
+
+这是无状态架构的核心思想的一种简化表述，但还需要考虑请求所引用的持久化业务数据。
+
+举个例子。
+
+```
+POST /orders/10001/pay
+Authorization: Bearer xxx
+```
+
+服务端可以根据请求中的订单 ID 查询数据库中的订单状态。
+
+数据库中可以存储：
+
+```
+订单ID：10001
+订单状态：待支付
+订单金额：200
+```
+
+完成支付后变为：
+
+```
+订单状态：已支付
+```
+
+虽然业务状态发生了变化，但服务本身仍然可以设计成无状态的。
+
+因为它不要求某个用户下一次请求必须落到先前处理请求的同一台服务器。
+
+关键区别：
+
+- 无状态服务：不依赖服务器本地保存的客户端会话上下文。
+- 有状态业务：可以持久化订单、库存、支付等业务状态。
+
+因此，按照严格技术含义，我倾向于选 C。A 的措辞也无法直接判断，所以这道题不够规范。
+
+### 第 46 题：数据库索引分区
+
+答案：D，正确。
+
+这道题主要考察 Oracle 等数据库中的索引分区类型。
+
+| 类型      | 索引分区特点          |
+| ------- | --------------- |
+| 全局非分区索引 | 一个整体索引，不跟随表分区拆分 |
+| 局部分区索引  | 索引分区与表分区对应      |
+| 全局分区索引  | 索引独立按照指定规则分区    |
+
+A、B、C 三项描述基本正确。
+
+特别注意，局部分区索引具有较好的分区维护便利性，适合按分区键查询和管理的场景。
+
+全局索引在某些跨分区查询中可能更有优势，但对分区维护操作需要额外考虑。
+
+### 第 47 题：Spring `@Transactional` 的使用
+
+你的答案：A，符合考试预期，但 D 也存在版本差异。
+
+四个选项逐一分析：
+
+| 选项 | 判断    | 说明                                           |
+| -- | ----- | -------------------------------------------- |
+| A  | 不严谨   | 类级注解不代表所有方法调用都能实际开启事务                        |
+| B  | 通常正确  | 默认代理模式下，同类内部直接调用绕过事务代理                       |
+| C  | 正确    | 接口上的事务注解可能因代理或织入方式而无法生效                      |
+| D  | 取决于版本 | Spring 6 类代理支持 protected 方法；Spring 5.x 默认不支持 |
+
+你对 A 的理解是正确的：类上添加 `@Transactional`，并不意味着所有方法调用都会受到事务代理拦截。
+
+但是还需区分两个概念：
+
+- 注解作用范围：类级 `@Transactional` 可以为类中符合条件的方法提供默认事务属性。
+- 事务实际生效：需要满足代理机制、方法可见性、调用路径等条件。
+
+Spring 官方也明确说明了类级注解和代理拦截的区别。
+
+[image](https://www.google.com/s2/favicons?domain=https://github.com\&sz=32)
+
+GitHub
+
++1
+
+
+
+#### protected 方法究竟能否生效？
+
+| Spring 版本       | JDK 动态代理 | CGLIB 类代理 |
+| --------------- | -------- | --------- |
+| Spring 5.x 默认配置 | 不支持      | 默认不支持     |
+| Spring 6.x 默认配置 | 不支持      | 支持        |
+
+例如：
+
+```
+@Service
+public class OrderService {
+
+    @Transactional
+    protected void updateOrder() {
+        // 更新订单
+    }
+}
+```
+
+在 Spring 6.x 的类代理模式下，满足外部代理调用等条件时，可以生效。
+
+[image](https://www.google.com/s2/favicons?domain=https://docs.spring.io\&sz=32)
+
+Home
+
+
+
+但是如果：
+
+```
+public void execute() {
+    updateOrder();
+}
+```
+
+由同类内部直接调用，默认代理模式下仍然不会触发 `updateOrder()` 的事务拦截。
+
+结论：第 47 题按常见题库选择 A，但由于没有指定 Spring 版本和代理方式，不能认为 D 无条件正确。
+
+对于实际项目，我仍然建议把 `@Transactional` 放在明确的 `public` 业务方法上，并避免不必要的类级事务声明。
+
+### 第 48 题：MyBatis SqlSession 与库存扣减
+
+题目存在明显歧义
+
+你选 C。C 是标准的手动事务提交写法，但 B 在语法及基本事务行为上同样正确。
+
+#### B 选项
+
+```
+try (SqlSession session =
+         sqlSessionFactory.openSession(true)) {
+
+    ProductMapper mapper =
+        session.getMapper(ProductMapper.class);
+
+    mapper.updateStock(productId, quantity);
+}
+```
+
+关键在于：
+
+```
+openSession(true)
+```
+
+表示启用自动提交。
+
+因此执行成功时，通常不需要再手动调用 `commit()`。
+
+#### C 选项
+
+```
+try (SqlSession session =
+         sqlSessionFactory.openSession()) {
+
+    ProductMapper mapper =
+        session.getMapper(ProductMapper.class);
+
+    mapper.updateStock(productId, quantity);
+
+    session.commit();
+}
+```
+
+默认 `openSession()` 不启用自动提交，需要手动执行 `commit()`。
+
+如果出现异常，关闭未提交的 Session 会按 MyBatis 的事务管理行为进行回滚。MyBatis 官方文档对此有明确说明。
+
+[image](https://www.google.com/s2/favicons?domain=https://mybatis.org\&sz=32)
+
+Java API – mybatis
+
+
+
+两者的区别：
+
+| 对比            | B   | C  |
+| ------------- | --- | -- |
+| 自动提交          | 是   | 否  |
+| 显式 commit     | 不需要 | 需要 |
+| 多条 SQL 组成一个事务 | 不方便 | 支持 |
+| 显式控制事务边界      | 较弱  | 较强 |
+| 是否天然保证库存不超卖   | 否   | 否  |
+
+最后一行非常重要。
+
+手动提交事务不等于高并发库存安全。
+
+假设：
+
+```
+库存 = 10
+
+线程 A 查询库存 = 10
+线程 B 查询库存 = 10
+
+线程 A 扣减 8
+线程 B 扣减 8
+```
+
+如果逻辑设计不合理，即使使用 C，也可能出现并发更新问题。
+
+更推荐采用数据库条件更新：
+
+```
+UPDATE product
+SET stock = stock - #{quantity}
+WHERE id = #{productId}
+  AND stock >= #{quantity};
+```
+
+然后判断影响行数：
+
+```
+int updated = mapper.updateStock(productId, quantity);
+
+if (updated != 1) {
+    throw new IllegalStateException("库存不足");
+}
+```
+
+这样可以利用数据库的原子更新和条件判断防止库存扣成负数。
+
+如果涉及订单生成、库存扣减、流水记录等多个数据库操作，还需要统一管理事务。
+
+结论：如果按照题库预期，可以选 C；但严格来说 B 也能正确执行并提交更新，而且题目没有任何选项单凭自身就能保证高并发库存安全。
+
+### 第 49 题：Spring Cloud LoadBalancer 工作原理
+
+你的答案：B，正确，值得进一步掌握源码层面的调用关系。
+
+你之前没有接触过 LoadBalancer，重点理解下面三个类：
+
+- `BlockingLoadBalancerClient`
+- `LoadBalancerClientFactory`
+- `ServiceInstanceListSupplier`
+
+#### 1. 整体调用关系
+
+RestTemplate 发起请求
+
+[http://order-service/orders](http://order-service/orders?utm_source=chatgpt.com)
+
+BlockingLoadBalancerClient
+
+处理同步负载均衡请求
+
+LoadBalancerClientFactory
+
+按 Service ID 获取对应 LoadBalancer
+
+RoundRobinLoadBalancer / RandomLoadBalancer
+
+使用负载均衡算法选择实例
+
+ServiceInstanceListSupplier
+
+提供可用的服务实例列表
+
+10.0.0.1:8080
+
+10.0.0.2:8080
+
+10.0.0.3:8080
+
+图示的是主要组件关系，实际实现中 LoadBalancer 通过 Supplier 获取实例，再返回被选中的服务实例。
+
+#### 2. 为什么 A 是正确的？
+
+```
+@Bean
+@ConditionalOnMissingBean
+public LoadBalancerClient blockingLoadBalancerClient(
+        LoadBalancerClientFactory factory) {
+    return new BlockingLoadBalancerClient(factory);
+}
+```
+
+在标准自动配置下，`BlockingLoadBalancerClient` 通常是应用上下文中的一个单例 Bean。
+
+它可以处理多个不同服务的负载均衡请求。
+
+但这不代表整个微服务集群中只有一个对象，而是通常每个相关的应用上下文有自己的实例。
+
+#### 3. 为什么 C 是正确的？
+
+Spring Cloud LoadBalancer 为不同的 Service ID 管理独立的负载均衡配置上下文。
+
+例如：
+
+```
+order-service
+    └── RoundRobinLoadBalancer
+
+payment-service
+    └── RandomLoadBalancer
+
+inventory-service
+    └── RoundRobinLoadBalancer
+```
+
+不同服务可以配置不同的负载均衡策略。
+
+#### 4. 为什么 D 是正确的？
+
+`BlockingLoadBalancerClient` 依赖 `LoadBalancerClientFactory`，根据服务名称取得对应服务的负载均衡器，并执行实例选择。
+
+这些架构与 Spring Cloud 官方文档和自动配置源码相符。
+
+[image](https://www.google.com/s2/favicons?domain=https://docs.spring.io\&sz=32)
+
+Home
+
++1
+
+
+
+所以：
+
+A、C、D 都正确，选 B。
+
+### 第 50 题：MyBatis 动态代理
+
+答案：C，正确。
+
+MyBatis Mapper 接口默认使用 JDK 动态代理。
+
+例如：
+
+```
+public interface UserMapper {
+
+    User selectById(Long id);
+}
+```
+
+开发者没有实现这个接口，但仍然可以通过：
+
+```
+UserMapper mapper =
+    sqlSession.getMapper(UserMapper.class);
+
+User user = mapper.selectById(1L);
+```
+
+来执行查询。
+
+本质是 MyBatis 创建代理对象，拦截接口方法，映射到对应 SQL。
+
+另外几个选项：
+
+| 技术        | 作用            |
+| --------- | ------------- |
+| ASM       | 底层字节码读取、分析与生成 |
+| CGLIB     | 基于生成子类的代理技术   |
+| JDK 动态代理  | 基于接口生成代理对象    |
+| Javassist | 字节码操作和动态类生成   |
+
+一句话记忆：
+
+MyBatis Mapper 用 JDK 动态代理；Spring AOP 可以使用 JDK 动态代理或类代理；ASM 和 Javassist 则偏向底层字节码操作。
+
+## 三、最终总结
+
+你的第 41～50 题中，41、42、43、44、46、49、50 都可以直接保留原答案。其余三道题需要特别标记：
+
+- 45： 你的 D 不建议保留为确定答案，C 更值得怀疑，但 A 的措辞也有问题。
+- 47： A 是常见考试答案，不过 D 是否成立取决于 Spring 版本和代理方式。
+- 48： C 是较完整的显式事务写法，但 B 同样可以正确提交单条更新；并发库存安全还需要条件更新等机制。
+
+这十道题里最有实际工程价值的是 43、47、48、49。它们分别对应 Kafka 吞吐量调优、Spring 事务生效条件、库存并发一致性以及微服务负载均衡原理。

@@ -1471,6 +1471,13 @@ B. 使用了 @Transactional 的方法，被同一个类里面的方法调用，@
 C. 在接口上声明 @Transactional 时，注解可能无效  
 D. 使用了 @Transactional 的方法，可以是 public 或 protected
 
+
+> [Sping官方说明：为什么 AspectJ 无法识别接口上的事务注解](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html?trk=article-ssr-frontend-pulse_little-text-block&utm_source=chatgpt.com)  
+> Since Java annotations are not inherited from interfaces, interface-declared annotations are still not recognized by the weaving infrastructure when **using AspectJ mode**, so the aspect does not get applied. As a consequence, your transaction annotations may be silently ignored
+
+> [Spring官方说明：Spring 6.x 以上版本 protected 方法 @Transactional 可以生效](https://docs.spring.io/spring/reference/6.2/data-access/transaction/declarative/annotations.html?utm_source=chatgpt.com)  
+> As of 6.0, protected or package-visible methods can also be made transactional for class-based proxies by default.
+
 48.【Mybatis】在一套库存管理服务中，需要在用户下单后减少对应商品的库存数量。以下是 ProductService 类的部分代码，其中 `/* 代码缺失 */` 处需完成对 MyBatis SqlSession 的获取与提交事务等操作，并调用 ProductMapper 中的 updateStock 方法。要求在高并发场景下能够安全、准确地更新库存数据。请从下列四个选项中选出正确的代码填充：
 ```
 public class ProductService {
