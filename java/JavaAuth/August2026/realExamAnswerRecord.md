@@ -1,3 +1,678 @@
+
+# 1～20
+2026.1024 22:08
+1 D 两个修改操作，在修改之前都加了S锁，会导致死锁。
+2 A $ 恰恰会造成 sql 注入。
+3 B ACD均有不同程度的错误。
+4 C 首先D错误，可以使用聚合函数，故A也错误，其次B表述可对可错吧，看这里的结果是不是代表聚合结果，C是准确的。
+5 C @Reques tMapping ("/say/helloworld", method = RequestMethod.POST) 需要指定第一个参数是什么
+6 D D最准确，实际C也是对的
+7 B ERROR不是其打印日志级别
+8 D D最准确，分布式流量全部到专门数据库来取，实际A多点重复也有可能，因其是双主模式
+9 D Kafka的消息是broker负责，集群的同步非Zookeeper的职责，Kafka的网络连接更不是，D是，因其是Kafka的元数据信息。
+10 D ABC均有不同程度的错误。
+11 ？ 选不出答案，ABCD均有不同程度的错误
+12 C AB项synchronized不可以，D项lock不可以
+13 A A项完全不能命中索引，BD一定程度上会名字
+14 C 保证多数表决
+15 B uri是问号之前，但我不代表ABD什么情况下会返回
+16 C where EXISTS 很难通过join表征出来吧
+17 C 缺少on条件
+18 D 代码明显不是递归，而是循环，C选项也有点错误，抛异常了的话不会执行
+19 A 根据Spring官方的描述就是这样，相反D选项返回是单个
+20 A A不能解决本质流量问题
+
+你这次第 1～20 题的整体判断比较准确，而且已经开始从“选出答案”转向“判断每个选项在技术上是否严格成立”。
+
+其中有几个问题需要重点纠正：
+
+- 第 5 题：`@RequestMapping` 第一个参数可以不写 `value=`，你对 C 的判断需要调整。
+- 第 6 题：不仅 D 正确，B 实际上也能去除最终结果中的重复记录；C 则不能保证去重。
+- 第 8 题：D 是合理答案，但双主架构与单一 ID 分配点需要分开理解。
+- 第 11 题：你认为四个选项都有问题，这个判断有道理，题目缺少一致性约束。
+- 第 18 题：C、D 都有问题，只是 D 更明显。
+
+## 一、第 1～20 题答案核对
+
+| 题号 | 你的答案 | 建议答案          | 结论 |
+| -- | ---- | ------------- | -- |
+| 1  | D    | D             |    |
+| 2  | A    | A             |    |
+| 3  | B    | B（题目不严谨）      |    |
+| 4  | C    | C             |    |
+| 5  | C    | C（仅按拼写错误）     |    |
+| 6  | D    | B、D           |    |
+| 7  | B    | B             |    |
+| 8  | D    | D             |    |
+| 9  | D    | D（仅限旧版 Kafka） |    |
+| 10 | D    | D             |    |
+| 11 | 未确定  | 倾向 C，但存在争议    |    |
+| 12 | C    | C             |    |
+| 13 | A    | A             |    |
+| 14 | C    | C（有前提）        |    |
+| 15 | B    | B             |    |
+| 16 | C    | C（有争议）        |    |
+| 17 | C    | C             |    |
+| 18 | D    | C、D 都存在问题     |    |
+| 19 | A    | A             |    |
+| 20 | A    | A（按出题意图）      |    |
+
+下面逐题解释你有疑问的知识点。
+
+## 二、逐题解析
+
+### 第 1 题：共享锁升级导致死锁
+
+你选 D，正确。
+
+两个事务都先对同一行获取 S 锁：
+
+事务 T4
+
+持有 R4 的 S 锁
+
+请求 R4 的 X 锁
+
+等待 T2 释放 S 锁
+
+事务 T2
+
+持有 R4 的 S 锁
+
+请求 R4 的 X 锁
+
+等待 T4 释放 S 锁
+
+两个事务相互等待，形成循环等待关系
+
+S 锁之间兼容，但 S 锁和 X 锁不兼容。
+
+当两个事务都持有 S 锁，又都尝试升级成 X 锁时，就可能发生死锁。
+
+A 仅说明另一个事务也获取 S 锁，如果它不请求冲突锁，并不足以形成死锁。
+
+这里题干称“未升级为 X 锁”，更准确地说应是“尝试升级为 X 锁，但无法成功获取”。
+
+### 第 2 题：MyBatis 的 `#{}` 和 `${}`
+
+你选 A，正确。
+
+| 对比       | `#{}`         | `${}`       |
+| -------- | ------------- | ----------- |
+| 处理方式     | 参数绑定，通常使用 `?` | 字符串直接替换     |
+| SQL 注入防护 | 有效防止值参数注入     | 存在 SQL 注入风险 |
+| 常见场景     | WHERE 条件值     | 动态表名、列名等标识符 |
+
+例如：
+
+```
+SELECT * FROM user WHERE name = #{name}
+```
+
+会通过预编译参数绑定处理。
+
+需要注意 B 的描述也不严格：`#{}` 并不是简单给字符串添加双引号，而是使用 JDBC 参数绑定，具体数据库类型由 TypeHandler 处理。
+
+### 第 3 题：Kafka 减少分区
+
+你选 B，符合出题意图，但原题说法不准确。
+
+Kafka 常规管理 API 支持增加分区数量，不支持直接减少已有 Topic 的分区数量。
+
+若要减少分区，通常需要重建 Topic，并重新迁移消息。
+
+这样可能引起消息顺序、偏移量、数据迁移等问题。
+
+所以 B 说“删除分区会导致数据不一致、消息乱序”，属于一种风险描述，而不是 Kafka 提供了删除单个分区的标准操作。
+
+A、C、D 同样存在不同程度的错误，这道题不适合严格单选。
+
+### 第 4 题：HAVING
+
+你选 C，正确。
+
+`HAVING` 是对分组结果进行筛选的条件子句，可以使用聚合函数。
+
+```
+SELECT department_id, COUNT(*)
+FROM employee
+GROUP BY department_id
+HAVING COUNT(*) > 10;
+```
+
+B 说“在一个结果返回之后起作用”不准确。逻辑上 HAVING 在分组和聚合之后、最终结果输出之前进行筛选。
+
+### 第 5 题：Spring MVC 的 `@RequestMapping`
+
+你选 C，但是你的理由不正确。
+
+下面两种写法是等价的：
+
+```
+@RequestMapping(
+    "/say/helloworld",
+    method = RequestMethod.POST
+)
+```
+
+```
+@RequestMapping(
+    value = "/say/helloworld",
+    method = RequestMethod.POST
+)
+```
+
+原因是 `@RequestMapping` 的 `value` 属性在 Java 注解中有特殊地位。
+
+当指定 `value` 属性时，可以省略属性名称。
+
+因此，C 只有在题目字面写成 `@Reques tMapping`（中间多了空格）的情况下，才因注解名称拼写错误而不合法。
+
+如果是录入题目时产生的空格，A、B、C、D 都是合法 Mapping 配置。
+
+### 第 6 题：UNION 去重
+
+这是你需要纠正的重点。
+
+你认为 D 正确、C 也正确。
+
+实际上：
+
+B 和 D 均可以得到去重结果，C 不一定可以。
+
+假设：
+
+```
+people:   张三、张三
+member:   李四
+employee: 张三
+```
+
+来看四个选项。
+
+| 选项 | 运算表达式                 | 最终结果是否去重 |
+| -- | --------------------- | -------- |
+| A  | UNION ALL + UNION ALL | 否        |
+| B  | UNION ALL + UNION     | 是        |
+| C  | UNION + UNION ALL     | 否        |
+| D  | UNION + UNION         | 是        |
+
+原因是集合运算按出现顺序进行组合，而 `UNION` 会对其参与运算的结果去重。
+
+B 可以理解为：
+
+```
+(
+    SELECT name FROM people
+    UNION ALL
+    SELECT mname FROM member
+)
+UNION
+SELECT ename FROM employee;
+```
+
+最后一次 `UNION` 会对最终合并结果去重。
+
+但是 C：
+
+```
+(
+    SELECT name FROM people
+    UNION
+    SELECT mname FROM member
+)
+UNION ALL
+SELECT ename FROM employee;
+```
+
+最后一次 `UNION ALL` 可能重新引入重复值。
+
+例如 `employee` 中也存在张三，最终会出现两次张三。
+
+因此：
+
+- D 是最直观的标准答案。
+- B 也能完成去重。
+- C 不能保证结果没有重复值。
+
+另外，原题建表名称写的是 `eployee`，SQL 中却使用 `employee`。如果不是笔误，四个选项还会存在表名错误。
+
+### 第 7 题：Feign 日志级别
+
+你选 B，正确。
+
+Feign 默认提供四种日志级别：
+
+| 日志级别    | 含义                    |
+| ------- | --------------------- |
+| NONE    | 不记录日志，默认级别            |
+| BASIC   | 记录请求方法、URL、响应状态码及耗时   |
+| HEADERS | 在 BASIC 基础上增加请求头和响应头  |
+| FULL    | 记录请求头、请求体、响应头、响应体及元数据 |
+
+没有 `ERROR` 这个标准日志级别，因此选择 B。
+
+### 第 8 题：MySQL 双主 ID 生成方案
+
+你选 D，符合题意。
+
+题目描述存在一个专门用于记录 `MaxId` 的数据库，所有业务都需要访问它获取新的 ID。
+
+这会形成集中式 ID 分配瓶颈：
+
+```
+业务系统 A ──┐
+业务系统 B ──┼──→ ID 生成数据库
+业务系统 C ──┘
+```
+
+如果只有一个可写入口，那么即使底层部署双主，也不意味着 ID 分配天然实现了负载分担。
+
+你担心双主会产生重复 ID，也有道理。
+
+例如两个 MySQL 主节点如果都独立从 100 开始分配 ID，且没有协调机制，就可能重复。
+
+MySQL 双主自增 ID 的一种常见配置是：
+
+| 节点      | auto_increment_increment | auto_increment_offset |
+| ------- | ------------------------ | --------------------- |
+| MySQL A | 2                        | 1                     |
+| MySQL B | 2                        | 2                     |
+
+这样 A 生成奇数 ID，B 生成偶数 ID，降低双主自增 ID 冲突风险。
+
+但这套方案仍需要解决节点故障、复制一致性、分配能力和扩容问题。
+
+因此 D 是题目的主要答案，A 则是某些双主配置下可能存在的额外风险。
+
+### 第 9 题：Kafka 与 ZooKeeper
+
+你选 D，适用于旧版 ZooKeeper 模式 Kafka。
+
+但是这里有一个非常重要的版本变化：
+
+Kafka 4.0 起已移除 ZooKeeper 模式，只支持 KRaft。&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://kafka.apache.org\&sz=32)
+
+Apache Kafka
+
++1
+
+
+
+旧版 ZooKeeper 模式下：
+
+- ZooKeeper 负责存储和协调部分集群元数据。
+- Topic、Partition 相关元数据和集群协调工作涉及 ZooKeeper。
+- 消息实际数据存储在 Broker，而不是 ZooKeeper。
+- 分区副本同步主要由 Broker 完成。
+
+不过，更严谨地说，ZooKeeper 不是直接负责所有分区管理操作；Kafka Controller 承担分区 Leader 选举等协调工作。
+
+现在使用 KRaft：
+
+```
+Kafka Broker
+      ↓
+KRaft Controller Quorum
+      ↓
+元数据管理与 Controller 选举
+```
+
+所以这道题可以选 D，但建议在题库旁注明“仅适用于旧版 Kafka ZooKeeper 架构”。
+
+### 第 10 题：MyBatis 整合 Redis 缓存
+
+你选 D，正确。
+
+MyBatis 本身提供 `Cache` 接口，可以通过自定义缓存实现把二级缓存存储到 Redis。
+
+核心接口类似：
+
+```
+public interface Cache {
+
+    String getId();
+
+    void putObject(Object key, Object value);
+
+    Object getObject(Object key);
+
+    Object removeObject(Object key);
+
+    void clear();
+
+    int getSize();
+}
+```
+
+例如：
+
+```
+public class RedisCache implements Cache {
+    // 实现 Cache 接口
+    // 调用 Redis 进行数据存取
+}
+```
+
+然后在 Mapper XML 中配置：
+
+```
+<cache type="com.example.cache.RedisCache"/>
+```
+
+有一个术语需要纠正：是实现 `Cache` 接口，而不是“重写 Cache 类”。
+
+此外，这种接入方式并不自动解决多实例下所有缓存一致性问题，尤其是跨 Mapper 更新、事务提交时机和 Redis 缓存失效等场景。
+
+## 三、第 11～20 题重点解析
+
+### 第 11 题：库存扣减设计
+
+你说 A、B、C、D 都有不同程度的问题，我同意你指出的设计风险，但需要区分“方案有风险”和“方案本身不合理”。
+
+| 方案                         | 是否可行  | 主要风险            |
+| -------------------------- | ----- | --------------- |
+| A. 先数据库后 Redis             | 可行    | 数据库提交成功但缓存更新失败  |
+| B. 异步写改同步写                 | 可行    | 延迟、吞吐量可能受到影响    |
+| C. Redis 预扣 + 同步数据库 + 失败回滚 | 可行但复杂 | 并发补偿、缓存回滚与一致性   |
+| D. Redis 预扣 + MQ 异步数据库扣减   | 可行但复杂 | 消息丢失、重复消费、最终一致性 |
+
+这里最重要的是：D 并非错误架构。
+
+实际上，高并发库存扣减经常采用 Redis 预扣减、消息队列异步落库的设计。
+
+但必须解决可靠投递、幂等、异常补偿、库存对账等问题。
+
+C 的风险在于失败补偿不一定能简单地通过 Redis 加库存完成。
+
+所以如果考试强制单选，我更倾向于 C，但题目本身不足以推出唯一正确答案。
+
+### 第 12 题：synchronized 与 Lock
+
+你选 C，正确。
+
+- A：`Lock.tryLock()` 可以尝试获取锁并返回结果，`synchronized` 没有对应机制。
+- B：`lockInterruptibly()` 可以让等待锁的线程响应中断，普通 `synchronized` 锁获取等待不具备这种中断机制。
+- C：两者都可以实现临界区的互斥访问，保障其中复合操作的原子性。
+- D：`synchronized` 在离开同步块时自动释放锁；显式 `Lock` 通常需要在 `finally` 中调用 `unlock()`。
+
+### 第 13 题：SQL 函数与索引
+
+你选 A，正确，但“完全不能命中索引”不够准确。
+
+```
+WHERE substr(phoneno, 1, 3) = '321'
+```
+
+对普通 `phoneno` B-tree 索引而言，数据库通常无法直接利用该索引进行前缀范围定位。
+
+但有例外：
+
+- Oracle 可以创建函数索引。
+- 某些数据库支持表达式索引。
+- 优化器有时可能扫描覆盖索引，而不是扫描整张表。
+
+因此，A 通常最慢，但并不意味着它绝对无法使用任何索引。
+
+B：
+
+```
+WHERE phoneno >= '321'
+  AND phoneno < '321A'
+```
+
+对于全部由数字组成、采用常见字符排序规则的号码，该条件可以作为前缀范围筛选。
+
+D：
+
+```
+WHERE phoneno LIKE '321%'
+```
+
+通常也适合利用前缀索引范围扫描。
+
+要注意具体执行计划还取决于数据库类型、排序规则、统计信息以及索引结构。
+
+### 第 14 题：Kafka 最少服务器数量
+
+你选 C，正确。
+
+按照常见 Kafka 高可用集群的预期，3 台服务器能够支持 1 台故障时维持元数据多数派。
+
+但“保证多数表决”主要是 KRaft Controller Quorum 的机制，而不是 Kafka 所有分区的每一次读写都进行多数投票。
+
+例如 KRaft：
+
+```
+Controller 1
+Controller 2
+Controller 3
+```
+
+三节点多数派为 2，所以允许一台 Controller 故障。
+
+[image](https://www.google.com/s2/favicons?domain=https://kafka.apache.org\&sz=32)
+
+Apache Kafka
+
+
+
+还需要区分：
+
+- Controller Quorum：负责元数据一致性。
+- Partition Replica：负责业务消息副本。
+- ISR：参与副本同步及可靠性控制。
+
+生产环境还需要正确配置复制因子、`min.insync.replicas` 和 Producer `acks`，不能只依赖服务器数量。
+
+### 第 15 题：getRequestURI()
+
+你选 B，正确。
+
+请求：
+
+```
+GET /day06/response1?1339484005562 HTTP/1.1
+```
+
+调用：
+
+```
+request.getRequestURI()
+```
+
+返回：
+
+```
+/day06/response1
+```
+
+几个方法可以一起记忆：
+
+| 方法                 | 返回内容                 |
+| ------------------ | -------------------- |
+| `getRequestURI()`  | 不含域名和查询参数的请求 URI     |
+| `getRequestURL()`  | 包含协议、域名、端口及请求路径的 URL |
+| `getQueryString()` | `?` 后面的原始查询字符串       |
+| `getContextPath()` | Web 应用上下文路径          |
+| `getServletPath()` | Servlet 映射对应的路径部分    |
+
+假设请求为：
+
+```
+http://localhost:8080/day06/response1?id=4
+```
+
+那么 `getRequestURI()` 返回：
+
+```
+/day06/response1
+```
+
+`getRequestURL()` 返回类似：
+
+```
+http://localhost:8080/day06/response1
+```
+
+而 `getQueryString()` 返回：
+
+```
+id=4
+```
+
+原题 A、C 的完整地址还与实际请求的 Host 不一致；C、D 则对应 Referer 所指页面，而不是当前请求路径。
+
+### 第 16 题：子查询和 JOIN
+
+你选 C，符合题库意图。
+
+你说 `WHERE EXISTS` 很难通过 JOIN 表达出来，这个理解需要稍微调整。
+
+例如：
+
+```
+SELECT *
+FROM orders o
+WHERE EXISTS (
+    SELECT 1
+    FROM customer c
+    WHERE c.id = o.customer_id
+);
+```
+
+在 `customer.id` 唯一的情况下，可以改写为：
+
+```
+SELECT o.*
+FROM orders o
+JOIN customer c
+    ON c.id = o.customer_id;
+```
+
+如果 JOIN 的右表存在多条匹配记录，就可能导致左表重复，因此需要考虑去重或者改用半连接语义。
+
+EXISTS 并非不能通过 JOIN 改写，但需要保证结果语义相同。
+
+同时，A 声称所有 JOIN 都能用 IN、EXISTS 等子查询实现相同查询目标，也不够严谨。
+
+尤其在返回两表所有字段、保留重复行、外连接补 NULL 等场景中，需要更复杂的改写。
+
+所以这道题依然属于有歧义的单选题。
+
+### 第 17 题：FULL OUTER JOIN
+
+你选 C，正确。
+
+原 SQL：
+
+```
+SELECT a.id, b.id, a.name, b.name
+FROM a FULL OUTER JOIN b
+WHERE a.id IS NOT NULL OR b.id IS NULL;
+```
+
+在 Oracle、PostgreSQL 等常见数据库中，`FULL OUTER JOIN` 缺少 `ON` 或 `USING` 连接条件，原 SQL 会报错。
+
+因此选 C。
+
+### 第 18 题：Spring MVC 拦截器
+
+你选 D，符合最明显的出题意图。
+
+但你指出 C 有问题，也是正确的。
+
+C：
+
+> applyPreHandle 方法执行成功后，就会调用 applyPostHandle 方法。
+
+这个表述不一定成立。
+
+例如 Controller 执行时抛出异常，正常的 `postHandle` 流程可能不会执行。
+
+而 D：
+
+> 拦截器是递归调用 applyPreHandle 方法来拦截请求。
+
+源码中使用 `for` 循环，显然不是递归调用。
+
+因此：
+
+- D：明确错误。
+- C：也存在过度绝对化的问题。
+
+如果题目只有一个答案，优先选 D，但不能说 C 在所有情况下都正确。
+
+### 第 19 题：Flux 与 Mono
+
+你选 A，符合题库答案。
+
+```
+Flux<String> people =
+    request.bodyToFlux(String.class);
+```
+
+`Flux` 表示能够异步发布零个到多个元素的响应式流。
+
+而：
+
+```
+Mono<String> string =
+    request.bodyToMono(String.class);
+```
+
+`Mono` 表示零个或一个元素。
+
+但严格来说：
+
+`bodyToFlux()` 只是把请求体读取成响应式流，并不是直接返回 HTTP 响应。
+
+如果要返回多个响应式元素，还需要把 `Flux` 交给响应写入流程。
+
+### 第 20 题：结算页服务降级
+
+你选 A，按题库意图正确，但你的理由需要修改。
+
+你说：
+
+> A 不能解决本质流量问题。
+
+实际上，A 可以解决一部分流量压力问题。
+
+例如：
+
+- 识别爬虫后提前拒绝请求。
+- 对高风险用户施加更严格的访问限制。
+- 减少低优先级流量对核心资源的占用。
+
+这类策略能够降低系统整体流量。
+
+但题目强调的是针对 62 个依赖接口的降级方式。
+
+因此 A 更偏向入口流量治理，而 B、C、D 更直接涉及依赖服务的重要性、限流和资源分配。
+
+所以 A 是最符合题意的答案，但不是说 A 本身是一种无效的降级措施。
+
+## 四、最终建议
+
+这组题里最值得记住的，不是单纯的答案，而是以下几个容易产生错误理解的地方：
+
+| 题号 | 你需要修正或加强的理解                          |
+| -- | ------------------------------------ |
+| 5  | Java 注解的 `value` 属性可以省略名称            |
+| 6  | 最后一次 UNION 可以对之前 UNION ALL 的结果整体去重   |
+| 8  | 双主高可用不等于 ID 生成不存在集中式瓶颈               |
+| 9  | Kafka 4.0 已经移除 ZooKeeper 模式          |
+| 11 | 架构方案存在一致性风险，不等于方案必然不合理               |
+| 13 | 函数作用于索引列通常影响普通索引的范围定位，但不是绝对不能使用索引    |
+| 16 | EXISTS 可以在满足语义条件时通过 JOIN 或半连接等方式改写   |
+| 18 | `preHandle` 成功不意味着 `postHandle` 一定执行 |
+| 20 | 入口流量降级和依赖服务降级的侧重点不同                  |
+
+整体评价： 你大部分答案都符合常见题库预期。建议把第 3、5、6、11、16、18 题标为有争议或需要注意特殊条件的题目；尤其是第 6 题，你对 C 的推断需要明确改成“不能保证去重”。
+
 # 21～40
 2026.10.24 14:40
 21 C 有二级缓存后，会有相应加速。对一级二级缓存的加载顺序，需再加深记忆。
