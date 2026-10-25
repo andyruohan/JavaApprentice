@@ -739,15 +739,14 @@ Mono<String> string =
 
 执行 SQL 查询
 
-一级缓存（SqlSession 级别）
+二级缓存（CachingExecutor）
+命中则直接返回查询结果
 
-命中则直接返回
+一级缓存（BaseExecutor）
+二级缓存未命中时检查
 
-二级缓存（Mapper 命名空间级别）
-
-命中则返回并填充一级缓存
-
-数据库查询
+数据库查询  
+两级缓存都未命中时执行 SQL
 
 注意：
 
@@ -755,12 +754,7 @@ Mono<String> string =
 - 二级缓存的全局开关 `cacheEnabled` 默认是 `true`，但具体 Mapper 的二级缓存默认并未配置。
 - XML Mapper 通常需要添加 `<cache/>`，才会真正启用该命名空间的二级缓存。
 
-  [image](https://www.google.com/s2/favicons?domain=https://mybatis.org\&sz=32)
-
-  Configuration – mybatis
-
-  +1
-
+  [Configuration – mybatis](https://www.google.com/s2/favicons?domain=https://mybatis.org\&sz=32)
 
 
 2\. 为什么原题不严谨？
