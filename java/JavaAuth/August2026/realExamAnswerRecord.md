@@ -1330,8 +1330,8 @@ WHERE studentid = 101;
 Kafka 存在不同的吞吐量指标：
 
 | 吞吐量     | 涉及组件              |
-| ------- | ----------------- |
-| 生产吞吐量   | Producer → Leader |
+| ------- |-------------------|
+| 生产吞吐量   | Producer → Broker |
 | 消费吞吐量   | Broker → Consumer |
 | 副本复制吞吐量 | Leader → Follower |
 

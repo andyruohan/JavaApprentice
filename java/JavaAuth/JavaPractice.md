@@ -284,10 +284,10 @@ Spring Cloud声明式HTTP调用框架，封装HTTP请求，简化微服务之间
 #### 题目
 项目多数据源场景，分别配置 DataSource1、DataSource2，对应两个事务管理器 txManager1、txManager2；在方法上使用 @Transactional(value = "txManager2", rollbackFor = Exception.class)，下列说法错误的是？
 
-A. value 指定当前方法使用 txManager2 管理事务
-B. 若省略 value，会使用容器中标记 @Primary 的默认事务管理器
-C. 配置 rollbackFor = Exception.class 代表：只要抛出 Exception 子类异常，无论是否被代码捕获，事务都会回滚
-D. 不配置 rollbackFor 时，默认仅 RuntimeException 和 Error 触发回滚；若捕获 Exception 且未重新抛出，不会触发回滚
+A. value 指定当前方法使用 txManager2 管理事务  
+B. 若省略 value，会使用容器中标记 @Primary 的默认事务管理器   
+C. 配置 rollbackFor = Exception.class 代表：只要抛出 Exception 子类异常，无论是否被代码捕获，事务都会回滚   
+D. 不配置 rollbackFor 时，默认仅 RuntimeException 和 Error 触发回滚；若捕获 Exception 且未重新抛出，不会触发回滚  
 
 #### 正确答案
 **C**
@@ -680,6 +680,76 @@ D. 大表 join 小表时，可以考虑 map-side join
 分布式SQL关联查询，过滤条件区分`on`与`where`，关联条件写on更合理。
 
 ### Mybatis
+
+#### Mybatis 一级、二级缓存的执行过程
+
+**二级缓存已开启、且本次查询允许使用时：先查二级，再查一级，最后查数据库。**
+
+```text
+执行查询
+   ↓
+二级缓存
+   ├─ 命中 → 直接返回
+   └─ 未命中
+        ↓
+      一级缓存（当前 SqlSession）
+        ├─ 命中 → 返回结果
+        └─ 未命中
+             ↓
+           查询数据库
+             ↓
+           结果放入一级缓存
+             ↓
+           返回结果
+
+从一级缓存或数据库取得的结果
+   ↓
+暂存为待写入二级缓存的结果
+   ↓
+缓存提交时，写入共享二级缓存
+```
+
+源码中，`CachingExecutor` 先尝试读取二级缓存，未命中才调用底层执行器；底层 `BaseExecutor` 再检查一级缓存。[MyBatis 查询源码](https://mybatis.org/mybatis-3/xref/org/apache/ibatis/executor/CachingExecutor.html#L94)
+
+| 查询条件 | 查询顺序 |
+|---|---|
+| 二级缓存开启，查询允许使用 | **二级 → 一级 → 数据库** |
+| 未开启二级缓存，或查询配置 `useCache="false"` | **一级 → 数据库** |
+
+
+#### Mybatis 一级、二级缓存的清理
+
+| 对比项 | 一级缓存 | 二级缓存 |
+|---|---|---|
+| **清理范围** | 当前 `SqlSession` 的整个缓存 | 语句关联的共享缓存，通常对应 Mapper 命名空间 |
+| **执行增删改** | 执行时清理 | 默认先标记，提交时实际清理 |
+| **更新设 `flushCache="false"`** | 仍清理 | 不触发清理 |
+| **提交** | 清理 | 应用待执行的清理和写入，不一定清空 |
+| **回滚更新事务** | 清理 | 放弃本次待执行的缓存变化 |
+| **`sqlSession.clearCache()`** | 清理 | 不影响 |
+| **关闭会话** | 缓存不再可用 | 共享缓存不会因此被清空 |
+
+最直观的例子：
+
+| 步骤 | 共享二级缓存 | A 的一级缓存 |
+|---|---|---|
+| ① A 查询用户 1 | A 的查询结果尚未提交到共享缓存，仍为空 | 保存“旧名字” |
+| ② B 更新用户 1 并提交 | B 提交时清理关联的二级缓存，仍为空 | **不受影响，仍保存“旧名字”** |
+| ③ A 再次查询 | 先查二级，未命中 | 再查一级，命中“旧名字” |
+
+```text
+B 执行 UPDATE，尚未提交
+    ├─ B 的一级缓存：已清理
+    ├─ 共享二级缓存：标记为提交时清理
+    └─ A 的一级缓存：不受影响
+
+B 提交
+    ├─ 共享二级缓存：实际清理
+    └─ A 的一级缓存：仍不受影响
+```
+
+**所以可以记成：触发原因相似，但一级清“当前会话”，二级清“关联的共享缓存”；一级立即清，二级的更新失效通常等提交。**
+
 #### 题目
 对于MyBatis一级缓存说法错误的是？  
 A. 同一个SqlSession只能开启一级缓存  
@@ -816,10 +886,10 @@ D. `SELECT class_id, AVG(score) avg_s FROM score GROUP BY class_id HAVING avg_s 
 #### 题目
 关于自增主键、分组 HAVING、排序组合场景，描述正确的是？
 
-A. 自增主键连续无空缺，GROUP BY 分组后按自增 id 排序一定有序，可省去 order by
-B. 表删除部分数据后自增主键断裂，不影响 HAVING 聚合统计结果
-C. HAVING 中使用自增主键 id 做过滤条件，可直接利用主键索引快速过滤分组
-D. 使用自增主键分组，HAVING 过滤效率高于普通字段分组，因为主键自带索引
+A. 自增主键连续无空缺，GROUP BY 分组后按自增 id 排序一定有序，可省去 order by 
+B. 表删除部分数据后自增主键断裂，不影响 HAVING 聚合统计结果  
+C. HAVING 中使用自增主键 id 做过滤条件，可直接利用主键索引快速过滤分组   
+D. 使用自增主键分组，HAVING 过滤效率高于普通字段分组，因为主键自带索引   
 
 #### 正确答案
 **B**
