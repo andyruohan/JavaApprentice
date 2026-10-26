@@ -112,7 +112,7 @@ B 提交
     └─ A 的一级缓存：仍不受影响
 ```
 
-**所以可以记成：触发原因相似，但一级清“当前会话”，二级清“关联的共享缓存”；一级立即清，二级的更新失效通常等提交。**
+**所以可以记成：一级清“当前会话”，二级清“关联的共享缓存”；一级立即清，二级的更新失效通常等提交。**
 
 ## Kafka
 ### Kafka 的基本架构
@@ -141,7 +141,7 @@ B 提交
 │  说明：                                                                  │
 │  1. 竖向每一列是一个Broker，可承载多个Topic的分区副本。                        │
 │  2. 横向每一带是一个Topic，展示其副本在各Broker上的分布。                      │
-│  3. P表示Partition（分区）；订单有3个分区，支付有2个分区。                     │
+│  3. P表示Partition（分区）；订单有3个分区，支付有2个分区。                      │
 │  4. 每个分区有2份副本：1个Leader、1个Follower，共10份副本。                   │
 │  5. 不同Topic的P0是不同分区；同一分区的Follower复制Leader日志。               │
 │  6. Follower可能短暂落后，ISR不表示每一瞬间数据都完全相同。                    │
@@ -185,13 +185,54 @@ Producer（生产者）       Broker（服务端）       Consumer（消费者�
 
 ## Redis
 ### Redis 的基础数据类型
-| 数据类型   | 常见内部编码                          |
-| ------ | ------------------------------- |
-| String | int、embstr、raw                  |
-| List   | quicklist                       |
-| Hash   | listpack、hashtable              |
-| Set    | intset、hashtable、listpack（较新版本） |
-| ZSet   | listpack、skiplist               |
+| 数据类型              | 常见内部编码                          |
+|-------------------| ------------------------------- |
+| String            | int、embstr、raw                  |
+| List              | quicklist                       |
+| Hash              | listpack、hashtable              |
+| Set               | intset、hashtable、listpack（较新版本） |
+| ZSet (Sorted Set) | listpack、skiplist               |
+
+[Redis官方文档](https://redis.io/docs/latest/commands/object-encoding/)
+
+Redis objects can be encoded in different ways:
+
+- **Strings** can be encoded as:
+
+   - **raw**, normal string encoding.
+   - **int**, strings representing integers in a 64-bit signed interval, encoded in this way to save space.
+   - **embstr**, an embedded string, which is an object where the internal simple dynamic string, sds, is an unmodifiable string allocated in the same chuck as the object itself. embstr can be strings with lengths up to the hardcoded limit of OBJ_ENCODING_EMBSTR_SIZE_LIMIT or 44 bytes.
+
+---
+- **Lists** can be encoded as:
+   - **linkedlist**, simple list encoding. No longer used, an old list encoding.
+   - **ziplist**, Redis <= 6.2, a space-efficient encoding used for small lists.
+   - **listpack**, Redis >= 7.0, a space-efficient encoding used for small lists.
+   - **quicklist**, encoded as linkedlist of ziplists or listpacks.
+
+
+- **Sets** can be encoded as:
+
+   - **hashtable**, normal set encoding.
+   - **intset**, a special encoding used for small sets composed solely of integers.
+   - **listpack**, Redis >= 7.2, a space-efficient encoding used for small sets.
+
+- **Hashes** can be encoded as:
+
+   - **zipmap**, no longer used, an old hash encoding.
+   - **hashtable**, normal hash encoding.
+   - **ziplist**, Redis <= 6.2, a space-efficient encoding used for small hashes.
+   - **listpack**, Redis >= 7.0, a space-efficient encoding used for small hashes.
+
+- **Sorted Sets** can be encoded as:
+   - **skiplist**, normal sorted set encoding.
+   - **ziplist**, Redis <= 6.2, a space-efficient encoding used for small sorted sets.
+   - **listpack**, Redis >= 7.0, a space-efficient encoding used for small sorted sets.
+
+- **Streams** can be encoded as:
+  - **stream**, encoded as a radix tree of listpacks.  
+  
+All the specially encoded types are automatically converted to the general type once you perform an operation that makes it impossible for Redis to retain the space saving encoding.
 
 ### Redis 三种缓存异常现象
 | 类型 | 核心特征 | 典型场景 |
@@ -242,11 +283,11 @@ Producer（生产者）       Broker（服务端）       Consumer（消费者�
 
 ### SqlSession 的三个核心对象
 
-| 对象 | 作用 | 是否可多线程共享 |
-|---|---|---|
-| `SqlSessionFactory` | 创建SqlSession，**通常配置为单例**，随应用长期复用 | ✅ |
-| `SqlSessionTemplate` | 统一调用入口，通过代理获取对应会话并委托执行 | ✅ |
-| `DefaultSqlSession` | 实际会话，关联连接、事务、一级缓存等状态 | ❌ |
+| 对象 | 作用                                      | 是否可多线程共享 |
+|---|-----------------------------------------|---|
+| `SqlSessionFactory` | 创建SqlSession，**通常配置为单例**，随应用长期复用        | ✅ |
+| `SqlSessionTemplate` | 统一调用入口，**通常配置为单例**，通过代理获取对应会话并委托执行 | ✅ |
+| `DefaultSqlSession` | 实际会话，关联连接、事务、一级缓存等状态                    | ❌ |
 
 ### SqlSession 的常规调用流程
 ```
@@ -339,12 +380,12 @@ Eureka Server 默认每隔15分钟尝试更新预期心跳续约阈值，该阈�
 │              │                                          │
 │              ▼                                          │
 │   BlockingLoadBalancerClient                            │
-│   （默认单例 Bean，处理同步负载均衡请求）【A】                │
+│   （默认单例 Bean，处理同步负载均衡请求）                     │
 │              │                                          │
-│              │ 根据 serviceId                           │
+│              │ 根据 serviceId                            │
 │              ▼                                          │
-│   LoadBalancerClientFactory【D】                        │
-│   （默认单例 Bean，管理不同 serviceId 的独立子容器）         │
+│   LoadBalancerClientFactory.getInstance(serviceId)      │
+│   （默认单例 Bean，管理不同 serviceId 的独立子容器）          │
 │              │                                          │
 │       ┌──────┴──────────────────┐                       │
 │       ▼                         ▼                       │
@@ -352,8 +393,8 @@ Eureka Server 默认每隔15分钟尝试更新预期心跳续约阈值，该阈�
 │ │ order-service    │  │ user-service     │              │
 │ │ 独立子容器         │  │ 独立子容器        │              │
 │ │                  │  │                  │              │
-│ │ LoadBalancer【C】 │  │ LoadBalancer【C】│              │
-│ │ 轮询算法          │  │ 随机算法          │              │
+│ │ LoadBalancer     │  │ LoadBalancer     │              │
+│ │ 轮询算法          │  │ 随机算法           │              │
 │ │       │          │  │       │          │              │
 │ │       ▼          │  │       ▼          │              │
 │ │ ServiceInstance  │  │ ServiceInstance  │              │

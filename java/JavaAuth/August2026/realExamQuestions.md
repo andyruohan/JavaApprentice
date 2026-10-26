@@ -46,34 +46,34 @@ D. 减少分区等同于删除主题，两个功能实现的是同一种效果
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                    Kafka 集群：3个Broker、2个Topic                       │
+│                    Kafka 集群：3个Broker、2个Topic                        │
 │                                                                         │
 │  ┌─────────────────────┬─────────────────────┬─────────────────────┐    │
 │  │      Broker 1       │      Broker 2       │      Broker 3       │    │
 │  │                     │                     │                     │    │
 │  ╞═════════════════════╪═════════════════════╪═════════════════════╡    │
-│  │                 Topic：order-events（订单消息）                 │    │
+│  │                 Topic：order-events（订单消息）                   │    │
 │  ├─────────────────────┼─────────────────────┼─────────────────────┤    │
 │  │ P0 [Leader]         │ P0 [Follower]       │ P1 [Follower]       │    │
 │  │ P2 [Follower]       │ P1 [Leader]         │ P2 [Leader]         │    │
 │  │                     │                     │                     │    │
 │  ╞═════════════════════╪═════════════════════╪═════════════════════╡    │
-│  │                Topic：payment-events（支付消息）                │    │
+│  │                Topic：payment-events（支付消息）                  │    │
 │  ├─────────────────────┼─────────────────────┼─────────────────────┤    │
 │  │ P0 [Follower]       │ P1 [Leader]         │ P0 [Leader]         │    │
 │  │                     │                     │ P1 [Follower]       │    │
 │  │                     │                     │                     │    │
 │  └─────────────────────┴─────────────────────┴─────────────────────┘    │
 │                                                                         │
-│  说明：                                                                 │
-│  1. 竖向每一列是一个Broker，可承载多个Topic的分区副本。                  │
-│  2. 横向每一带是一个Topic，展示其副本在各Broker上的分布。                │
-│  3. P表示Partition（分区）；订单有3个分区，支付有2个分区。                │
-│  4. 每个分区有2份副本：1个Leader、1个Follower，共10份副本。               │
-│  5. 不同Topic的P0是不同分区；同一分区的Follower复制Leader日志。           │
-│  6. Follower可能短暂落后，ISR不表示每一瞬间数据都完全相同。               │
-│  7. 删除订单Topic，相当于清理订单这一横带的数据；                        │
-│     三个Broker仍运行，支付Topic仍保留。                                 │
+│  说明：                                                                  │
+│  1. 竖向每一列是一个Broker，可承载多个Topic的分区副本。                        │
+│  2. 横向每一带是一个Topic，展示其副本在各Broker上的分布。                      │
+│  3. P表示Partition（分区）；订单有3个分区，支付有2个分区。                      │
+│  4. 每个分区有2份副本：1个Leader、1个Follower，共10份副本。                   │
+│  5. 不同Topic的P0是不同分区；同一分区的Follower复制Leader日志。               │
+│  6. Follower可能短暂落后，ISR不表示每一瞬间数据都完全相同。                    │
+│  7. 删除订单Topic，相当于清理订单这一横带的数据；                              │
+│     三个Broker仍运行，支付Topic仍保留。                                     │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 ---
@@ -627,10 +627,11 @@ Redis objects can be encoded in different ways:
   - **ziplist**, Redis <= 6.2, a space-efficient encoding used for small sorted sets.
   - **listpack**, Redis >= 7.0, a space-efficient encoding used for small sorted sets.
 
-**Streams** can be encoded as:
+- **Streams** can be encoded as:
+  - **stream**, encoded as a radix tree of listpacks.
 
-  - stream, encoded as a radix tree of listpacks.
 All the specially encoded types are automatically converted to the general type once you perform an operation that makes it impossible for Redis to retain the space saving encoding.
+
 ---
 
 24.【SQL】已知 SQL 表结构如下，以下哪个选项可以查询所有学生的所有课程的成绩以及平均成绩（按平均成绩从高到低显示）？
@@ -1538,12 +1539,12 @@ D. BlockingLoadBalancerClient 从 LoadBalancerClientFactory 里加载对应微�
 │              │                                          │
 │              ▼                                          │
 │   BlockingLoadBalancerClient                            │
-│   （默认单例 Bean，处理同步负载均衡请求）【A】                │
+│   （默认单例 Bean，处理同步负载均衡请求）【A】                 │
 │              │                                          │
-│              │ 根据 serviceId                           │
+│              │ 根据 serviceId                            │
 │              ▼                                          │
-│   LoadBalancerClientFactory【D】                        │
-│   （默认单例 Bean，管理不同 serviceId 的独立子容器）                      │
+│   LoadBalancerClientFactory.getInstance(serviceId)【D】  │
+│   （默认单例 Bean，管理不同 serviceId 的独立子容器）          │
 │              │                                          │
 │       ┌──────┴──────────────────┐                       │
 │       ▼                         ▼                       │
@@ -1552,7 +1553,7 @@ D. BlockingLoadBalancerClient 从 LoadBalancerClientFactory 里加载对应微�
 │ │ 独立子容器         │  │ 独立子容器        │              │
 │ │                  │  │                  │              │
 │ │ LoadBalancer【C】 │  │ LoadBalancer【C】│              │
-│ │ 轮询算法          │  │ 随机算法          │              │
+│ │ 轮询算法          │  │ 随机算法          │               │
 │ │       │          │  │       │          │              │
 │ │       ▼          │  │       ▼          │              │
 │ │ ServiceInstance  │  │ ServiceInstance  │              │
